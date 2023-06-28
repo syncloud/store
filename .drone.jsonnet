@@ -1,4 +1,5 @@
 local name = "syncloud-store";
+local go = "1.20";
 
 local build(arch) = {
     kind: "pipeline",
@@ -18,7 +19,7 @@ local build(arch) = {
         },
         {
             name: "build store",
-            image: "golang:1.18",
+            image: "golang:" + go,
             commands: [
                 "VERSION=$(cat version)",
                 "./syncloud/build.sh $VERSION " + arch
@@ -35,7 +36,7 @@ local build(arch) = {
         },
         {
             name: "build test",
-            image: "golang:1.18",
+            image: "golang:" + go,
             commands: [
               "./syncloud/test/build-tests.sh",
             ]
