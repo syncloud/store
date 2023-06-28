@@ -1,0 +1,9 @@
+apps:
+  test:
+    command: bin/test.sh
+
+confinement: strict
+description: Test app 2
+grade: stable
+name: testapp2
+summary: Test app 2

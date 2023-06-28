@@ -1,0 +1,16 @@
+{
+  "apps" : [
+    {
+      "name" : "Test App 1",
+      "id" : "testapp1",
+      "required" : false,
+      "ui": true
+    },
+    {
+      "name" : "Test App 2",
+      "id" : "testapp2",
+      "required" : false,
+      "ui": true
+    }
+  ]
+}

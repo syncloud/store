@@ -1,0 +1,10 @@
+[Unit]
+Description=Syncloud Store
+
+[Service]
+ExecStart=/usr/lib/syncloud-store/bin/store start :8080
+Restart=always
+Type=simple
+
+[Install]
+WantedBy=multi-user.target
