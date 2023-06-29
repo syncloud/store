@@ -27,9 +27,9 @@ mkdir -p $LOG_DIR
 $SCP ${DIR}/install-store.sh root@$DEVICE:/install-store.sh
 $SCP ${DIR}/../out/syncloud-store-*.tar.gz root@$DEVICE:/syncloud-store.tar.gz
 
-wget https://github.com/syncloud/snapd/releases/download/2/snapd-amd64.tar.gz
+wget https://github.com/syncloud/snapd/releases/download/3-rc1/snapd-504-amd64.tar.gz
 $SCP ${DIR}/install-snapd.sh root@$DEVICE:/install-snapd.sh
-snapd-amd64.tar.gz root@$DEVICE:/snapd.tar.gz
+$SCP snapd-*.tar.gz root@$DEVICE:/snapd.tar.gz
 
 $SSH root@$DEVICE /install-store.sh
 $SSH root@$DEVICE /install-snapd.sh
