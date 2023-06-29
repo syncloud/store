@@ -22,7 +22,7 @@ local build(arch) = {
             image: "golang:" + go,
             commands: [
                 "VERSION=$(cat version)",
-                "./syncloud/build.sh $VERSION " + arch
+                "./build.sh $VERSION " + arch
             ]
         },
         {
@@ -30,15 +30,15 @@ local build(arch) = {
             image: "debian:buster-slim",
             commands: [
               "apt update && apt install -y squashfs-tools",
-              "./syncloud/test/build-apps.sh",
-              "./syncloud/test/publish.sh " + arch
+              "./test/build-apps.sh",
+              "./test/publish.sh " + arch
             ]
         },
         {
             name: "build test",
             image: "golang:" + go,
             commands: [
-              "./syncloud/test/build-tests.sh",
+              "./test/build-tests.sh",
             ]
         },
         {
@@ -46,28 +46,8 @@ local build(arch) = {
             image: "debian:buster-slim",
             commands: [
               "VERSION=$(cat version)",
-              "./syncloud/test/test.sh device"
+              "./test/test.sh device"
             ]
-        },
-        {
-            name: "upload",
-            image: "python:3.9-buster",
-            environment: {
-                AWS_ACCESS_KEY_ID: {
-                    from_secret: "AWS_ACCESS_KEY_ID"
-                },
-                AWS_SECRET_ACCESS_KEY: {
-                    from_secret: "AWS_SECRET_ACCESS_KEY"
-                }
-            },
-            commands: [
-              "VERSION=$(cat version)",
-              "pip install s3cmd",
-              "./syncloud/bin/upload.sh $DRONE_BRANCH $VERSION " + name + "-$VERSION-$(dpkg-architecture -q DEB_HOST_ARCH).tar.gz"
-            ],
-            when: {
-                branch: ["stable", "master"]
-            }
         },
         {
             name: "artifact",
@@ -84,8 +64,8 @@ local build(arch) = {
                 command_timeout: "2m",
                 target: "/home/artifact/repo/" + name + "/${DRONE_BUILD_NUMBER}-" + arch,
                 source: [
-                    "syncloud/test/*.snap",
-                    "syncloud/out/*",
+                    "test/*.snap",
+                    "out/*",
                     "artifacts/*"
                 ]
             },
@@ -100,7 +80,7 @@ local build(arch) = {
                 api_key: {
                     from_secret: "github_token"
                 },
-                files: "syncloud/out/*",
+                files: "out/*",
                 overwrite: true,
                 file_exists: "overwrite"
             },
@@ -162,29 +142,20 @@ local build(arch) = {
     ]
 };
 
-local promote() = {
+local deploy(env) = {
     kind: "pipeline",
     type: "docker",
-    name: "promote",
+    name: "deploy " + env,
     platform: {
         os: "linux",
         arch: "amd64"
     },
     steps: [
     {
-        name: "promote",
+        name: "deploy",
         image: "python:3.9-buster",
-        environment: {
-          AWS_ACCESS_KEY_ID: {
-              from_secret: "AWS_ACCESS_KEY_ID"
-          },
-          AWS_SECRET_ACCESS_KEY: {
-              from_secret: "AWS_SECRET_ACCESS_KEY"
-          }
-        },
         commands: [
-          "pip install s3cmd",
-          "./syncloud/bin/promote.sh"
+          "./bin/deploy.sh"
         ]
     }
     ],
@@ -197,7 +168,5 @@ local promote() = {
 
 [
     build("amd64"),
-    build("arm64"),
-    build("arm"),
-    promote()
+    deploy("uat")
 ]
