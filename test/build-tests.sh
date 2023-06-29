@@ -2,4 +2,4 @@
 
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 cd $DIR
-go test -c -o test
+go test -ldflags '-linkmode external -extldflags -static' -c -o test
