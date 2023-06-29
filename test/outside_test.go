@@ -28,7 +28,7 @@ func TestOutside(t *testing.T) {
 
 	output, err = Ssh("device", "snap install testapp1")
 	assert.NoError(t, err, output)
-	assert.NotContains(t, "Warning", output)
+	assert.NotContains(t, output, "Warning")
 
 	//#known issue unable to install local then refresh from master if there is no stable version in the store
 	//#$SSH root@$DEVICE snap install /testapp2_1.snap --devmode
@@ -36,15 +36,15 @@ func TestOutside(t *testing.T) {
 
 	output, err = Ssh("device", "snap install testapp2 --channel=master")
 	assert.NoError(t, err, output)
-	assert.NotContains(t, "Warning", output)
+	assert.NotContains(t, output, "Warning")
 
 	output, err = Ssh("device", "snap run testapp2.test")
 	assert.NoError(t, err, output)
-	assert.NotContains(t, "error", output)
+	assert.NotContains(t, output, "error")
 
 	output, err = Ssh("device", "snap list")
 	assert.NoError(t, err, output)
-	assert.NotContains(t, "master", output)
+	assert.NotContains(t, output, "master")
 
 	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release publish -f /testapp1_2_%s.snap -b stable -t %s", arch, StoreDir))
 	assert.NoError(t, err, output)
