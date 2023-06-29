@@ -66,7 +66,7 @@ local build(arch) = {
                 source: [
                     "test/*.snap",
                     "out/*",
-                    "artifacts/*"
+                    "test/artifacts/*"
                 ]
             },
             when: {

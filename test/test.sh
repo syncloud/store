@@ -11,7 +11,7 @@ DEVICE=$1
 STORE_DIR=/var/www/html
 SCP="sshpass -p syncloud scp -o StrictHostKeyChecking=no"
 SSH="sshpass -p syncloud ssh -o StrictHostKeyChecking=no"
-ARTIFACTS_DIR=${DIR}/../../artifacts
+ARTIFACTS_DIR=${DIR}/artifacts
 mkdir $ARTIFACTS_DIR
 LOG_DIR=$ARTIFACTS_DIR/log/$DEVICE
 SNAP_ARCH=$(dpkg --print-architecture)
