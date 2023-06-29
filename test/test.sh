@@ -17,7 +17,7 @@ LOG_DIR=$ARTIFACTS_DIR/log/$DEVICE
 SNAP_ARCH=$(dpkg --print-architecture)
 
 apt update
-apt install -y sshpass curl
+apt install -y sshpass curl wget
 cd $DIR
 
 ./wait-for-device.sh $DEVICE
