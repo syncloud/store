@@ -38,6 +38,8 @@ func TestPrepareStore(t *testing.T) {
 }
 
 func TestUpgrade(t *testing.T) {
+	arch, err := snapArch()
+	assert.NoError(t, err)
 
 	output, err := InstallSnapd("/snapd1.tar.gz")
 	assert.NoError(t, err, output)
