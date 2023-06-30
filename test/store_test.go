@@ -53,6 +53,9 @@ func TestUpgrade(t *testing.T) {
 
 	output, err = Ssh("device", "snap refresh testapp1")
 	assert.NoError(t, err, output)
+
+	output, err = Ssh("device", "snap list testapp1")
+	assert.NoError(t, err, output)
 	assert.Contains(t, output, "testapp1  2        2    stable    syncloud")
 
 	output, err = Ssh("device", "snap remove testapp1")
@@ -101,7 +104,7 @@ func TestMasterChannel(t *testing.T) {
 
 	output, err = Ssh("device", "snap list testapp1")
 	assert.NoError(t, err, output)
-	assert.NotContains(t, output, "testapp1  1        1    master/stable  syncloud")
+	assert.Contains(t, output, "testapp1  1        1    master/stable  syncloud")
 
 	output, err = Ssh("device", "snap remove testapp1")
 	assert.NoError(t, err, output)
@@ -179,9 +182,17 @@ func TestRefreshList(t *testing.T) {
 	output, err = Ssh("device", "snap install testapp2")
 	assert.NoError(t, err, output)
 
-	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp1 -a %s -v 1 -c stable -t %s", arch, StoreDir))
+	output, err = Ssh("device", "snap list testapp1")
 	assert.NoError(t, err, output)
-	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp2 -a %s -v 1 -c stable -t %s", arch, StoreDir))
+	assert.Contains(t, output, "testapp1  1        1    latest/stable  syncloud")
+
+	output, err = Ssh("device", "snap list testapp2")
+	assert.NoError(t, err, output)
+	assert.Contains(t, output, "testapp2  1        1    latest/stable  syncloud")
+
+	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp1 -a %s -v 2 -c stable -t %s", arch, StoreDir))
+	assert.NoError(t, err, output)
+	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp2 -a %s -v 2 -c stable -t %s", arch, StoreDir))
 	assert.NoError(t, err, output)
 
 	output, err = Ssh("device", "/usr/lib/syncloud-store/bin/cli refresh")
@@ -192,6 +203,14 @@ func TestRefreshList(t *testing.T) {
 
 	output, err = Ssh("device", "snap refresh")
 	assert.NoError(t, err, output)
+
+	output, err = Ssh("device", "snap list testapp1")
+	assert.NoError(t, err, output)
+	assert.Contains(t, output, "testapp1  2        2    latest/stable  syncloud")
+
+	output, err = Ssh("device", "snap list testapp2")
+	assert.NoError(t, err, output)
+	assert.Contains(t, output, "testapp2  2        2    latest/stable  syncloud")
 
 	output, err = Ssh("device", "snap refresh --list")
 	assert.NoError(t, err, output)
