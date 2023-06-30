@@ -45,8 +45,6 @@ func TestOutside(t *testing.T) {
 
 	output, err = UpgradeSnapd("/snapd2.tar.gz")
 	assert.NoError(t, err, output)
-	output, err = Ssh("device", "snap install testapp1")
-	assert.NoError(t, err, output)
 
 	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp1 -a %s -v 2 -c stable -t %s", arch, StoreDir))
 	assert.NoError(t, err, output)
