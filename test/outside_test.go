@@ -15,7 +15,7 @@ const (
 	StoreDir = "/var/www/html"
 )
 
-func TestOutside(t *testing.T) {
+func TestUpgrade(t *testing.T) {
 	arch, err := snapArch()
 	assert.NoError(t, err)
 
@@ -55,48 +55,116 @@ func TestOutside(t *testing.T) {
 	assert.NoError(t, err, output)
 	assert.Contains(t, output, "testapp1  2        2    stable    syncloud")
 
-	output, err = SshWaitFor("device", "snap list", func(output string) bool { return strings.Contains(output, "No snaps") })
-	assert.NoError(t, err, output)
+}
 
-	output, err = Ssh("device", "snap install unknown --channel=master")
+func TestUnknown(t *testing.T) {
+	output, err := InstallSnapd("/snapd2.tar.gz")
+	assert.NoError(t, err, output)
+	output, err = Ssh("device", "snap install unknown")
 	assert.Error(t, err)
 	assert.Contains(t, output, "not found")
+}
 
+func TestInstallWarning(t *testing.T) {
+	arch, err := snapArch()
+	assert.NoError(t, err)
+	output, err := InstallSnapd("/snapd2.tar.gz")
+	assert.NoError(t, err, output)
+	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp1 -a %s -v 1 -c stable -t %s", arch, StoreDir))
+	assert.NoError(t, err, output)
+	output, err = Ssh("device", "/usr/lib/syncloud-store/bin/cli refresh")
+	assert.NoError(t, err, output)
 	output, err = Ssh("device", "snap install testapp1")
 	assert.NoError(t, err, output)
 	assert.NotContains(t, output, "Warning")
+}
 
-	output, err = Ssh("device", "snap list")
+func TestMasterChannel(t *testing.T) {
+	arch, err := snapArch()
+	assert.NoError(t, err)
+
+	output, err := InstallSnapd("/snapd2.tar.gz")
 	assert.NoError(t, err, output)
-	assert.NotContains(t, output, "latest/stable")
 
-	//#known issue unable to install local then refresh from master if there is no stable version in the store
-	//#$SSH root@$DEVICE snap install /testapp2_1.snap --devmode
-	//#$SSH root@$DEVICE timeout 1m snap refresh testapp2 --channel=master --amend
-
-	output, err = Ssh("device", "snap install testapp2 --channel=master")
+	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp1 -a %s -v 1 -c master -t %s", arch, StoreDir))
 	assert.NoError(t, err, output)
-	assert.NotContains(t, output, "Warning")
+	output, err = Ssh("device", "/usr/lib/syncloud-store/bin/cli refresh")
+	assert.NoError(t, err, output)
 
-	output, err = Ssh("device", "snap run testapp2.test")
+	output, err = Ssh("device", "snap install testapp1 --channel=master")
+	assert.NoError(t, err, output)
+
+	output, err = Ssh("device", "snap list testapp1")
+	assert.NoError(t, err, output)
+	assert.NotContains(t, output, "testapp1  1        1    master/stable  syncloud")
+}
+
+func TestCommand(t *testing.T) {
+	arch, err := snapArch()
+	assert.NoError(t, err)
+
+	output, err := InstallSnapd("/snapd2.tar.gz")
+	assert.NoError(t, err, output)
+
+	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp1 -a %s -v 1 -c stable -t %s", arch, StoreDir))
+	assert.NoError(t, err, output)
+	output, err = Ssh("device", "/usr/lib/syncloud-store/bin/cli refresh")
+	assert.NoError(t, err, output)
+
+	output, err = Ssh("device", "snap install testapp1")
+	assert.NoError(t, err, output)
+
+	output, err = Ssh("device", "snap run testapp1.test")
 	assert.NoError(t, err, output)
 	assert.NotContains(t, output, "error")
+}
 
-	output, err = Ssh("device", "snap list")
+func TestRefresh(t *testing.T) {
+	arch, err := snapArch()
+	assert.NoError(t, err)
+
+	output, err := InstallSnapd("/snapd2.tar.gz")
 	assert.NoError(t, err, output)
-	assert.NotContains(t, output, "latest/stable")
-	assert.NotContains(t, output, "master/stable")
 
-	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp1 -a %s -v 2 -c stable -t %s", arch, StoreDir))
+	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp1 -a %s -v 1 -c stable -t %s", arch, StoreDir))
 	assert.NoError(t, err, output)
 
 	output, err = Ssh("device", "/usr/lib/syncloud-store/bin/cli refresh")
 	assert.NoError(t, err, output)
 
+	output, err = Ssh("device", "snap install testapp1")
+	assert.NoError(t, err, output)
+	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp1 -a %s -v 2 -c stable -t %s", arch, StoreDir))
+	assert.NoError(t, err, output)
+	output, err = Ssh("device", "/usr/lib/syncloud-store/bin/cli refresh")
+	assert.NoError(t, err, output)
 	output, err = Ssh("device", "snap refresh testapp1")
 	assert.NoError(t, err, output)
+}
 
-	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp1 -a %s -v 3 -c stable -t %s", arch, StoreDir))
+func TestRefreshList(t *testing.T) {
+	arch, err := snapArch()
+	assert.NoError(t, err)
+
+	output, err := InstallSnapd("/snapd2.tar.gz")
+	assert.NoError(t, err, output)
+
+	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp1 -a %s -v 1 -c stable -t %s", arch, StoreDir))
+	assert.NoError(t, err, output)
+	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp2 -a %s -v 1 -c stable -t %s", arch, StoreDir))
+	assert.NoError(t, err, output)
+
+	output, err = Ssh("device", "/usr/lib/syncloud-store/bin/cli refresh")
+	assert.NoError(t, err, output)
+
+	output, err = Ssh("device", "snap install testapp1")
+	assert.NoError(t, err, output)
+	output, err = Ssh("device", "snap install testapp2")
+	assert.NoError(t, err, output)
+
+	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp1 -a %s -v 1 -c stable -t %s", arch, StoreDir))
+	assert.NoError(t, err, output)
+	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp2 -a %s -v 1 -c stable -t %s", arch, StoreDir))
 	assert.NoError(t, err, output)
 
 	output, err = Ssh("device", "/usr/lib/syncloud-store/bin/cli refresh")
@@ -111,21 +179,66 @@ func TestOutside(t *testing.T) {
 	output, err = Ssh("device", "snap refresh --list")
 	assert.NoError(t, err, output)
 
+}
+
+func TestFind(t *testing.T) {
+	arch, err := snapArch()
+	assert.NoError(t, err)
+
+	output, err := InstallSnapd("/snapd2.tar.gz")
+	assert.NoError(t, err, output)
+
+	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp1 -a %s -v 1 -c stable -t %s", arch, StoreDir))
+	assert.NoError(t, err, output)
+
+	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp2 -a %s -v 1 -c stable -t %s", arch, StoreDir))
+	assert.NoError(t, err, output)
+
+	output, err = Ssh("device", "/usr/lib/syncloud-store/bin/cli refresh")
+	assert.NoError(t, err, output)
+
 	output, err = Ssh("device", "snap find testapp1")
 	assert.NoError(t, err, output)
 
 	output, err = Ssh("device", "snap find")
 	assert.NoError(t, err, output)
+}
 
-	output, err = Ssh("device", "snap remove testapp2")
+func TestRemove(t *testing.T) {
+	arch, err := snapArch()
+	assert.NoError(t, err)
+
+	output, err := InstallSnapd("/snapd2.tar.gz")
+	assert.NoError(t, err, output)
+
+	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp1 -a %s -v 1 -c stable -t %s", arch, StoreDir))
+	assert.NoError(t, err, output)
+
+	output, err = Ssh("device", "/usr/lib/syncloud-store/bin/cli refresh")
+	assert.NoError(t, err, output)
+
+	output, err = Ssh("device", "snap install testapp1")
+	assert.NoError(t, err, output)
+
+	output, err = Ssh("device", "snap remove testapp1")
+	assert.NoError(t, err, output)
+}
+
+func TestRest_SnapsInfo(t *testing.T) {
+	arch, err := snapArch()
+	assert.NoError(t, err)
+
+	output, err := InstallSnapd("/snapd2.tar.gz")
+	assert.NoError(t, err, output)
+
+	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp1 -a %s -v 1 -c stable -t %s", arch, StoreDir))
 	assert.NoError(t, err, output)
 
 	client := resty.New()
-
 	resp, err := client.R().Get("http://device:8080/v2/snaps/info/testapp1?architecture=arm64&fields=architectures")
 	assert.NoError(t, err, output)
 	assert.Equal(t, 200, resp.StatusCode())
-	assert.Contains(t, string(resp.Body()), `"snap-id":"testapp1.3"`)
+	assert.Contains(t, string(resp.Body()), `"snap-id":"testapp1.1"`)
 
 }
 
