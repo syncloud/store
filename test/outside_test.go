@@ -41,7 +41,7 @@ func TestOutside(t *testing.T) {
 
 	output, err = Ssh("device", "snap list testapp1")
 	assert.NoError(t, err, output)
-	assert.Contains(t, output, " 1 stable ")
+	assert.Contains(t, output, "testapp1  1        1    stable    syncloud")
 
 	output, err = UpgradeSnapd("/snapd2.tar.gz")
 	assert.NoError(t, err, output)
