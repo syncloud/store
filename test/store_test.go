@@ -55,6 +55,9 @@ func TestUpgrade(t *testing.T) {
 	assert.NoError(t, err, output)
 	assert.Contains(t, output, "testapp1  2        2    stable    syncloud")
 
+	output, err = Ssh("device", "snap remove testapp1")
+	assert.NoError(t, err, output)
+
 }
 
 func TestUnknown(t *testing.T) {
@@ -77,6 +80,8 @@ func TestInstallWarning(t *testing.T) {
 	output, err = Ssh("device", "snap install testapp1")
 	assert.NoError(t, err, output)
 	assert.NotContains(t, output, "Warning")
+	output, err = Ssh("device", "snap remove testapp1")
+	assert.NoError(t, err, output)
 }
 
 func TestMasterChannel(t *testing.T) {
@@ -97,6 +102,10 @@ func TestMasterChannel(t *testing.T) {
 	output, err = Ssh("device", "snap list testapp1")
 	assert.NoError(t, err, output)
 	assert.NotContains(t, output, "testapp1  1        1    master/stable  syncloud")
+
+	output, err = Ssh("device", "snap remove testapp1")
+	assert.NoError(t, err, output)
+
 }
 
 func TestCommand(t *testing.T) {
@@ -117,6 +126,10 @@ func TestCommand(t *testing.T) {
 	output, err = Ssh("device", "snap run testapp1.test")
 	assert.NoError(t, err, output)
 	assert.NotContains(t, output, "error")
+
+	output, err = Ssh("device", "snap remove testapp1")
+	assert.NoError(t, err, output)
+
 }
 
 func TestRefresh(t *testing.T) {
@@ -140,6 +153,10 @@ func TestRefresh(t *testing.T) {
 	assert.NoError(t, err, output)
 	output, err = Ssh("device", "snap refresh testapp1")
 	assert.NoError(t, err, output)
+
+	output, err = Ssh("device", "snap remove testapp1")
+	assert.NoError(t, err, output)
+
 }
 
 func TestRefreshList(t *testing.T) {
@@ -179,6 +196,12 @@ func TestRefreshList(t *testing.T) {
 	output, err = Ssh("device", "snap refresh --list")
 	assert.NoError(t, err, output)
 
+	output, err = Ssh("device", "snap remove testapp1")
+	assert.NoError(t, err, output)
+
+	output, err = Ssh("device", "snap remove testapp2")
+	assert.NoError(t, err, output)
+
 }
 
 func TestFind(t *testing.T) {
@@ -202,26 +225,10 @@ func TestFind(t *testing.T) {
 
 	output, err = Ssh("device", "snap find")
 	assert.NoError(t, err, output)
-}
-
-func TestRemove(t *testing.T) {
-	arch, err := snapArch()
-	assert.NoError(t, err)
-
-	output, err := InstallSnapd("/snapd2.tar.gz")
-	assert.NoError(t, err, output)
-
-	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp1 -a %s -v 1 -c stable -t %s", arch, StoreDir))
-	assert.NoError(t, err, output)
-
-	output, err = Ssh("device", "/usr/lib/syncloud-store/bin/cli refresh")
-	assert.NoError(t, err, output)
-
-	output, err = Ssh("device", "snap install testapp1")
-	assert.NoError(t, err, output)
 
 	output, err = Ssh("device", "snap remove testapp1")
 	assert.NoError(t, err, output)
+
 }
 
 func TestRest_SnapsInfo(t *testing.T) {
