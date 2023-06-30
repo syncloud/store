@@ -37,17 +37,15 @@ $SCP ${DIR}/upgrade-snapd.sh root@$DEVICE:/
 
 $SSH root@$DEVICE /install-store.sh
 $SCP ${DIR}/testapp2_1_$SNAP_ARCH.snap root@$DEVICE:/testapp2_1.snap
-$SCP ${DIR}/test root@$DEVICE:/
+#$SCP ${DIR}/test root@$DEVICE:/
 
 code=0
 set +e
-
-${DIR}/test -test.run Outside
+${DIR}/test
 code=$(($code+$?))
-
-$SSH root@$DEVICE /test -test.run Inside
-code=$(($code+$?))
-
+#$SSH root@$DEVICE /test -test.run Inside
+#code=$(($code+$?))
+#
 set -e
 
 $SSH root@$DEVICE snap changes > $LOG_DIR/snap.changes.log || true

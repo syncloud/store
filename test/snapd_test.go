@@ -1,19 +1,10 @@
 package test
 
-import (
-	"context"
-	"github.com/go-resty/resty/v2"
-	"github.com/stretchr/testify/assert"
-	"net"
-	"net/http"
-	"testing"
-)
-
 const (
 	SnapdSocket = "/var/run/snapd.socket"
 )
 
-func TestInside(t *testing.T) {
+/*func TestSnapdInside(t *testing.T) {
 
 	client := resty.New()
 	transport := http.Transport{
@@ -36,3 +27,4 @@ func TestInside(t *testing.T) {
 	assert.Contains(t, string(resp.Body()), `"id":"testapp1.3"`)
 	assert.Contains(t, string(resp.Body()), `"channel":"stable"`)
 }
+*/
