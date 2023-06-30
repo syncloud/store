@@ -48,6 +48,8 @@ func TestOutside(t *testing.T) {
 
 	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp1 -a %s -v 2 -c stable -t %s", arch, StoreDir))
 	assert.NoError(t, err, output)
+	output, err = Ssh("device", "/usr/lib/syncloud-store/bin/cli refresh")
+	assert.NoError(t, err, output)
 
 	output, err = Ssh("device", "snap refresh testapp1")
 	assert.NoError(t, err, output)
