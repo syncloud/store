@@ -3,7 +3,6 @@
 SNAPD=$1
 
 cd /tmp
-rm -rf "${SNAPD}"
 rm -rf snapd
 
 tar xzvf "${SNAPD}"

@@ -154,11 +154,11 @@ func SshWaitFor(host string, command string, predicate func(string) bool) (strin
 	retries := 10
 	retry := 0
 	for retry < retries {
+		retry++
 		output, err := Ssh(host, command)
 		if err != nil {
 			fmt.Printf("error: %v", err)
 			time.Sleep(1 * time.Second)
-			retry++
 			fmt.Printf("retry %d/%d", retry, retries)
 			continue
 		}
