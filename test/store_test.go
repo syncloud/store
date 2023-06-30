@@ -15,7 +15,7 @@ const (
 	StoreDir = "/var/www/html"
 )
 
-func TestUpgrade(t *testing.T) {
+func TestPrepareStore(t *testing.T) {
 	arch, err := snapArch()
 	assert.NoError(t, err)
 
@@ -26,15 +26,20 @@ func TestUpgrade(t *testing.T) {
 
 	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release publish -f /testapp2_1_%s.snap -b master -t %s", arch, StoreDir))
 	assert.NoError(t, err, output)
-	//output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release promote -n testapp2 -a %s -t %s", arch, StoreDir))
-	//assert.NoError(t, err, output)
+
+	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release publish -f /testapp2_2_%s.snap -b stable -t %s", arch, StoreDir))
+	assert.NoError(t, err, output)
 
 	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release publish -f /testapp1_2_%s.snap -b stable -t %s", arch, StoreDir))
 	assert.NoError(t, err, output)
 	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release publish -f /testapp1_3_%s.snap -b stable -t %s", arch, StoreDir))
 	assert.NoError(t, err, output)
 
-	output, err = InstallSnapd("/snapd1.tar.gz")
+}
+
+func TestUpgrade(t *testing.T) {
+
+	output, err := InstallSnapd("/snapd1.tar.gz")
 	assert.NoError(t, err, output)
 	output, err = Ssh("device", "snap install testapp1")
 	assert.NoError(t, err, output)
