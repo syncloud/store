@@ -28,9 +28,9 @@ $SCP snapd1.tar.gz root@device:/
 wget --progress=dot:giga https://github.com/syncloud/snapd/releases/download/3-rc/snapd-514-amd64.tar.gz -O snapd2.tar.gz
 $SCP snapd2.tar.gz root@device:/
 
-$SCP ${DIR}/install-snapd1.sh root@device:/
-$SCP ${DIR}/install-snapd2.sh root@device:/
-$SCP ${DIR}/upgrade-snapd2.sh root@device:/
+$SCP ${DIR}/install-snapd-old.sh root@device:/
+$SCP ${DIR}/install-snapd-new.sh root@device:/
+$SCP ${DIR}/upgrade-snapd.sh root@device:/
 
 $SSH root@api.store.syncloud.org /install-store.sh
 $SCP ${DIR}/testapp2_1_$SNAP_ARCH.snap root@device:/testapp2_1.snap
