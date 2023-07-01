@@ -46,7 +46,7 @@ local build(arch) = {
             image: "debian:buster-slim",
             commands: [
               "VERSION=$(cat version)",
-              "./test/test.sh device"
+              "./test/test.sh"
             ]
         },
         {
@@ -93,6 +93,21 @@ local build(arch) = {
     [
         {
             name: "device",
+            image: "syncloud/bootstrap-buster-" + arch,
+            privileged: true,
+            volumes: [
+                {
+                    name: "dbus",
+                    path: "/var/run/dbus"
+                },
+                {
+                    name: "dev",
+                    path: "/dev"
+                }
+            ]
+        },
+        {
+            name: "api.store.syncloud.org",
             image: "syncloud/bootstrap-buster-" + arch,
             privileged: true,
             volumes: [
