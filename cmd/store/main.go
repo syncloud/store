@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"github.com/syncloud/store/api"
+	"github.com/syncloud/store/crypto"
 	"github.com/syncloud/store/log"
 	"github.com/syncloud/store/machine"
 	"github.com/syncloud/store/rest"
@@ -24,7 +25,8 @@ func main() {
 			logger := log.Default()
 			client := rest.New()
 			index := storage.New(client, api.Url, machine.DPKGArch, logger)
-			public := api.NewSyncloudStore(args[0], index, client, logger)
+			signer := crypto.NewSigner(logger)
+			public := api.NewSyncloudStore(args[0], index, client, signer, logger)
 			internal := api.NewApi(index)
 			err := index.Start()
 			if err != nil {
