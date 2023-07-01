@@ -2,11 +2,6 @@
 
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
-if [ "$#" -lt 1 ]; then
-    echo "usage $0 device"
-    exit 1
-fi
-
 STORE_DIR=/var/www/html
 SCP="sshpass -p syncloud scp -o StrictHostKeyChecking=no"
 SSH="sshpass -p syncloud ssh -o StrictHostKeyChecking=no"
