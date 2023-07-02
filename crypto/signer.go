@@ -141,11 +141,14 @@ func (s *PrivateKeySigner) sign(assertType string, primaryKey string, headers st
 		body +
 		"\n\n"
 
+	fmt.Println("content:")
+	fmt.Println(content)
 	signature, err := s.privateKey.SignContent([]byte(content))
 	if err != nil {
 		return "", err
 	}
-
-	assertionText := content + string(signature[:]) + "\n"
+	fmt.Println("signature:")
+	fmt.Println(signature)
+	assertionText := content + string(signature) + "\n"
 	return assertionText, nil
 }
