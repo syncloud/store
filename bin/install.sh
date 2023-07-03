@@ -2,7 +2,7 @@
 
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
-STORE=syncloud-store.tar.gz
+STORE=$1
 systemctl stop syncloud-store.service || true
 systemctl disable syncloud-store.service || true
 
