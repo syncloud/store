@@ -16,5 +16,5 @@ cp -r ${DIR}/config ${BUILD_DIR}
 OUT_DIR=${DIR}/out
 rm -rf ${OUT_DIR}
 mkdir $OUT_DIR
-go build -ldflags '-linkmode external -extldflags -static' -o $OUT_DIR/syncloud-release-$GO_ARCH ./cmd/release
-tar cpzf $OUT_DIR/syncloud-store-${VERSION}-${ARCH}.tar.gz -C $BUILD_DIR .
+go build -ldflags '-linkmode external -extldflags -static' -o $OUT_DIR/release-$GO_ARCH ./cmd/release
+tar cpzf $OUT_DIR/store-${VERSION}-${ARCH}.tar.gz -C $BUILD_DIR .
