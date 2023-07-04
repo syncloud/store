@@ -46,6 +46,8 @@ set -e
 
 $SSH root@device snap changes > $LOG_DIR/snap.changes.log || true
 $SSH root@device journalctl > $LOG_DIR/journalctl.device.log
+$SCP root@device:/var/log/apache2/store-access.log $LOG_DIR
+$SCP root@device:/var/log/apache2/store-error.log $LOG_DIR
 $SSH apps.syncloud.org journalctl > $LOG_DIR/journalctl.apps.log
 $SSH api.store.syncloud.org journalctl > $LOG_DIR/journalctl.store.log
 $SCP -r apps.syncloud.org:$STORE_DIR $ARTIFACTS_DIR/store
