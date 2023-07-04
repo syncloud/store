@@ -21,7 +21,7 @@ func TestPrepareStore(t *testing.T) {
 
 output, err := Ssh("api.store.syncloud.org", fmt.Sprintf("apt update"))
 	assert.NoError(t, err, output)
-output, err := Ssh("api.store.syncloud.org", fmt.Sprintf("apt install -y apache2"))
+output, err = Ssh("api.store.syncloud.org", fmt.Sprintf("apt install -y apache2"))
 	assert.NoError(t, err, output)
 
 output, err = Ssh("api.store.syncloud.org", fmt.Sprintf("/install.sh /store.tar.gz 1 test"))
@@ -339,3 +339,4 @@ func Ssh(host string, command string) (string, error) {
 	fmt.Printf("output: \n%s\n", result)
 	return result, err
 }
+
