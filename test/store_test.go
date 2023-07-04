@@ -19,6 +19,8 @@ func TestPrepareStore(t *testing.T) {
 	arch, err := snapArch()
 	assert.NoError(t, err)
 
+output, err := Ssh("api.store.syncloud.org", fmt.Sprintf("apt update"))
+	assert.NoError(t, err, output)
 output, err := Ssh("api.store.syncloud.org", fmt.Sprintf("apt install -y apache2"))
 	assert.NoError(t, err, output)
 
