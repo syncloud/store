@@ -32,7 +32,6 @@ $SCP ${DIR}/install-snapd-old.sh root@device:/
 $SCP ${DIR}/install-snapd-new.sh root@device:/
 $SCP ${DIR}/upgrade-snapd.sh root@device:/
 
-$SSH root@api.store.syncloud.org /install.sh /store.tar.gz
 $SCP ${DIR}/testapp2_1_$SNAP_ARCH.snap root@device:/testapp2_1.snap
 #$SCP ${DIR}/test root@$DEVICE:/
 

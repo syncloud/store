@@ -2,9 +2,10 @@
 Description=Syncloud Store
 
 [Service]
-ExecStart=/usr/lib/syncloud-store/bin/store start :80
+ExecStart=/var/www/store/current/bin/store start /var/www/store/api.socket
 Restart=always
 Type=simple
+User=store
 
 [Install]
 WantedBy=multi-user.target
