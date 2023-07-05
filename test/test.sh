@@ -49,8 +49,7 @@ $SSH root@device journalctl > $LOG_DIR/journalctl.device.log
 $SCP api.store.syncloud.org:/var/log/apache2/store-access.log $LOG_DIR
 $SCP api.store.syncloud.org:/var/log/apache2/store-error.log $LOG_DIR
 $SSH api.store.syncloud.org journalctl > $LOG_DIR/journalctl.store.log
-$SSH apps.syncloud.org ls -la /var/www/store > $LOG_DIR/var.www.store.log
-$SSH api.store.syncloud.org journalctl > $LOG_DIR/journalctl.store.log
+$SSH api.store.syncloud.org ls -la /var/www/store > $LOG_DIR/var.www.store.log
 $SCP -r apps.syncloud.org:$STORE_DIR $ARTIFACTS_DIR/store
 $SCP apps.syncloud.org:/var/log/nginx/access.log $LOG_DIR/apps.nginx.access.log
 chmod -R a+r $ARTIFACTS_DIR
