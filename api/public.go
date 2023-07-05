@@ -64,7 +64,7 @@ func (s *SyncloudStore) Start() error {
 	s.echo.GET("/v2/snaps/find", s.Find)
 	s.echo.GET("/v2/snaps/info/:name", s.Info)
 
- s.logger.Info("listening", zap.String("address", s.address))
+ s.logger.Info("listening on", zap.String("address", s.address))
 	if s.IsUnixSocket() {
 		_ = os.RemoveAll(s.address)
 		l, err := net.Listen("unix", s.address)
