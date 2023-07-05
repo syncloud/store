@@ -71,10 +71,11 @@ func (s *SyncloudStore) Start() error {
 		if err != nil {
 			s.logger.Error("error", zap.Error(err))
 			return err
-			if err := os.Chmod(s.address, 0777); err != nil {
-				return err
-			}
 		}
+		if err := os.Chmod(s.address, 0777); err != nil {
+			return err
+		}
+
 		s.echo.Listener = l
 		return s.echo.Start("")
 	} else {
