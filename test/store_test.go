@@ -19,14 +19,13 @@ func TestPrepareStore(t *testing.T) {
 	arch, err := snapArch()
 	assert.NoError(t, err)
 
-output, err := Ssh("api.store.syncloud.org", fmt.Sprintf("apt update"))
+	output, err := Ssh("api.store.syncloud.org", fmt.Sprintf("apt update"))
 	assert.NoError(t, err, output)
-output, err = Ssh("api.store.syncloud.org", fmt.Sprintf("apt install -y apache2"))
-	assert.NoError(t, err, output)
-
-output, err = Ssh("api.store.syncloud.org", fmt.Sprintf("/install.sh /store.tar.gz 1 test"))
+	output, err = Ssh("api.store.syncloud.org", fmt.Sprintf("apt install -y apache2"))
 	assert.NoError(t, err, output)
 
+	output, err = Ssh("api.store.syncloud.org", fmt.Sprintf("/install.sh /store.tar.gz 1 test"))
+	assert.NoError(t, err, output)
 
 	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release publish -f /testapp1_1_%s.snap -b stable -t %s", arch, StoreDir))
 	assert.NoError(t, err, output)
@@ -297,11 +296,17 @@ func InstallSnapd(cmd string) (string, error) {
 	if err != nil {
 		return output, err
 	}
-	return SshWaitFor("device", "snap list",
+	output, err = SshWaitFor("device", "snap list",
 		func(output string) bool {
 			return strings.Contains(output, "No snaps")
 		},
 	)
+	output, err = SshWaitFor("device", "snap find unknown",
+		func(output string) bool {
+			return !strings.Contains(output, "too early for operation")
+		},
+	)
+	return output, err
 }
 
 func SshWaitFor(host string, command string, predicate func(string) bool) (string, error) {
