@@ -12,6 +12,7 @@ go test ./...
 go build -ldflags '-linkmode external -extldflags -static' -o ${BUILD_DIR}/bin/store ./cmd/store
 go build -ldflags '-linkmode external -extldflags -static' -o ${BUILD_DIR}/bin/cli ./cmd/cli
 cp -r ${DIR}/config ${BUILD_DIR}
+mkdir ${BUILD_DIR}/www
 
 OUT_DIR=${DIR}/out
 rm -rf ${OUT_DIR}
