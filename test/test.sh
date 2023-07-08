@@ -23,9 +23,9 @@ mkdir -p $LOG_DIR
 $SCP ${DIR}/../bin/install.sh root@api.store.syncloud.org:/install.sh
 $SCP ${DIR}/../out/store-*.tar.gz root@api.store.syncloud.org:/store.tar.gz
 
-wget --progress=dot:giga https://github.com/syncloud/snapd/releases/download/2/snapd-361-amd64.tar.gz -O snapd1.tar.gz
+wget --progress=dot:giga https://github.com/syncloud/snapd/releases/download/2/snapd-361-$SNAP_ARCH.tar.gz -O snapd1.tar.gz
 $SCP snapd1.tar.gz root@device:/
-wget --progress=dot:giga https://github.com/syncloud/snapd/releases/download/3-rc/snapd-520-amd64.tar.gz -O snapd2.tar.gz
+wget --progress=dot:giga https://github.com/syncloud/snapd/releases/download/3-rc/snapd-520-$SNAP_ARCH.tar.gz -O snapd2.tar.gz
 $SCP snapd2.tar.gz root@device:/
 
 $SCP ${DIR}/install-snapd-old.sh root@device:/

@@ -157,31 +157,9 @@ local build(arch) = {
     ]
 };
 
-local deploy(env) = {
-    kind: "pipeline",
-    type: "docker",
-    name: "deploy " + env,
-    platform: {
-        os: "linux",
-        arch: "amd64"
-    },
-    steps: [
-    {
-        name: "deploy",
-        image: "python:3.9-buster",
-        commands: [
-          "./bin/deploy.sh"
-        ]
-    }
-    ],
-    trigger: {
-      event: [
-        "promote"
-      ]
-    }
-};
 
 [
     build("amd64"),
-    deploy("uat")
+    build("arm64"),
+    build("arm"),
 ]
