@@ -1,8 +1,15 @@
 package model
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
 type SnapId string
+
+func NewSnapId(name string, version string, arch string) SnapId {
+	return SnapId(fmt.Sprintf("%s.%s.%s", name, version, arch))
+}
 
 func (s SnapId) Id() string {
 	return string(s)
@@ -25,6 +32,18 @@ func (s SnapId) Version() string {
 	if strings.Contains(s.Id(), ".") {
 		parts := strings.Split(s.Id(), ".")
 		return parts[1]
+	} else {
+		return ""
+	}
+}
+
+func (s SnapId) Arch() string {
+	if strings.Contains(s.Id(), ".") {
+		parts := strings.Split(s.Id(), ".")
+		if len(parts) > 2 {
+			return parts[2]
+		}
+		return "amd64"
 	} else {
 		return ""
 	}

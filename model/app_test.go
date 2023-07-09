@@ -12,7 +12,7 @@ func TestApp_ToInfo(t *testing.T) {
 		Icon:     "url",
 		Required: false,
 	}
-	info, err := app.ToInfo("1", 0, "sha", "url")
+	info, err := app.ToInfo("1", 0, "sha", "url", "amd64")
 	assert.NoError(t, err)
 	assert.Equal(t, "name.1", info.SnapID)
 	assert.Equal(t, int64(0), info.Download.Size)
@@ -28,7 +28,7 @@ func TestApp_ToInfo_Base(t *testing.T) {
 		Icon:     "url",
 		Required: true,
 	}
-	info, err := app.ToInfo("1", 0, "sha", "url")
+	info, err := app.ToInfo("1", 0, "sha", "url", "amd64")
 	assert.NoError(t, err)
 	assert.Equal(t, "name.1", info.SnapID)
 	assert.Equal(t, int64(0), info.Download.Size)

@@ -13,7 +13,7 @@ type App struct {
 	Required bool   `json:"required"`
 }
 
-func (a *App) ToInfo(version string, downloadSize int64, downloadSha384 string, downloadUrl string) (*Snap, error) {
+func (a *App) ToInfo(version string, downloadSize int64, downloadSha384 string, downloadUrl string, arch string) (*Snap, error) {
 	appType := "app"
 	if a.Required {
 		appType = "base"
@@ -23,15 +23,15 @@ func (a *App) ToInfo(version string, downloadSize int64, downloadSha384 string, 
 	if err != nil {
 		return nil, fmt.Errorf("unable to get revision: %s", err)
 	}
-	snapId := ConstructSnapId(a.Name, version)
+	snapId := NewSnapId(a.Name, version, arch)
 
 	result := &Snap{
-		SnapID:        snapId,
+		SnapID:        snapId.Id(),
 		Name:          a.Name,
 		Summary:       a.Summary,
 		Version:       version,
 		Type:          appType,
-		Architectures: []string{"amd64", "armhf", "arm64"},
+		Architectures: []string{arch},
 		Revision:      revision,
 		Download: StoreSnapDownload{
 			URL:      downloadUrl,
@@ -47,8 +47,4 @@ func (a *App) ToInfo(version string, downloadSize int64, downloadSha384 string, 
 	}
 
 	return result, nil
-}
-
-func ConstructSnapId(name string, version string) string {
-	return fmt.Sprintf("%s.%s", name, version)
 }

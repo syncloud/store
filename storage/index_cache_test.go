@@ -54,15 +54,15 @@ func TestIndexCache_Refresh(t *testing.T) {
 		},
 	}
 
-	cache := New(client, "http://localhost", "amd64", log.Default())
+	cache := New(client, "http://localhost", log.Default())
 	err := cache.Refresh()
 	assert.NoError(t, err)
 
 	index, ok := cache.Read("master")
 	assert.True(t, ok)
 	assert.Equal(t, 1, len(index))
-	assert.Equal(t, "app", index["app"].Name)
-	assert.Equal(t, "http://localhost/apps/app_123_amd64.snap", index["app"].Download.URL)
+	assert.Equal(t, "app", index["amd64"]["app"].Name)
+	assert.Equal(t, "http://localhost/apps/app_123_amd64.snap", index["amd64"]["app"].Download.URL)
 
 }
 
@@ -87,7 +87,7 @@ func TestIndexCache_Refresh_EmptySize(t *testing.T) {
 		},
 	}
 
-	cache := New(client, "http://localhost", "amd64", log.Default())
+	cache := New(client, "http://localhost", log.Default())
 	err := cache.Refresh()
 	assert.NoError(t, err)
 
@@ -97,46 +97,50 @@ func TestIndexCache_Refresh_EmptySize(t *testing.T) {
 
 func TestIndexCache_Find(t *testing.T) {
 
-	cache := &IndexCache{
-		indexByChannel: map[string]map[string]*model.Snap{
+	cache := &CachedIndex{
+		cache: Cache{
 			"channel1": {
-				"app1": &model.Snap{
-					Name: "app1",
+				"amd64": {
+					"app1": &model.Snap{
+						Name: "app1",
+					},
 				},
 			},
 			"channel2": {
-				"app2": &model.Snap{
-					Name: "app2",
+				"amd64": {
+					"app2": &model.Snap{
+						Name: "app2",
+					},
 				},
 			},
 		},
-		arch:   "amd64",
 		logger: log.Default(),
 	}
-	results := cache.Find("channel1", "")
+	results := cache.Find("channel1", "", "amd64")
 	assert.Equal(t, 1, len(results.Results))
 	assert.Equal(t, "app1", results.Results[0].Name)
 }
 func TestIndexCache_Find_Sorted(t *testing.T) {
 
-	cache := &IndexCache{
-		indexByChannel: map[string]map[string]*model.Snap{
+	cache := &CachedIndex{
+		cache: Cache{
 			"channel": {
-				"app1": &model.Snap{
-					Name: "app1",
-				},
-				"app3": &model.Snap{
-					Name: "app3",
-				},
-				"app2": &model.Snap{
-					Name: "app2",
+				"amd64": {
+					"app1": &model.Snap{
+						Name: "app1",
+					},
+					"app3": &model.Snap{
+						Name: "app3",
+					},
+					"app2": &model.Snap{
+						Name: "app2",
+					},
 				},
 			},
 		},
-		arch:   "amd64",
 		logger: log.Default(),
 	}
-	results := cache.Find("channel", "*")
+	results := cache.Find("channel", "*", "amd64")
 	assert.Equal(t, 3, len(results.Results))
 	assert.Equal(t, "app1", results.Results[0].Name)
 	assert.Equal(t, "app2", results.Results[1].Name)
@@ -145,45 +149,47 @@ func TestIndexCache_Find_Sorted(t *testing.T) {
 
 func TestIndexCache_Find_PopulateChannel(t *testing.T) {
 
-	cache := &IndexCache{
-		indexByChannel: map[string]map[string]*model.Snap{
+	cache := &CachedIndex{
+		cache: Cache{
 			"channel": {
-				"": &model.Snap{
-					Name: "app",
+				"amd64": {
+					"": &model.Snap{
+						Name: "app",
+					},
 				},
 			},
 		},
-		arch:   "amd64",
 		logger: log.Default(),
 	}
-	results := cache.Find("channel", "")
+	results := cache.Find("channel", "", "amd64")
 	assert.Equal(t, "channel", results.Results[0].Revision.Channel)
 }
 
 func TestIndexCache_Info(t *testing.T) {
 
-	cache := &IndexCache{
-		indexByChannel: map[string]map[string]*model.Snap{
+	cache := &CachedIndex{
+		cache: Cache{
 			"stable": {
-				"app": &model.Snap{
-					SnapID:        "snap-id",
-					Name:          "app",
-					Summary:       "summary",
-					Version:       "1",
-					Type:          "app",
-					Architectures: nil,
-					Revision:      2,
-					Download: model.StoreSnapDownload{
-						Sha3_384: "sha",
-						Size:     1,
-						URL:      "http://donload",
-						Deltas:   nil,
+				"amd64": {
+					"app": &model.Snap{
+						SnapID:        "snap-id",
+						Name:          "app",
+						Summary:       "summary",
+						Version:       "1",
+						Type:          "app",
+						Architectures: nil,
+						Revision:      2,
+						Download: model.StoreSnapDownload{
+							Sha3_384: "sha",
+							Size:     1,
+							URL:      "http://donload",
+							Deltas:   nil,
+						},
+						Media: nil,
 					},
-					Media: nil,
 				},
 			},
 		},
-		arch:   "amd64",
 		logger: log.Default(),
 	}
 	result := cache.Info("app", "amd64")
@@ -193,15 +199,16 @@ func TestIndexCache_Info(t *testing.T) {
 
 func TestIndexCache_Info_NotFound(t *testing.T) {
 
-	cache := &IndexCache{
-		indexByChannel: map[string]map[string]*model.Snap{
-			"stable": {
-				"app": &model.Snap{
-					Name: "app",
+	cache := &CachedIndex{
+		cache: Cache{
+			"amd64": {
+				"stable": {
+					"app": &model.Snap{
+						Name: "app",
+					},
 				},
 			},
 		},
-		arch:   "amd64",
 		logger: log.Default(),
 	}
 	result := cache.Info("app1", "amd64")
@@ -210,20 +217,23 @@ func TestIndexCache_Info_NotFound(t *testing.T) {
 
 func TestIndexCache_Info_FirstOneIsASpecial(t *testing.T) {
 
-	cache := &IndexCache{
-		indexByChannel: map[string]map[string]*model.Snap{
+	cache := &CachedIndex{
+		cache: Cache{
 			"master": {
-				"app": &model.Snap{
-					Name: "app",
+				"amd64": {
+					"app": &model.Snap{
+						Name: "app",
+					},
 				},
 			},
 			"stable": {
-				"app": &model.Snap{
-					Name: "app",
+				"amd64": {
+					"app": &model.Snap{
+						Name: "app",
+					},
 				},
 			},
 		},
-		arch:   "amd64",
 		logger: log.Default(),
 	}
 	result := cache.Info("app", "amd64")
@@ -233,15 +243,36 @@ func TestIndexCache_Info_FirstOneIsASpecial(t *testing.T) {
 
 func TestIndexCache_InfoById(t *testing.T) {
 
-	cache := &IndexCache{
-		indexByChannel: map[string]map[string]*model.Snap{
+	cache := &CachedIndex{
+		cache: Cache{
 			"stable": {
-				"app": &model.Snap{
-					Name: "app",
+				"arm64": {
+					"app": &model.Snap{
+						Name: "app",
+					},
 				},
 			},
 		},
-		arch:   "amd64",
+		logger: log.Default(),
+	}
+	result, err := cache.InfoById("stable", "app.1.arm64", "action", "actionName")
+	assert.NoError(t, err)
+	assert.Equal(t, "action", result.Result)
+	assert.Equal(t, "stable", result.EffectiveChannel)
+}
+
+func TestIndexCache_InfoById_OldSnapId_DefaultArch(t *testing.T) {
+
+	cache := &CachedIndex{
+		cache: Cache{
+			"stable": {
+				"amd64": {
+					"app": &model.Snap{
+						Name: "app",
+					},
+				},
+			},
+		},
 		logger: log.Default(),
 	}
 	result, err := cache.InfoById("stable", "app.1", "action", "actionName")
@@ -252,11 +283,10 @@ func TestIndexCache_InfoById(t *testing.T) {
 
 func TestIndexCache_InfoById_NotFound(t *testing.T) {
 
-	cache := &IndexCache{
-		indexByChannel: map[string]map[string]*model.Snap{
+	cache := &CachedIndex{
+		cache: Cache{
 			"stable": {},
 		},
-		arch:   "amd64",
 		logger: log.Default(),
 	}
 	result, err := cache.InfoById("stable", "app.1", "action", "actionName")
@@ -266,11 +296,10 @@ func TestIndexCache_InfoById_NotFound(t *testing.T) {
 
 func TestIndexCache_InfoById_SnapIdEmpty(t *testing.T) {
 
-	cache := &IndexCache{
-		indexByChannel: map[string]map[string]*model.Snap{
+	cache := &CachedIndex{
+		cache: Cache{
 			"stable": {},
 		},
-		arch:   "amd64",
 		logger: log.Default(),
 	}
 	result, err := cache.InfoById("stable", "", "action", "actionName")

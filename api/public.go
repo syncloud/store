@@ -160,12 +160,17 @@ func (s *SyncloudStore) Info(c echo.Context) error {
 func (s *SyncloudStore) Find(c echo.Context) error {
 	channel := c.QueryParam("channel")
 	query := c.QueryParam("q")
-	s.logger.Info("find", zap.String("channel", channel), zap.String("query", query))
+	architecture := c.QueryParam("architecture")
+	s.logger.Info("find",
+		zap.String("channel", channel),
+		zap.String("query", query),
+		zap.String("architecture", architecture),
+	)
 
 	if channel == "" {
 		channel = "stable"
 	}
-	results := s.index.Find(channel, query)
+	results := s.index.Find(channel, query, architecture)
 	if results == nil {
 		c.Error(fmt.Errorf("no channel: %s in the index", channel))
 		return nil

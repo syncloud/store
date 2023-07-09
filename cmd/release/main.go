@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"github.com/syncloud/store/crypto"
+	"github.com/syncloud/store/model"
 	"github.com/syncloud/store/release"
 	"os"
 	"strconv"
@@ -25,6 +26,12 @@ func main() {
 
 	var target string
 	rootCmd.PersistentFlags().StringVarP(&target, "target", "t", "s3", "target: s3 or local dir")
+	var arch string
+	rootCmd.Flags().StringVarP(&arch, "arch", "a", "", "arch")
+	err := rootCmd.MarkFlagRequired("arch")
+	if err != nil {
+		return
+	}
 
 	var file string
 	var branch string
@@ -61,7 +68,7 @@ func main() {
 				return err
 			}
 			snapRevision := &SnapRevision{
-				Id:       ConstructSnapId(info.Name, info.Version),
+				Id:       model.NewSnapId(info.Name, info.Version, arch).Id(),
 				Size:     sizeString,
 				Revision: info.Version,
 				Sha384:   sha384,
@@ -78,7 +85,7 @@ func main() {
 		},
 	}
 	cmdPublish.Flags().StringVarP(&file, "file", "f", "", "snap file path")
-	err := cmdPublish.MarkFlagRequired("file")
+	err = cmdPublish.MarkFlagRequired("file")
 	if err != nil {
 		return
 	}
@@ -90,7 +97,6 @@ func main() {
 	rootCmd.AddCommand(cmdPublish)
 
 	var app string
-	var arch string
 	var cmdPromote = &cobra.Command{
 		Use:   "promote",
 		Short: "Promote an app to stable channel",
@@ -109,11 +115,6 @@ func main() {
 	if err != nil {
 		return
 	}
-	cmdPromote.Flags().StringVarP(&arch, "arch", "a", "", "arch to promote")
-	err = cmdPromote.MarkFlagRequired("arch")
-	if err != nil {
-		return
-	}
 	rootCmd.AddCommand(cmdPromote)
 
 	var channel string
@@ -129,11 +130,6 @@ func main() {
 	}
 	cmdSetVersion.Flags().StringVarP(&app, "name", "n", "", "app")
 	err = cmdSetVersion.MarkFlagRequired("name")
-	if err != nil {
-		return
-	}
-	cmdSetVersion.Flags().StringVarP(&arch, "arch", "a", "", "arch")
-	err = cmdSetVersion.MarkFlagRequired("arch")
 	if err != nil {
 		return
 	}
@@ -162,8 +158,4 @@ func NewStorage(target string) release.Storage {
 	} else {
 		return release.NewFileSystem(target)
 	}
-}
-
-func ConstructSnapId(name string, version string) string {
-	return fmt.Sprintf("%s.%s", name, version)
 }

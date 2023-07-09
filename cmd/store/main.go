@@ -6,7 +6,6 @@ import (
 	"github.com/syncloud/store/api"
 	"github.com/syncloud/store/crypto"
 	"github.com/syncloud/store/log"
-	"github.com/syncloud/store/machine"
 	"github.com/syncloud/store/rest"
 	"github.com/syncloud/store/storage"
 	"os"
@@ -24,7 +23,7 @@ func main() {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			logger := log.Default()
 			client := rest.New()
-			index := storage.New(client, api.Url, machine.DPKGArch, logger)
+			index := storage.New(client, api.Url, logger)
 			signer := crypto.NewSigner(logger)
 			public := api.NewSyncloudStore(args[0], index, client, signer, logger)
 			internal := api.NewApi(index)
