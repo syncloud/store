@@ -246,9 +246,9 @@ func TestIndexCache_InfoById(t *testing.T) {
 	cache := &CachedIndex{
 		cache: Cache{
 			"stable": {
-				"arm64": {
+				"amd64": {
 					"app": &model.Snap{
-						SnapID: "app.1.arm64",
+						SnapID: "app.1",
 						Name:   "app",
 					},
 				},
@@ -256,14 +256,15 @@ func TestIndexCache_InfoById(t *testing.T) {
 		},
 		logger: log.Default(),
 	}
-	result, err := cache.InfoById("stable", "app.1.arm64", "action", "actionName")
+	result, err := cache.InfoById("stable", "app.1", "action", "actionName", "amd64")
 	assert.NoError(t, err)
 	assert.Equal(t, "action", result.Result)
 	assert.Equal(t, "stable", result.EffectiveChannel)
-	assert.Equal(t, "app.1.arm64", result.SnapID)
-	assert.Equal(t, "app.1.arm64", result.Snap.SnapID)
+	assert.Equal(t, "app.1", result.SnapID)
+	assert.Equal(t, "app.1", result.Snap.SnapID)
 }
 
+/*
 func TestIndexCache_InfoById_OldSnapId_DefaultArch(t *testing.T) {
 
 	cache := &CachedIndex{
@@ -287,7 +288,7 @@ func TestIndexCache_InfoById_OldSnapId_DefaultArch(t *testing.T) {
 	assert.Equal(t, "app.1", result.Snap.SnapID)
 
 }
-
+*/
 func TestIndexCache_InfoById_NotFound(t *testing.T) {
 
 	cache := &CachedIndex{
@@ -296,7 +297,7 @@ func TestIndexCache_InfoById_NotFound(t *testing.T) {
 		},
 		logger: log.Default(),
 	}
-	result, err := cache.InfoById("stable", "app.1", "action", "actionName")
+	result, err := cache.InfoById("stable", "app.1", "action", "actionName", "amd64")
 	assert.NoError(t, err)
 	assert.Equal(t, "error", result.Result)
 }
@@ -309,7 +310,7 @@ func TestIndexCache_InfoById_SnapIdEmpty(t *testing.T) {
 		},
 		logger: log.Default(),
 	}
-	result, err := cache.InfoById("stable", "", "action", "actionName")
+	result, err := cache.InfoById("stable", "", "action", "actionName", "amd64")
 	assert.NoError(t, err)
 	assert.Equal(t, "error", result.Result)
 }

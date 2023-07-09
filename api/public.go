@@ -135,7 +135,7 @@ func (s *SyncloudStore) Refresh(c echo.Context) error {
 			}
 			result.Results = append(result.Results, info)
 		} else {
-			info, err := s.index.InfoById(action.Channel, action.SnapID, action.Action, action.Name)
+			info, err := s.index.InfoById(action.Channel, action.SnapID, action.Action, action.Name, "amd64")
 			if err != nil {
 				return err
 			}

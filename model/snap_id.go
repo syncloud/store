@@ -7,8 +7,8 @@ import (
 
 type SnapId string
 
-func NewSnapId(name string, version string, arch string) SnapId {
-	return SnapId(fmt.Sprintf("%s.%s.%s", name, version, arch))
+func NewSnapId(name string, version string) SnapId {
+	return SnapId(fmt.Sprintf("%s.%s", name, version))
 }
 
 func (s SnapId) Id() string {
@@ -37,14 +37,14 @@ func (s SnapId) Version() string {
 	}
 }
 
-func (s SnapId) Arch() string {
-	if strings.Contains(s.Id(), ".") {
-		parts := strings.Split(s.Id(), ".")
-		if len(parts) > 2 {
-			return parts[2]
-		}
-		return "amd64"
-	} else {
-		return ""
-	}
-}
+//func (s SnapId) Arch() string {
+//	if strings.Contains(s.Id(), ".") {
+//		parts := strings.Split(s.Id(), ".")
+//		if len(parts) > 2 {
+//			return parts[2]
+//		}
+//		return "amd64"
+//	} else {
+//		return ""
+//	}
+//}

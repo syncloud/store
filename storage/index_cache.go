@@ -17,7 +17,7 @@ type Index interface {
 	Refresh() error
 	Find(channel string, query string, architecture string) *model.SearchResults
 	Info(name, arch string) *model.StoreInfo
-	InfoById(channel, snapId, action, actionName string) (*model.StoreResult, error)
+	InfoById(channel, snapId, action, actionName, arch string) (*model.StoreResult, error)
 }
 
 type CachedIndex struct {
@@ -54,14 +54,13 @@ func New(client rest.Client, baseUrl string, logger *zap.Logger) *CachedIndex {
 	}
 }
 
-func (i *CachedIndex) InfoById(channelFull, snapId, action, actionName string) (*model.StoreResult, error) {
+func (i *CachedIndex) InfoById(channelFull, snapId, action, actionName, arch string) (*model.StoreResult, error) {
 	channel := parseChannel(channelFull)
 	snapName := actionName
-	arch := "amd64"
 	if snapId != "" {
 		id := model.SnapId(snapId)
 		snapName = id.Name()
-		arch = id.Arch()
+		//arch = id.Arch()
 	}
 	architectures, ok := i.Read(channel)
 	if !ok {

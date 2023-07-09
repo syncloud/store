@@ -19,10 +19,10 @@ func TestSnapId_Id(t *testing.T) {
 	assert.Equal(t, "app.1", SnapId("app.1").Id())
 }
 
-func TestSnapId_Arch(t *testing.T) {
-	assert.Equal(t, "amd64", SnapId("app.1.amd64").Arch())
-}
+//func TestSnapId_Arch(t *testing.T) {
+//	assert.Equal(t, "amd64", SnapId("app.1.amd64").Arch())
+//}
 
-func TestSnapId_Arch_Empty(t *testing.T) {
-	assert.Equal(t, "amd64", SnapId("app.1").Arch())
-}
+//func TestSnapId_Arch_Empty(t *testing.T) {
+//	assert.Equal(t, "amd64", SnapId("app.1").Arch())
+//}

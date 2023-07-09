@@ -23,7 +23,7 @@ func (a *App) ToInfo(version string, downloadSize int64, downloadSha384 string, 
 	if err != nil {
 		return nil, fmt.Errorf("unable to get revision: %s", err)
 	}
-	snapId := NewSnapId(a.Name, version, arch)
+	snapId := NewSnapId(a.Name, version)
 
 	result := &Snap{
 		SnapID:        snapId.Id(),

@@ -63,7 +63,7 @@ func main() {
 				return err
 			}
 			snapRevision := &SnapRevision{
-				Id:       model.NewSnapId(info.Name, info.Version, arch).Id(),
+				Id:       model.NewSnapId(info.Name, info.Version).Id(),
 				Size:     sizeString,
 				Revision: info.Version,
 				Sha384:   sha384,
@@ -89,11 +89,11 @@ func main() {
 	if err != nil {
 		return
 	}
-	cmdPublish.Flags().StringVarP(&arch, "arch", "a", "", "arch to promote")
-	err = cmdPublish.MarkFlagRequired("arch")
-	if err != nil {
-		return
-	}
+	//cmdPublish.Flags().StringVarP(&arch, "arch", "a", "", "arch to promote")
+	//err = cmdPublish.MarkFlagRequired("arch")
+	//if err != nil {
+	//	return
+	//}
 	rootCmd.AddCommand(cmdPublish)
 
 	var app string
