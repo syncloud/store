@@ -27,7 +27,7 @@ func TestPrepareStore(t *testing.T) {
 	output, err = Ssh("api.store.syncloud.org", fmt.Sprintf("/install.sh /store.tar.gz 1 test"))
 	assert.NoError(t, err, output)
 
-	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release publish -f /testapp1_1_%s.snap -b stable -a %s -t %s", arch, StoreDir))
+	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release publish -f /testapp1_1_%s.snap -b stable -t %s", arch, StoreDir))
 	assert.NoError(t, err, output)
 	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release promote -n testapp1 -a %s -t %s", arch, StoreDir))
 	assert.NoError(t, err, output)
