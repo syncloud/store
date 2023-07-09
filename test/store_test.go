@@ -276,10 +276,10 @@ func TestRest_SnapsInfo(t *testing.T) {
 	assert.NoError(t, err, output)
 
 	client := resty.New()
-	resp, err := client.R().Get("http://api.store.syncloud.org/v2/snaps/info/testapp1?architecture=arm64&fields=architectures")
+	resp, err := client.R().Get(fmt.Sprintf("http://api.store.syncloud.org/v2/snaps/info/testapp1?architecture=%s&fields=architectures", arch))
 	assert.NoError(t, err, output)
 	assert.Equal(t, 200, resp.StatusCode())
-	assert.Contains(t, string(resp.Body()), `"snap-id":"testapp1.1"`)
+	assert.Contains(t, string(resp.Body()), fmt.Sprintf(`"snap-id":"testapp1.1.%s"`, arch))
 
 }
 
