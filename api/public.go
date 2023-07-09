@@ -126,6 +126,7 @@ func (s *SyncloudStore) Refresh(c echo.Context) error {
 		c.Error(err)
 		return nil
 	}
+	s.logger.Info(fmt.Sprintf("refresh request: %s", string(req)))
 	result := &model.StoreResults{}
 	for _, action := range request.Actions {
 		if action.Action == "fetch-assertions" {
