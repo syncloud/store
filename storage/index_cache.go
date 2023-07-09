@@ -80,6 +80,7 @@ func (i *CachedIndex) InfoById(channelFull, snapId, action, actionName string) (
 			SnapID: snapId,
 		}, nil
 	}
+	app.SnapID = snapId
 	return &model.StoreResult{
 		Result:           action,
 		Snap:             app,

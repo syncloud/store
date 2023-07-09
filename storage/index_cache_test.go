@@ -248,7 +248,8 @@ func TestIndexCache_InfoById(t *testing.T) {
 			"stable": {
 				"arm64": {
 					"app": &model.Snap{
-						Name: "app",
+						SnapID: "app.1.arm64",
+						Name:   "app",
 					},
 				},
 			},
@@ -259,6 +260,8 @@ func TestIndexCache_InfoById(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "action", result.Result)
 	assert.Equal(t, "stable", result.EffectiveChannel)
+	assert.Equal(t, "app.1.arm64", result.SnapID)
+	assert.Equal(t, "app.1.arm64", result.Snap.SnapID)
 }
 
 func TestIndexCache_InfoById_OldSnapId_DefaultArch(t *testing.T) {
@@ -268,7 +271,8 @@ func TestIndexCache_InfoById_OldSnapId_DefaultArch(t *testing.T) {
 			"stable": {
 				"amd64": {
 					"app": &model.Snap{
-						Name: "app",
+						SnapID: "app.1.arm64",
+						Name:   "app",
 					},
 				},
 			},
@@ -279,6 +283,9 @@ func TestIndexCache_InfoById_OldSnapId_DefaultArch(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "action", result.Result)
 	assert.Equal(t, "stable", result.EffectiveChannel)
+	assert.Equal(t, "app.1", result.SnapID)
+	assert.Equal(t, "app.1", result.Snap.SnapID)
+
 }
 
 func TestIndexCache_InfoById_NotFound(t *testing.T) {
