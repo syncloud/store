@@ -39,7 +39,7 @@ const (
 	ChannelStable = "stable"
 	ArchAmd64     = "amd64"
 	ArchArm64     = "arm64"
-	ArchArm32     = "arm"
+	ArchArm32     = "armhf"
 )
 
 var AvailableChannels = []string{ChannelStable, ChannelMaster, ChannelRc}
