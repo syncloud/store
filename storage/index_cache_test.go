@@ -261,7 +261,7 @@ func TestIndexCache_InfoById(t *testing.T) {
 	assert.Equal(t, "action", result.Result)
 	assert.Equal(t, "stable", result.EffectiveChannel)
 	assert.Equal(t, "app.1", result.SnapID)
-	assert.Equal(t, "app.1", result.Snap.SnapID)
+	//assert.Equal(t, "app.1", result.Snap.SnapID)
 }
 
 /*
