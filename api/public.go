@@ -119,6 +119,8 @@ func (s *SyncloudStore) Refresh(c echo.Context) error {
 		c.Error(err)
 		return nil
 	}
+	arch := c.Request().Heqder.Get("Syncloud-Architecture")
+	s.logger.Info("refresh", zap.String("arch", arch))
 
 	var request model.SnapActionRequest
 	err = json.Unmarshal(req, &request)
@@ -136,7 +138,7 @@ func (s *SyncloudStore) Refresh(c echo.Context) error {
 			}
 			result.Results = append(result.Results, info)
 		} else {
-			info, err := s.index.InfoById(action.Channel, action.SnapID, action.Action, action.Name, "amd64")
+			info, err := s.index.InfoById(action.Channel, action.SnapID, action.Action, action.Name, arch)
 			if err != nil {
 				return err
 			}
