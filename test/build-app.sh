@@ -3,7 +3,7 @@
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 APP=$1
 VERSION=$2
-ARCH=$(uname -m)
+ARCH=$3
 APP_DIR=$DIR/$APP
 BUILD_DIR=$APP_DIR/build
 rm -rf ${BUILD_DIR}

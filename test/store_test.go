@@ -27,20 +27,20 @@ func TestPrepareStore(t *testing.T) {
 	output, err = Ssh("api.store.syncloud.org", fmt.Sprintf("/install.sh /store.tar.gz 1 test"))
 	assert.NoError(t, err, output)
 
-	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release publish -f /testapp1_1_%s.snap -b stable -t %s", arch, StoreDir))
+	output, err = Publish("testapp1", 1)
 	assert.NoError(t, err, output)
 	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release promote -n testapp1 -a %s -t %s", arch, StoreDir))
 	assert.NoError(t, err, output)
 
-	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release publish -f /testapp2_1_%s.snap -b master -t %s", arch, StoreDir))
+	output, err = Publish("testapp2", 1)
 	assert.NoError(t, err, output)
 
-	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release publish -f /testapp2_2_%s.snap -b stable -t %s", arch, StoreDir))
+	output, err = Publish("testapp2", 2)
 	assert.NoError(t, err, output)
 
-	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release publish -f /testapp1_2_%s.snap -b stable -t %s", arch, StoreDir))
+	output, err = Publish("testapp1", 2)
 	assert.NoError(t, err, output)
-	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release publish -f /testapp1_3_%s.snap -b stable -t %s", arch, StoreDir))
+	output, err = Publish("testapp1", 3)
 	assert.NoError(t, err, output)
 
 }
@@ -328,6 +328,17 @@ func SshWaitFor(host string, command string, predicate func(string) bool) (strin
 	return "", fmt.Errorf("%d: %d (exhausted)", retry, retries)
 }
 
+func Publish(name string, version int) (string, error) {
+	output, err := Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release publish -f /%s_%d_amd64.snap -b stable -t %s", name, version, StoreDir))
+	if err != nil {
+		return output, err
+	}
+	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release publish -f /%s_%d_arm64.snap -b stable -t %s", name, version, StoreDir))
+	if err != nil {
+		return output, err
+	}
+	return Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release publish -f /%s_%d_armhf.snap -b stable -t %s", name, version, StoreDir))
+}
 func Ssh(host string, command string) (string, error) {
 	config, err := gossh.NewClientConfigWithUserPass("root", "syncloud", host, 22, false)
 	if err != nil {
