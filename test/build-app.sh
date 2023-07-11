@@ -9,7 +9,6 @@ BUILD_DIR=$APP_DIR/build
 rm -rf ${BUILD_DIR}
 mkdir ${BUILD_DIR}
 
-ARCH=$(dpkg --print-architecture)
 cp -r $APP_DIR/meta ${BUILD_DIR}
 cp -r $APP_DIR/bin ${BUILD_DIR}
 echo "version: $VERSION" >> ${BUILD_DIR}/meta/snap.yaml
