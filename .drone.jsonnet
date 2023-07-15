@@ -107,7 +107,7 @@ local build(arch) = {
             ]
         },
         {
-            name: "api.store.syncloud.org",
+            name: "api.store.test",
             image: "syncloud/bootstrap-buster-" + arch,
             privileged: true,
             volumes: [

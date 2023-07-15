@@ -49,7 +49,7 @@ func TestUpgrade(t *testing.T) {
 	arch, err := snapArch()
 	assert.NoError(t, err)
 
-	output, err := InstallSnapd("/install-snapd-old.sh /snapd1.tar.gz")
+	output, err := InstallSnapd("/install-snapd-v1.sh /snapd1.tar.gz")
 	assert.NoError(t, err, output)
 	output, err = Ssh("device", "snap install testapp1")
 	assert.NoError(t, err, output)
@@ -79,7 +79,7 @@ func TestUpgrade(t *testing.T) {
 }
 
 func TestUnknown(t *testing.T) {
-	output, err := InstallSnapd("/install-snapd-new.sh /snapd2.tar.gz")
+	output, err := InstallSnapd("/install-snapd-v2.sh /snapd2.tar.gz")
 	assert.NoError(t, err, output)
 	output, err = Ssh("device", "snap install unknown")
 	assert.Error(t, err)
@@ -89,7 +89,7 @@ func TestUnknown(t *testing.T) {
 func TestInstallWarning(t *testing.T) {
 	arch, err := snapArch()
 	assert.NoError(t, err)
-	output, err := InstallSnapd("/install-snapd-new.sh /snapd2.tar.gz")
+	output, err := InstallSnapd("/install-snapd-v2.sh /snapd2.tar.gz")
 	assert.NoError(t, err, output)
 	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp1 -a %s -v 1 -c stable -t %s", arch, StoreDir))
 	assert.NoError(t, err, output)
@@ -106,7 +106,7 @@ func TestMasterChannel(t *testing.T) {
 	arch, err := snapArch()
 	assert.NoError(t, err)
 
-	output, err := InstallSnapd("/install-snapd-new.sh /snapd2.tar.gz")
+	output, err := InstallSnapd("/install-snapd-v2.sh /snapd2.tar.gz")
 	assert.NoError(t, err, output)
 
 	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp1 -a %s -v 1 -c master -t %s", arch, StoreDir))
@@ -130,7 +130,7 @@ func TestCommand(t *testing.T) {
 	arch, err := snapArch()
 	assert.NoError(t, err)
 
-	output, err := InstallSnapd("/install-snapd-new.sh /snapd2.tar.gz")
+	output, err := InstallSnapd("/install-snapd-v2.sh /snapd2.tar.gz")
 	assert.NoError(t, err, output)
 
 	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp1 -a %s -v 1 -c stable -t %s", arch, StoreDir))
@@ -154,7 +154,7 @@ func TestRefresh(t *testing.T) {
 	arch, err := snapArch()
 	assert.NoError(t, err)
 
-	output, err := InstallSnapd("/install-snapd-new.sh /snapd2.tar.gz")
+	output, err := InstallSnapd("/install-snapd-v2.sh /snapd2.tar.gz")
 	assert.NoError(t, err, output)
 
 	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp1 -a %s -v 1 -c stable -t %s", arch, StoreDir))
@@ -181,7 +181,7 @@ func TestRefreshList(t *testing.T) {
 	arch, err := snapArch()
 	assert.NoError(t, err)
 
-	output, err := InstallSnapd("/install-snapd-new.sh /snapd2.tar.gz")
+	output, err := InstallSnapd("/install-snapd-v2.sh /snapd2.tar.gz")
 	assert.NoError(t, err, output)
 
 	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp1 -a %s -v 1 -c stable -t %s", arch, StoreDir))
@@ -242,7 +242,7 @@ func TestFind(t *testing.T) {
 	arch, err := snapArch()
 	assert.NoError(t, err)
 
-	output, err := InstallSnapd("/install-snapd-new.sh /snapd2.tar.gz")
+	output, err := InstallSnapd("/install-snapd-v2.sh /snapd2.tar.gz")
 	assert.NoError(t, err, output)
 
 	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp1 -a %s -v 1 -c stable -t %s", arch, StoreDir))
@@ -269,7 +269,7 @@ func TestRest_SnapsInfo(t *testing.T) {
 	arch, err := snapArch()
 	assert.NoError(t, err)
 
-	output, err := InstallSnapd("/install-snapd-new.sh /snapd2.tar.gz")
+	output, err := InstallSnapd("/install-snapd-v2.sh /snapd2.tar.gz")
 	assert.NoError(t, err, output)
 
 	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp1 -a %s -v 1 -c stable -t %s", arch, StoreDir))
