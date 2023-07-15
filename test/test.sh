@@ -23,14 +23,10 @@ mkdir -p $LOG_DIR
 $SCP ${DIR}/../bin/install.sh root@api.store.test:/install.sh
 $SCP ${DIR}/../out/store-*.tar.gz root@api.store.test:/store.tar.gz
 
-#VERSION_V1=$(curl http://apps.syncloud.org/releases/stable/snapd.version)
 wget --progress=dot:giga https://github.com/syncloud/snapd/releases/download/1.2/snapd-361-$SNAP_ARCH.tar.gz -O snapd1.tar.gz
-wget http://apps.syncloud.org/apps/"${VERSION_V1}" --progress=dot:giga
 $SCP snapd1.tar.gz root@device:/
 
-#VERSION_V2=$(curl http://apps.syncloud.org/releases/stable/snapd2.version)
 wget --progress=dot:giga https://github.com/syncloud/snapd/releases/download/syncloud-2.0/snapd-543-$SNAP_ARCH.tar.gz -O snapd2.tar.gz
-wget http://apps.syncloud.org/apps/"${VERSION_V2}" --progress=dot:giga
 $SCP snapd2.tar.gz root@device:/
 
 $SCP ${DIR}/install-snapd-v1.sh root@device:/
