@@ -26,7 +26,7 @@ $SCP ${DIR}/../out/store-*.tar.gz root@api.store.test:/store.tar.gz
 wget --progress=dot:giga https://github.com/syncloud/snapd/releases/download/1.2/snapd-361-$SNAP_ARCH.tar.gz -O snapd1.tar.gz
 $SCP snapd1.tar.gz root@device:/
 
-wget --progress=dot:giga https://github.com/syncloud/snapd/releases/download/syncloud-2.0/snapd-575-$SNAP_ARCH.tar.gz -O snapd2.tar.gz
+wget --progress=dot:giga https://github.com/syncloud/snapd/releases/download/syncloud-2.0/snapd-579-$SNAP_ARCH.tar.gz -O snapd2.tar.gz
 $SCP snapd2.tar.gz root@device:/
 
 $SCP ${DIR}/install-snapd-v1.sh root@device:/
