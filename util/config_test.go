@@ -10,6 +10,6 @@ func TestLoadConfig(t *testing.T) {
 	config, err := LoadConfig("../config/test/secret.yaml")
 
 	assert.NoError(t, err)
-	assert.Equal(t, "123", config.Token)
+	assert.Equal(t, "test", config.Token)
 
 }
