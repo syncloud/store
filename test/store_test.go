@@ -19,12 +19,15 @@ func TestPrepareStore(t *testing.T) {
 	arch, err := snapArch()
 	assert.NoError(t, err)
 
-	output, err := Ssh("api.store.test", fmt.Sprintf("apt update"))
+	output, err := Ssh("api.store.test", "apt update")
 	assert.NoError(t, err, output)
-	output, err = Ssh("api.store.test", fmt.Sprintf("apt install -y apache2"))
+	output, err = Ssh("api.store.test", "apt install -y apache2")
 	assert.NoError(t, err, output)
 
-	output, err = Ssh("api.store.test", fmt.Sprintf("/install.sh /store.tar.gz 1 test"))
+	output, err = Ssh("api.store.test", "/install.sh /store.tar.gz 1 test")
+	assert.NoError(t, err, output)
+
+	output, err = Ssh("api.store.test", "cp /var/www/store/current/config/test/secret.yaml /var/www/store/secret.yaml")
 	assert.NoError(t, err, output)
 
 	output, err = Publish("testapp1", 1)
