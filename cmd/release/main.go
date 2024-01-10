@@ -95,7 +95,7 @@ func main() {
 			}
 
 			if resp.IsError() {
-				return fmt.Errorf("refresh error: %v", resp.Error())
+				return fmt.Errorf("refresh error: %v, code: %d", resp.Error(), resp.StatusCode())
 			}
 
 			return nil

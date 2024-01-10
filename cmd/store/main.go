@@ -18,7 +18,7 @@ func main() {
 	var cmdStart = &cobra.Command{
 		Use:   "start",
 		Short: "Start Syncloud Store",
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			logger := log.Default()
 			config, err := util.LoadConfig(args[1])
