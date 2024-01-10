@@ -25,7 +25,7 @@ fi
 systemctl enable syncloud-store.service
 systemctl start syncloud-store.service
 
-cp ${CURRENT}/config/apache-$ENV.conf /etc/apache2/sites-available/store.conf
+cp ${CURRENT}/config/$ENV/apache.conf /etc/apache2/sites-available/store.conf
 
 chown -R store.store $STORE_DIR
 if a2query -s 000-default; then

@@ -2,7 +2,7 @@
 Description=Syncloud Store
 
 [Service]
-ExecStart=/var/www/store/current/bin/store start /var/www/store/api.socket
+ExecStart=/var/www/store/current/bin/store start /var/www/store/api.socket /var/www/store/secret.yaml
 Restart=always
 Type=simple
 User=store

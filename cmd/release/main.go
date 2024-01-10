@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/go-resty/resty/v2"
 	"github.com/spf13/cobra"
 	"github.com/syncloud/store/crypto"
 	"github.com/syncloud/store/model"
@@ -17,6 +18,10 @@ type SnapRevision struct {
 	Size     string `json:"snap-size"`
 	Sha384   string `json:"snap-sha3-385"`
 }
+
+const (
+	SyncloudToken = "SYNCLOUD_TOKEN"
+)
 
 func main() {
 
@@ -76,6 +81,23 @@ func main() {
 			if err != nil {
 				return err
 			}
+
+			client := resty.New()
+			token, ok := os.LookupEnv(SyncloudToken)
+			if !ok {
+				return fmt.Errorf("env var is not present: %s", SyncloudToken)
+			}
+			resp, err := client.R().
+				SetBody(fmt.Sprintf(`{ "token": "%s" }`, token)).
+				Post("http://api.store.test/syncloud/v1/cache/refresh")
+			if err != nil {
+				return err
+			}
+
+			if resp.IsError() {
+				return fmt.Errorf("refresh error: %v", resp.Error())
+			}
+
 			return nil
 		},
 	}

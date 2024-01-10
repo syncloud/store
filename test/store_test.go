@@ -265,6 +265,28 @@ func TestFind(t *testing.T) {
 
 }
 
+func TestRestCacheRefresh(t *testing.T) {
+	arch, err := snapArch()
+	assert.NoError(t, err)
+
+	output, err := InstallSnapd("/install-snapd-v2.sh /snapd2.tar.gz")
+	assert.NoError(t, err, output)
+
+	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp1 -a %s -v 1 -c stable -t %s", arch, StoreDir))
+	assert.NoError(t, err, output)
+
+	client := resty.New()
+	resp, err := client.R().
+		SetBody(`{ "token": "test" }`).
+		Post("http://api.store.test/syncloud/v1/cache/refresh")
+	assert.NoError(t, err)
+	assert.Equal(t, 200, resp.StatusCode())
+
+	output, err = Ssh("device", "snap find testapp1")
+	assert.NoError(t, err, output)
+
+}
+
 func TestRest_SnapsInfo(t *testing.T) {
 	arch, err := snapArch()
 	assert.NoError(t, err)
@@ -350,7 +372,7 @@ func Ssh(host string, command string) (string, error) {
 		return "", err
 	}
 	fmt.Printf("%s: %s\n", host, command)
-	output, err := client.ExecCommand(command)
+	output, err := client.ExecCommand(fmt.Sprintf("SYNCLOUD_TOKEN=test %s", command))
 	result := string(output)
 	fmt.Printf("output: \n%s\n", result)
 	return result, err
