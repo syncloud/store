@@ -38,7 +38,7 @@ $SCP ${DIR}/testapp2_1_$SNAP_ARCH.snap root@device:/testapp2_1.snap
 
 code=0
 set +e
-${DIR}/test
+${DIR}/test -failfast
 code=$(($code+$?))
 #$SSH root@$DEVICE /test -test.run Inside
 #code=$(($code+$?))
