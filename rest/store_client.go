@@ -36,7 +36,7 @@ func (c *StoreClient) RefreshCache() error {
 	}
 
 	if code != 200 {
-		return fmt.Errorf("refresh error: %v, code: %d", resp, code)
+		return fmt.Errorf("refresh error: %s, code: %d", resp, code)
 	}
 	return nil
 }

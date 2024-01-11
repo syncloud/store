@@ -33,9 +33,7 @@ func (c *RestyClient) Get(url string) (string, int, error) {
 }
 
 func (c *RestyClient) Post(url string, body interface{}) (string, int, error) {
-	resp, err := c.client.R().
-		SetBody(body).
-		Post(url)
+	resp, err := c.client.R().SetBody(body).Post(url)
 	if err != nil {
 		return "", 0, err
 	}
@@ -44,5 +42,5 @@ func (c *RestyClient) Post(url string, body interface{}) (string, int, error) {
 		return fmt.Sprintf("error: %v", resp.Error()), resp.StatusCode(), nil
 	}
 
-	return resp.String(), 0, nil
+	return resp.String(), resp.StatusCode(), nil
 }
