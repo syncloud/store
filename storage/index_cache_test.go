@@ -23,6 +23,11 @@ type ClientStub struct {
 	response map[string]Response
 }
 
+func (c *ClientStub) Post(url string, body interface{}) (string, int, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (c *ClientStub) Get(url string) (string, int, error) {
 	fmt.Println(url)
 	response, ok := c.response[url]

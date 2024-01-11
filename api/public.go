@@ -226,7 +226,7 @@ func (s *SyncloudStore) SyncloudCacheRefresh(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	var request model.SyncloudCacheRefreshRequest
+	var request model.StoreCacheRefreshRequest
 	err = json.Unmarshal(req, &request)
 	if err != nil {
 		return err

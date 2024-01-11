@@ -1,5 +1,5 @@
 package model
 
-type SyncloudCacheRefreshRequest struct {
+type StoreCacheRefreshRequest struct {
 	Token string `json:"token"`
 }
