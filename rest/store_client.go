@@ -11,24 +11,26 @@ const (
 )
 
 type StoreClient struct {
-	client Client
-	token  string
+	client   Client
+	storeUrl string
+	token    string
 }
 
-func NewStoreClient(client Client) (*StoreClient, error) {
+func NewStoreClient(client Client, storeUrl string) (*StoreClient, error) {
 	token, ok := os.LookupEnv(SyncloudToken)
 	if !ok {
 		return nil, fmt.Errorf("env var is not present: %s", SyncloudToken)
 	}
 	return &StoreClient{
-		client: client,
-		token:  token,
+		client:   client,
+		token:    token,
+		storeUrl: storeUrl,
 	}, nil
 }
 
 func (c *StoreClient) RefreshCache() error {
 	resp, code, err := c.client.Post(
-		"http://api.store.test/syncloud/v1/cache/refresh",
+		fmt.Sprintf("%s/syncloud/v1/cache/refresh", c.storeUrl),
 		model.StoreCacheRefreshRequest{Token: c.token},
 	)
 	if err != nil {

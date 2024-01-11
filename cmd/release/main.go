@@ -27,6 +27,9 @@ func main() {
 
 	var target string
 	rootCmd.PersistentFlags().StringVarP(&target, "target", "t", "s3", "target: s3 or local dir")
+	var storeUrl string
+	rootCmd.PersistentFlags().StringVarP(&storeUrl, "store-url", "s", "https://api.store.syncloud.org", "store url")
+
 	var arch string
 
 	var file string
@@ -77,7 +80,7 @@ func main() {
 			if err != nil {
 				return err
 			}
-			storeClient, err := rest.NewStoreClient(rest.New())
+			storeClient, err := rest.NewStoreClient(rest.New(), storeUrl)
 			if err != nil {
 				return err
 			}
@@ -111,7 +114,7 @@ func main() {
 			if err != nil {
 				return err
 			}
-			storeClient, err := rest.NewStoreClient(rest.New())
+			storeClient, err := rest.NewStoreClient(rest.New(), storeUrl)
 			if err != nil {
 				return err
 			}
@@ -142,7 +145,7 @@ func main() {
 			if err != nil {
 				return err
 			}
-			storeClient, err := rest.NewStoreClient(rest.New())
+			storeClient, err := rest.NewStoreClient(rest.New(), storeUrl)
 			if err != nil {
 				return err
 			}
