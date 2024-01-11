@@ -26,13 +26,7 @@ func TestPrepareStore(t *testing.T) {
 
 	output, err = Ssh("api.store.test", "/install.sh /store.tar.gz 1 test")
 	assert.NoError(t, err, output)
-
-	output, err = Ssh("api.store.test", "cp /var/www/store/current/config/test/secret.yaml /var/www/store/secret.yaml")
-	assert.NoError(t, err, output)
-
-	output, err = Ssh("api.store.test", "systemctl restart syncloud-store")
-	assert.NoError(t, err, output)
-
+	
 	output, err = Publish("testapp1", 1)
 	assert.NoError(t, err, output)
 	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release promote -n testapp1 -a %s -t %s", arch, StoreDir))

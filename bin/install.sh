@@ -26,6 +26,9 @@ systemctl enable syncloud-store.service
 systemctl start syncloud-store.service
 
 cp ${CURRENT}/config/$ENV/apache.conf /etc/apache2/sites-available/store.conf
+if ! -f $STORE_DIR/secret.yaml; then
+  cp ${CURRENT}/config/test/secret.yaml $STORE_DIR/secret.yaml
+fi
 
 chown -R store.store $STORE_DIR
 if a2query -s 000-default; then
