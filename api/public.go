@@ -28,6 +28,7 @@ type SyncloudStore struct {
 	address string
 	index   storage.Index
 	signer  Signer
+	token   string
 	logger  *zap.Logger
 }
 
@@ -36,6 +37,7 @@ func NewSyncloudStore(
 	index storage.Index,
 	client rest.Client,
 	signer Signer,
+	token string,
 	logger *zap.Logger,
 ) *SyncloudStore {
 	return &SyncloudStore{
@@ -44,6 +46,7 @@ func NewSyncloudStore(
 		signer:  signer,
 		index:   index,
 		address: address,
+		token:   token,
 		logger:  logger,
 	}
 }
@@ -63,6 +66,7 @@ func (s *SyncloudStore) Start() error {
 	s.echo.GET("/v2/assertions/account-key/:key", s.AccountKey)
 	s.echo.GET("/v2/snaps/find", s.Find)
 	s.echo.GET("/v2/snaps/info/:name", s.Info)
+	s.echo.POST("/syncloud/v1/cache/refresh", s.SyncloudCacheRefresh)
 
 	s.logger.Info("listening on", zap.String("address", s.address))
 	if s.IsUnixSocket() {
@@ -215,4 +219,22 @@ func (s *SyncloudStore) SnapRevision(c echo.Context) error {
 		return nil
 	}
 	return c.String(http.StatusOK, content)
+}
+
+func (s *SyncloudStore) SyncloudCacheRefresh(c echo.Context) error {
+	req, err := io.ReadAll(c.Request().Body)
+	if err != nil {
+		return err
+	}
+	var request model.StoreCacheRefreshRequest
+	err = json.Unmarshal(req, &request)
+	if err != nil {
+		return err
+	}
+
+	if request.Token != s.token {
+		return c.String(http.StatusUnauthorized, "unauthorized")
+	}
+
+	return s.index.Refresh()
 }

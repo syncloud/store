@@ -1,14 +1,13 @@
 package main
 
 import (
-	"fmt"
 	"github.com/spf13/cobra"
 	"github.com/syncloud/store/api"
 	"github.com/syncloud/store/crypto"
 	"github.com/syncloud/store/log"
 	"github.com/syncloud/store/rest"
 	"github.com/syncloud/store/storage"
-	"os"
+	"github.com/syncloud/store/util"
 )
 
 func main() {
@@ -19,15 +18,19 @@ func main() {
 	var cmdStart = &cobra.Command{
 		Use:   "start",
 		Short: "Start Syncloud Store",
-		Args:  cobra.MaximumNArgs(1),
+		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			logger := log.Default()
+			config, err := util.LoadConfig(args[1])
+			if err != nil {
+				return err
+			}
 			client := rest.New()
 			index := storage.New(client, api.Url, logger)
 			signer := crypto.NewSigner(logger)
-			public := api.NewSyncloudStore(args[0], index, client, signer, logger)
+			public := api.NewSyncloudStore(args[0], index, client, signer, config.Token, logger)
 			internal := api.NewApi(index)
-			err := index.Start()
+			err = index.Start()
 			if err != nil {
 				return err
 			}
@@ -42,7 +45,6 @@ func main() {
 	rootCmd.AddCommand(cmdStart)
 	err := rootCmd.Execute()
 	if err != nil {
-		fmt.Print(err)
-		os.Exit(1)
+		panic(err)
 	}
 }

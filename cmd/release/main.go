@@ -7,6 +7,7 @@ import (
 	"github.com/syncloud/store/crypto"
 	"github.com/syncloud/store/model"
 	"github.com/syncloud/store/release"
+	"github.com/syncloud/store/rest"
 	"os"
 	"strconv"
 )
@@ -76,7 +77,11 @@ func main() {
 			if err != nil {
 				return err
 			}
-			return nil
+			storeClient, err := rest.NewStoreClient(rest.New())
+			if err != nil {
+				return err
+			}
+			return storeClient.RefreshCache()
 		},
 	}
 	cmdPublish.Flags().StringVarP(&file, "file", "f", "", "snap file path")
@@ -89,11 +94,6 @@ func main() {
 	if err != nil {
 		return
 	}
-	//cmdPublish.Flags().StringVarP(&arch, "arch", "a", "", "arch to promote")
-	//err = cmdPublish.MarkFlagRequired("arch")
-	//if err != nil {
-	//	return
-	//}
 	rootCmd.AddCommand(cmdPublish)
 
 	var app string
@@ -107,7 +107,15 @@ func main() {
 			if err != nil {
 				return err
 			}
-			return storage.UploadContent(version, fmt.Sprintf("releases/stable/%s.%s.version", app, arch))
+			err = storage.UploadContent(version, fmt.Sprintf("releases/stable/%s.%s.version", app, arch))
+			if err != nil {
+				return err
+			}
+			storeClient, err := rest.NewStoreClient(rest.New())
+			if err != nil {
+				return err
+			}
+			return storeClient.RefreshCache()
 		},
 	}
 	cmdPromote.Flags().StringVarP(&app, "name", "n", "", "app name to promote")
@@ -130,7 +138,15 @@ func main() {
 		Args:  cobra.MaximumNArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			storage = NewStorage(target)
-			return storage.UploadContent(version, fmt.Sprintf("releases/%s/%s.%s.version", channel, app, arch))
+			err := storage.UploadContent(version, fmt.Sprintf("releases/%s/%s.%s.version", channel, app, arch))
+			if err != nil {
+				return err
+			}
+			storeClient, err := rest.NewStoreClient(rest.New())
+			if err != nil {
+				return err
+			}
+			return storeClient.RefreshCache()
 		},
 	}
 	cmdSetVersion.Flags().StringVarP(&app, "name", "n", "", "app")
