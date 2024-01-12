@@ -108,6 +108,7 @@ func parseChannel(channel string) string {
 func (i *CachedIndex) Info(name string, architecture string) *model.StoreInfo {
 	found := false
 	info := &model.StoreInfo{}
+	var stableApp *model.Snap
 	for _, channel := range AvailableChannels {
 		architectures, ok := i.Read(channel)
 		if !ok {
@@ -132,9 +133,17 @@ func (i *CachedIndex) Info(name string, architecture string) *model.StoreInfo {
 		}
 		info.ChannelMap = append(info.ChannelMap, channelInfo)
 		info.Snap = *app
+		if channel == "stable" {
+			stableApp = app
+		}
 		found = true
 	}
 	if found {
+		if stableApp != nil {
+			info.Snap = *stableApp
+			info.Name = stableApp.Name
+			info.SnapID = stableApp.SnapID
+		}
 		return info
 	}
 	return nil

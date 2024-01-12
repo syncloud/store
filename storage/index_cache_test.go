@@ -246,6 +246,35 @@ func TestIndexCache_Info_FirstOneIsASpecial(t *testing.T) {
 	assert.Equal(t, "stable", result.ChannelMap[0].Channel.Name)
 }
 
+func TestIndexCache_Info_PreferStable(t *testing.T) {
+
+	cache := &CachedIndex{
+		cache: Cache{
+			"master": {
+				"amd64": {
+					"app": &model.Snap{
+						Name:     "app",
+						Revision: 2,
+					},
+				},
+			},
+			"stable": {
+				"amd64": {
+					"app": &model.Snap{
+						Name:     "app",
+						Revision: 1,
+					},
+				},
+			},
+		},
+		logger: log.Default(),
+	}
+	result := cache.Info("app", "amd64")
+	assert.Equal(t, "app", result.Name)
+	assert.Equal(t, 1, result.Snap.Revision)
+	assert.Equal(t, "stable", result.ChannelMap[0].Channel.Name)
+}
+
 func TestIndexCache_InfoById(t *testing.T) {
 
 	cache := &CachedIndex{
