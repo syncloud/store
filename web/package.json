@@ -6,16 +6,14 @@
     "dev": "vite",
     "dev:stub": "VITE_STUB=1 vite",
     "build": "vite build",
-    "preview": "vite preview --host --port 4173",
-    "preview:stub": "VITE_STUB=1 vite build && vite preview --host --port 4173",
-    "test:e2e": "playwright test",
-    "test:e2e:headed": "playwright test --headed"
+    "build:stub": "VITE_STUB=1 vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 4173",
+    "preview:stub": "VITE_STUB=1 vite build && vite preview --host 127.0.0.1 --port 4173"
   },
   "dependencies": {
     "vue": "^3.4.21"
   },
   "devDependencies": {
-    "@playwright/test": "^1.50.1",
     "@vitejs/plugin-vue": "^5.0.4",
     "miragejs": "^0.1.48",
     "vite": "^5.2.6"

@@ -38,18 +38,22 @@ Why:
 
 ## Playwright notes
 
+`web/e2e/` is a self-contained TypeScript package — its own `package.json`, `tsconfig.json`, `playwright.config.ts` (mirrors `../onlyoffice/web/e2e/`).
+
 ```text
-web/e2e/                  # tests
-web/playwright.config.js  # config
+web/e2e/
+  package.json
+  tsconfig.json
+  playwright.config.ts
+  helpers/screenshot.ts    # shoot(page, testInfo, name)
+  specs/01-list.spec.ts
+  specs/02-search.spec.ts
+  specs/03-theme.spec.ts
 ```
 
-Layout (mirrors `../redirect/www/`):
-- shared `*.spec.js` flows run on both `desktop` and `mobile`
-- `*.mobile.spec.js` holds mobile-only assertions
-- screenshots are taken on failure in `web/e2e/fixtures.js`
-- videos and traces are retained in `web/test-results`
+Each spec calls `shoot(page, testInfo, '<name>')` to capture full-page PNG + HTML into `${PLAYWRIGHT_ARTIFACT_DIR}/playwright/<project>/screenshot/`. Both `desktop` (1440x960) and `mobile` (390x844) projects run, so every shot has a `-desktop.png` and `-mobile.png` variant. The HTML report lands at `${PLAYWRIGHT_ARTIFACT_DIR}/playwright/report/`.
 
-Playwright boots its own server (`npm run preview:stub`) — it's a stub-backed production build, so tests don't depend on the Go store. To run against another URL, set `PLAYWRIGHT_BASE_URL`.
+Playwright boots its own server (`npm --prefix .. run preview:stub`) — a stub-backed production build, so tests don't depend on the Go store. Set `PLAYWRIGHT_BASE_URL` to skip the webServer and target another URL.
 
 ## Local limitations
 
