@@ -46,13 +46,13 @@ code=$(($code+$?))
 set -e
 
 $SSH root@device snap changes > $LOG_DIR/snap.changes.log || true
-$SSH root@device journalctl > $LOG_DIR/journalctl.device.log
-$SCP api.store.test:/var/log/apache2/store-access.log $LOG_DIR
-$SCP api.store.test:/var/log/apache2/store-error.log $LOG_DIR
-$SSH api.store.test journalctl > $LOG_DIR/journalctl.store.log
-$SSH api.store.test ls -la /var/www/store > $LOG_DIR/var.www.store.log
-$SCP -r apps.syncloud.org:$STORE_DIR $ARTIFACTS_DIR/store
-$SCP apps.syncloud.org:/var/log/nginx/access.log $LOG_DIR/apps.nginx.access.log
-chmod -R a+r $ARTIFACTS_DIR
+$SSH root@device journalctl > $LOG_DIR/journalctl.device.log || true
+$SSH api.store.test journalctl > $LOG_DIR/journalctl.store.log || true
+$SSH api.store.test ls -la /var/www/store > $LOG_DIR/var.www.store.log || true
+$SCP api.store.test:/var/log/apache2/store-access.log $LOG_DIR || true
+$SCP api.store.test:/var/log/apache2/store-error.log $LOG_DIR || true
+$SCP -r apps.syncloud.org:$STORE_DIR $ARTIFACTS_DIR/store || true
+$SCP apps.syncloud.org:/var/log/nginx/access.log $LOG_DIR/apps.nginx.access.log || true
+chmod -R a+r $ARTIFACTS_DIR || true
 
 exit $code
