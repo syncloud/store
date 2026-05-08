@@ -84,6 +84,35 @@ local build(arch) = {
                 "./build.sh $VERSION " + arch
             ]
         },
+    ] + (if arch == "amd64" then [
+        {
+            name: "docker",
+            image: "plugins/docker:20.18",
+            settings: {
+                repo: docker_image,
+                username: { from_secret: "docker_username" },
+                password: { from_secret: "docker_password" },
+                tags: [
+                    "${DRONE_BRANCH}-${DRONE_BUILD_NUMBER}",
+                    "${DRONE_BRANCH}",
+                ],
+            },
+            when: {
+                event: ["push", "tag"],
+            },
+        },
+        deployStep("uat", "uat_deploy_host") + {
+            when: {
+                event: ["push"],
+            },
+        },
+        deployStep("prod", "prod_deploy_host") + {
+            when: {
+                event: ["push"],
+                branch: ["stable"],
+            },
+        },
+    ] else []) + [
         {
             name: "build apps",
             image: "debian:buster-slim",
@@ -148,35 +177,7 @@ local build(arch) = {
                 event: [ "tag" ]
             }
         },
-    ] + (if arch == "amd64" then [
-        {
-            name: "docker",
-            image: "plugins/docker:20.18",
-            settings: {
-                repo: docker_image,
-                username: { from_secret: "docker_username" },
-                password: { from_secret: "docker_password" },
-                tags: [
-                    "${DRONE_BRANCH}-${DRONE_BUILD_NUMBER}",
-                    "${DRONE_BRANCH}",
-                ],
-            },
-            when: {
-                event: ["push", "tag"],
-            },
-        },
-        deployStep("uat", "uat_deploy_host") + {
-            when: {
-                event: ["push"],
-            },
-        },
-        deployStep("prod", "prod_deploy_host") + {
-            when: {
-                event: ["push"],
-                branch: ["stable"],
-            },
-        },
-    ] else []),
+    ],
     services:
     [
         {
