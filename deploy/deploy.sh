@@ -1,0 +1,44 @@
+#!/bin/bash
+set -ex
+
+if [ "$#" -ne 1 ]; then
+    echo "usage: $0 <docker-tag>" >&2
+    exit 1
+fi
+
+TAG=$1
+CONTAINER=syncloud-store
+STORE_DIR=/var/www/store
+SERVICE=syncloud-store.service
+
+if ! command -v docker >/dev/null 2>&1; then
+    apt-get update
+    apt-get install -y docker.io
+fi
+
+if systemctl is-active --quiet "$SERVICE"; then
+    systemctl stop "$SERVICE"
+fi
+if systemctl is-enabled --quiet "$SERVICE" 2>/dev/null; then
+    systemctl disable "$SERVICE"
+fi
+
+if ! id -u store >/dev/null 2>&1; then
+    adduser --disabled-password --gecos "" store
+fi
+STORE_UID=$(id -u store)
+STORE_GID=$(id -g store)
+
+mkdir -p "$STORE_DIR"
+chown "$STORE_UID:$STORE_GID" "$STORE_DIR"
+
+docker pull "$TAG"
+docker rm -f "$CONTAINER" 2>/dev/null || true
+docker run -d \
+    --name "$CONTAINER" \
+    --restart=unless-stopped \
+    --user "$STORE_UID:$STORE_GID" \
+    -v "$STORE_DIR:$STORE_DIR" \
+    "$TAG"
+
+docker image prune -f

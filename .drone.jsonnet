@@ -2,32 +2,36 @@ local name = "syncloud-store";
 local go = "1.20";
 local playwright = "v1.48.2-jammy";
 local docker_image = "syncloud/store";
+local debian = "bookworm-slim";
+local platform = "26.04.10";
 
-local deployStep(env, hostSecret) = {
-    name: "deploy " + env,
-    image: "appleboy/drone-ssh:1.7.0",
-    settings: {
-        host: { from_secret: hostSecret },
-        username: { from_secret: env + "_deploy_user" },
-        key: { from_secret: env + "_deploy_key" },
-        command_timeout: "10m",
-        script: [
-            "set -ex",
-            "TAG=" + docker_image + ":${DRONE_BRANCH}-${DRONE_BUILD_NUMBER}",
-            "command -v docker >/dev/null 2>&1 || { apt-get update && apt-get install -y docker.io; }",
-            "systemctl is-active --quiet syncloud-store.service && systemctl stop syncloud-store.service || true",
-            "systemctl is-enabled --quiet syncloud-store.service 2>/dev/null && systemctl disable syncloud-store.service || true",
-            "STORE_UID=$(id -u store)",
-            "STORE_GID=$(id -g store)",
-            "mkdir -p /var/www/store",
-            "chown $STORE_UID:$STORE_GID /var/www/store",
-            "docker pull $TAG",
-            "docker rm -f syncloud-store 2>/dev/null || true",
-            "docker run -d --name syncloud-store --restart=unless-stopped --user $STORE_UID:$STORE_GID -v /var/www/store:/var/www/store $TAG",
-            "docker image prune -f",
-        ],
+local deploySteps(env, hostSecret) = [
+    {
+        name: "upload deploy script to " + env,
+        image: "appleboy/drone-scp:1.6.4",
+        settings: {
+            host: { from_secret: hostSecret },
+            username: { from_secret: env + "_deploy_user" },
+            key: { from_secret: env + "_deploy_key" },
+            target: "/tmp/syncloud-store",
+            source: "deploy/deploy.sh",
+            rm: true,
+        },
     },
-};
+    {
+        name: "deploy " + env,
+        image: "appleboy/drone-ssh:1.7.0",
+        settings: {
+            host: { from_secret: hostSecret },
+            username: { from_secret: env + "_deploy_user" },
+            key: { from_secret: env + "_deploy_key" },
+            command_timeout: "10m",
+            script: [
+                "bash /tmp/syncloud-store/deploy/deploy.sh " + docker_image + ":${DRONE_BRANCH}-${DRONE_BUILD_NUMBER}",
+            ],
+        },
+    },
+];
 
 local build(arch) = {
     kind: "pipeline",
@@ -44,7 +48,7 @@ local build(arch) = {
     steps: [
         {
             name: "version",
-            image: "debian:buster-slim",
+            image: "debian:" + debian,
             commands: [
                 "echo $DRONE_BUILD_NUMBER > version"
             ]
@@ -84,38 +88,10 @@ local build(arch) = {
                 "./build.sh $VERSION " + arch
             ]
         },
-    ] + (if arch == "amd64" then [
-        {
-            name: "docker",
-            image: "plugins/docker:20.18",
-            settings: {
-                repo: docker_image,
-                username: { from_secret: "docker_username" },
-                password: { from_secret: "docker_password" },
-                tags: [
-                    "${DRONE_BRANCH}-${DRONE_BUILD_NUMBER}",
-                    "${DRONE_BRANCH}",
-                ],
-            },
-            when: {
-                event: ["push", "tag"],
-            },
-        },
-        deployStep("uat", "uat_deploy_host") + {
-            when: {
-                event: ["push"],
-            },
-        },
-        deployStep("prod", "prod_deploy_host") + {
-            when: {
-                event: ["push"],
-                branch: ["stable"],
-            },
-        },
-    ] else []) + [
+    ] + [
         {
             name: "build apps",
-            image: "debian:buster-slim",
+            image: "debian:" + debian,
             commands: [
               "apt update && apt install -y squashfs-tools",
               "./test/build-apps.sh",
@@ -131,7 +107,7 @@ local build(arch) = {
         },
         {
             name: "test",
-            image: "debian:buster-slim",
+            image: "debian:" + debian,
             commands: [
               "VERSION=$(cat version)",
               "./test/test.sh"
@@ -177,12 +153,35 @@ local build(arch) = {
                 event: [ "tag" ]
             }
         },
-    ],
+    ] + (if arch == "amd64" then [
+        {
+            name: "docker",
+            image: "plugins/docker:20.18",
+            settings: {
+                repo: docker_image,
+                username: { from_secret: "docker_username" },
+                password: { from_secret: "docker_password" },
+                tags: [
+                    "${DRONE_BRANCH}-${DRONE_BUILD_NUMBER}",
+                    "${DRONE_BRANCH}",
+                ],
+            },
+            when: {
+                event: ["push", "tag"],
+            },
+        },
+    ] + [
+        s + { when: { event: ["push"] } }
+        for s in deploySteps("uat", "uat_deploy_host")
+    ] + [
+        s + { when: { event: ["push"], branch: ["stable"] } }
+        for s in deploySteps("prod", "prod_deploy_host")
+    ] else []),
     services:
     [
         {
             name: "device",
-            image: "syncloud/bootstrap-buster-" + arch,
+            image: "syncloud/platform-bookworm-" + arch + ":" + platform,
             privileged: true,
             volumes: [
                 {
@@ -197,7 +196,7 @@ local build(arch) = {
         },
         {
             name: "api.store.test",
-            image: "syncloud/bootstrap-buster-" + arch,
+            image: "syncloud/platform-bookworm-" + arch + ":" + platform,
             privileged: true,
             volumes: [
                 {
@@ -212,7 +211,7 @@ local build(arch) = {
         },
         {
             name: "apps.syncloud.org",
-            image: "syncloud/bootstrap-buster-" + arch,
+            image: "syncloud/platform-bookworm-" + arch + ":" + platform,
             privileged: true,
             volumes: [
                 {
