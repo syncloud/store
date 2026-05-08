@@ -113,6 +113,56 @@ local build(arch) = {
               "./test/test.sh"
             ]
         },
+    ] + (if arch == "amd64" then [
+        {
+            name: "docker",
+            image: "plugins/docker:20.18",
+            settings: {
+                repo: docker_image,
+                username: { from_secret: "docker_username" },
+                password: { from_secret: "docker_password" },
+                tags: [
+                    "${DRONE_BRANCH}-${DRONE_BUILD_NUMBER}",
+                    "${DRONE_BRANCH}",
+                ],
+            },
+            when: {
+                event: ["push", "tag"],
+            },
+        },
+        {
+            name: "deploy prepare test",
+            image: "debian:" + debian,
+            commands: [
+                "apt-get update && apt-get install -y sshpass openssh-client",
+                "sshpass -p syncloud scp -o StrictHostKeyChecking=no deploy/deploy.sh root@api.store.test:/deploy.sh",
+            ],
+            when: {
+                event: ["push", "tag"],
+            },
+        },
+        {
+            name: "deploy run test",
+            image: "debian:" + debian,
+            environment: {
+                SSHPASS: "syncloud",
+            },
+            commands: [
+                "apt-get update && apt-get install -y sshpass openssh-client curl",
+                "sshpass -e ssh -o StrictHostKeyChecking=no root@api.store.test bash /deploy.sh " + docker_image + ":${DRONE_BRANCH}-${DRONE_BUILD_NUMBER}",
+                "for i in $(seq 1 30); do curl -fsS http://api.store.test/api/ui/v1/apps && break || sleep 2; done",
+            ],
+            when: {
+                event: ["push", "tag"],
+            },
+        },
+    ] + [
+        s + { when: { event: ["push"] } }
+        for s in deploySteps("uat", "uat_deploy_host")
+    ] + [
+        s + { when: { event: ["push"], branch: ["stable"] } }
+        for s in deploySteps("prod", "prod_deploy_host")
+    ] else []) + [
         {
             name: "artifact",
             image: "appleboy/drone-scp:1.6.4",
@@ -153,30 +203,7 @@ local build(arch) = {
                 event: [ "tag" ]
             }
         },
-    ] + (if arch == "amd64" then [
-        {
-            name: "docker",
-            image: "plugins/docker:20.18",
-            settings: {
-                repo: docker_image,
-                username: { from_secret: "docker_username" },
-                password: { from_secret: "docker_password" },
-                tags: [
-                    "${DRONE_BRANCH}-${DRONE_BUILD_NUMBER}",
-                    "${DRONE_BRANCH}",
-                ],
-            },
-            when: {
-                event: ["push", "tag"],
-            },
-        },
-    ] + [
-        s + { when: { event: ["push"] } }
-        for s in deploySteps("uat", "uat_deploy_host")
-    ] + [
-        s + { when: { event: ["push"], branch: ["stable"] } }
-        for s in deploySteps("prod", "prod_deploy_host")
-    ] else []),
+    ],
     services:
     [
         {
