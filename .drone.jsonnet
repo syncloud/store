@@ -7,7 +7,7 @@ local platform = "26.04.10";
 
 local deploySteps(env, hostSecret) = [
     {
-        name: "upload deploy script to " + env,
+        name: "deploy prepare " + env,
         image: "appleboy/drone-scp:1.6.4",
         settings: {
             host: { from_secret: hostSecret },
@@ -19,7 +19,7 @@ local deploySteps(env, hostSecret) = [
         },
     },
     {
-        name: "deploy " + env,
+        name: "deploy run " + env,
         image: "appleboy/drone-ssh:1.7.0",
         settings: {
             host: { from_secret: hostSecret },
