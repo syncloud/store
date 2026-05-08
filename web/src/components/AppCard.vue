@@ -1,7 +1,11 @@
 <script setup>
-defineProps({
+import { ref } from 'vue'
+
+const props = defineProps({
   app: { type: Object, required: true }
 })
+
+const broken = ref(false)
 
 function initial (name) {
   return (name || '?').slice(0, 1).toUpperCase()
@@ -11,7 +15,13 @@ function initial (name) {
 <template>
   <article class="card" data-testid="app-card" :data-name="app.name">
     <div class="icon-wrap">
-      <img v-if="app.icon" :src="app.icon" :alt="app.name + ' icon'" loading="lazy" />
+      <img
+        v-if="app.icon && !broken"
+        :src="app.icon"
+        :alt="app.name + ' icon'"
+        loading="lazy"
+        @error="broken = true"
+      />
       <span v-else class="fallback">{{ initial(app.name) }}</span>
     </div>
     <div class="body">

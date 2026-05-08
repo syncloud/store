@@ -28,6 +28,7 @@ test.describe('search filter', () => {
     const search = page.getByTestId('search')
     const cards = page.getByTestId('app-card-item')
 
+    await expect(cards.first()).toBeVisible()
     const total = await cards.count()
     expect(total).toBeGreaterThan(1)
 

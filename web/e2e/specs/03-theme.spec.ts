@@ -8,6 +8,7 @@ test.describe('theme switcher', () => {
 
     const switcher = page.getByTestId('theme-switcher')
     await expect(switcher).toBeVisible()
+    await expect(page.getByTestId('app-card-item').first()).toBeVisible()
 
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
     await shoot(page, testInfo, 'theme-light')
