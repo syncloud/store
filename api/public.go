@@ -67,6 +67,7 @@ func (s *SyncloudStore) Start() error {
 	s.echo.GET("/v2/snaps/find", s.Find)
 	s.echo.GET("/v2/snaps/info/:name", s.Info)
 	s.echo.POST("/syncloud/v1/cache/refresh", s.SyncloudCacheRefresh)
+	s.echo.GET("/api/ui/v1/apps", s.UIApps)
 
 	s.logger.Info("listening on", zap.String("address", s.address))
 	if s.IsUnixSocket() {
@@ -219,6 +220,19 @@ func (s *SyncloudStore) SnapRevision(c echo.Context) error {
 		return nil
 	}
 	return c.String(http.StatusOK, content)
+}
+
+func (s *SyncloudStore) UIApps(c echo.Context) error {
+	channel := c.QueryParam("channel")
+	if channel == "" {
+		channel = "stable"
+	}
+	apps := s.index.UIApps(channel)
+	if apps == nil {
+		apps = []*model.UIApp{}
+	}
+	c.Response().Header().Set(echo.HeaderContentType, "application/json")
+	return c.JSON(http.StatusOK, apps)
 }
 
 func (s *SyncloudStore) SyncloudCacheRefresh(c echo.Context) error {

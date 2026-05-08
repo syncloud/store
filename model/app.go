@@ -6,11 +6,12 @@ import (
 )
 
 type App struct {
-	Name     string `json:"id"`
-	Summary  string `json:"name"`
-	Icon     string `json:"icon,omitempty"`
-	Enabled  bool   `json:"enabled,omitempty"`
-	Required bool   `json:"required"`
+	Name        string `json:"id"`
+	Summary     string `json:"name"`
+	Description string `json:"description,omitempty"`
+	Icon        string `json:"icon,omitempty"`
+	Enabled     bool   `json:"enabled,omitempty"`
+	Required    bool   `json:"required"`
 }
 
 func (a *App) ToInfo(version string, downloadSize int64, downloadSha384 string, downloadUrl string, arch string) (*Snap, error) {

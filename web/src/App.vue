@@ -12,16 +12,16 @@ async function load () {
   loading.value = true
   error.value = null
   try {
-    const res = await fetch('/v2/snaps/find?architecture=amd64&channel=stable')
+    const res = await fetch('/api/ui/v1/apps')
     if (!res.ok) throw new Error('http ' + res.status)
     const data = await res.json()
-    apps.value = (data.results || []).map(r => ({
-      id: r['snap-id'],
-      name: r.name,
-      summary: r.snap?.summary || '',
-      version: r.snap?.version || '',
-      icon: (r.snap?.media || []).find(m => m.type === 'icon')?.url || '',
-      type: r.snap?.type || 'app'
+    apps.value = (data || []).map(a => ({
+      id: a.snapId,
+      name: a.name,
+      summary: a.summary || '',
+      description: a.description || '',
+      version: a.version || '',
+      icon: a.iconUrl || ''
     }))
   } catch (e) {
     error.value = e.message
