@@ -8,6 +8,8 @@ import (
 	"github.com/syncloud/store/rest"
 	"github.com/syncloud/store/storage"
 	"github.com/syncloud/store/util"
+	"github.com/syncloud/store/web"
+	"io/fs"
 )
 
 func main() {
@@ -28,7 +30,11 @@ func main() {
 			client := rest.New()
 			index := storage.New(client, api.Url, logger)
 			signer := crypto.NewSigner(logger)
-			public := api.NewSyncloudStore(args[0], index, client, signer, config.Token, logger)
+			webFS, err := fs.Sub(web.FS, "dist")
+			if err != nil {
+				return err
+			}
+			public := api.NewSyncloudStore(args[0], index, client, signer, config.Token, webFS, logger)
 			internal := api.NewApi(index)
 			err = index.Start()
 			if err != nil {

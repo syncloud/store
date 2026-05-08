@@ -110,3 +110,30 @@ curl -s "http://ci.syncloud.org:8081/files/syncloud-store/{N}-{arch}/"
 ```
 
 Playwright failures (once the web pipeline lands) show up under `playwright-report/` and `playwright-results/<slug>/` (`error-context.md`, `failure-full-page.png`, `trace.zip`, `video.webm`).
+
+# Deploy
+
+Pipeline triggers on `push` and `tag` only — PRs do not run CI. Per push the amd64 pipeline:
+
+1. `web build` → `web e2e` → `build store` (npm + Go) — Go binary embeds `web/dist/` via `web/embed.go`, so the SPA ships inside the binary
+2. `docker` — builds and pushes `syncloud/store:<branch>-<build>` and `syncloud/store:<branch>` to Docker Hub
+3. `deploy uat` — every branch push, ssh to UAT, swap container
+4. `deploy prod` — only on push to `stable`, ssh to prod, swap container
+
+The deploy script (inlined in `.drone.jsonnet → deployStep`) is idempotent:
+- `apt install docker.io` if missing
+- stops + disables the legacy `syncloud-store.service` systemd unit (so the box can run multiple times safely)
+- `chown 1003:1003 /var/www/store` (matches existing `store` user)
+- `docker pull <tag> && docker rm -f syncloud-store && docker run -d --user 1003:1003 -v /var/www/store:/var/www/store <tag>`
+
+Apache is unchanged — the bind-mounted `/var/www/store/api.socket` keeps the existing `ProxyPass "/" unix:.../api.socket` working. The Go server inside the container creates the socket on the host through the bind mount.
+
+## Required Drone secrets
+
+Configure once in `http://ci.syncloud.org:8080/syncloud/store/settings/secrets`:
+
+- `docker_username`, `docker_password` — Docker Hub creds
+- `uat_deploy_host`, `uat_deploy_user`, `uat_deploy_key` — SSH to UAT (`syncloud.info`, user with sudo)
+- `prod_deploy_host`, `prod_deploy_user`, `prod_deploy_key` — SSH to prod
+
+Until those are populated, the `docker` and `deploy *` steps will fail; the rest of the pipeline still runs.

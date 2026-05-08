@@ -1,10 +1,51 @@
 local name = "syncloud-store";
 local go = "1.20";
 local playwright = "v1.48.2-jammy";
+local docker_image = "syncloud/store";
+
+local deployStep(env, hostSecret) = {
+    name: "deploy " + env,
+    image: "appleboy/drone-ssh:1.7.0",
+    settings: {
+        host: { from_secret: hostSecret },
+        username: { from_secret: env + "_deploy_user" },
+        key: { from_secret: env + "_deploy_key" },
+        envs: ["drone_branch", "drone_build_number"],
+        command_timeout: "10m",
+        script: [
+            "set -ex",
+            "TAG=" + docker_image + ":${DRONE_BRANCH}-${DRONE_BUILD_NUMBER}",
+            "if ! command -v docker >/dev/null 2>&1; then",
+            "  apt-get update && apt-get install -y docker.io",
+            "fi",
+            "if systemctl is-active --quiet syncloud-store.service; then",
+            "  systemctl stop syncloud-store.service",
+            "fi",
+            "if systemctl is-enabled --quiet syncloud-store.service 2>/dev/null; then",
+            "  systemctl disable syncloud-store.service",
+            "fi",
+            "STORE_UID=$(id -u store)",
+            "STORE_GID=$(id -g store)",
+            "mkdir -p /var/www/store",
+            "chown $STORE_UID:$STORE_GID /var/www/store",
+            "docker pull $TAG",
+            "docker rm -f syncloud-store 2>/dev/null || true",
+            "docker run -d --name syncloud-store --restart=unless-stopped \\",
+            "  --user $STORE_UID:$STORE_GID \\",
+            "  -v /var/www/store:/var/www/store \\",
+            "  $TAG",
+            "docker image prune -f",
+        ],
+    },
+};
 
 local build(arch) = {
     kind: "pipeline",
     name: arch,
+
+    trigger: {
+        event: ["push", "tag"],
+    },
 
     platform: {
         os: "linux",
@@ -117,7 +158,35 @@ local build(arch) = {
                 event: [ "tag" ]
             }
         },
-    ],
+    ] + (if arch == "amd64" then [
+        {
+            name: "docker",
+            image: "plugins/docker:20.18",
+            settings: {
+                repo: docker_image,
+                username: { from_secret: "docker_username" },
+                password: { from_secret: "docker_password" },
+                tags: [
+                    "${DRONE_BRANCH}-${DRONE_BUILD_NUMBER}",
+                    "${DRONE_BRANCH}",
+                ],
+            },
+            when: {
+                event: ["push", "tag"],
+            },
+        },
+        deployStep("uat", "uat_deploy_host") + {
+            when: {
+                event: ["push"],
+            },
+        },
+        deployStep("prod", "prod_deploy_host") + {
+            when: {
+                event: ["push"],
+                branch: ["stable"],
+            },
+        },
+    ] else []),
     services:
     [
         {

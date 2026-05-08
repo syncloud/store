@@ -10,6 +10,7 @@ import (
 	"github.com/syncloud/store/storage"
 	"go.uber.org/zap"
 	"io"
+	"io/fs"
 	"net"
 	"net/http"
 	"os"
@@ -30,6 +31,7 @@ type SyncloudStore struct {
 	signer  Signer
 	token   string
 	logger  *zap.Logger
+	web     fs.FS
 }
 
 func NewSyncloudStore(
@@ -38,6 +40,7 @@ func NewSyncloudStore(
 	client rest.Client,
 	signer Signer,
 	token string,
+	web fs.FS,
 	logger *zap.Logger,
 ) *SyncloudStore {
 	return &SyncloudStore{
@@ -47,6 +50,7 @@ func NewSyncloudStore(
 		index:   index,
 		address: address,
 		token:   token,
+		web:     web,
 		logger:  logger,
 	}
 }
@@ -68,6 +72,11 @@ func (s *SyncloudStore) Start() error {
 	s.echo.GET("/v2/snaps/info/:name", s.Info)
 	s.echo.POST("/syncloud/v1/cache/refresh", s.SyncloudCacheRefresh)
 	s.echo.GET("/api/ui/v1/apps", s.UIApps)
+
+	if s.web != nil {
+		fileServer := http.FileServer(http.FS(s.web))
+		s.echo.GET("/*", echo.WrapHandler(s.spaHandler(fileServer)))
+	}
 
 	s.logger.Info("listening on", zap.String("address", s.address))
 	if s.IsUnixSocket() {
@@ -220,6 +229,24 @@ func (s *SyncloudStore) SnapRevision(c echo.Context) error {
 		return nil
 	}
 	return c.String(http.StatusOK, content)
+}
+
+func (s *SyncloudStore) spaHandler(fileServer http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requested := strings.TrimPrefix(r.URL.Path, "/")
+		if requested == "" {
+			fileServer.ServeHTTP(w, r)
+			return
+		}
+		if f, err := s.web.Open(requested); err == nil {
+			_ = f.Close()
+			fileServer.ServeHTTP(w, r)
+			return
+		}
+		r2 := r.Clone(r.Context())
+		r2.URL.Path = "/"
+		fileServer.ServeHTTP(w, r2)
+	})
 }
 
 func (s *SyncloudStore) UIApps(c echo.Context) error {

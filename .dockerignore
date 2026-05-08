@@ -1,0 +1,10 @@
+.git
+.drone.yml
+**/node_modules
+**/dist
+**/test-results
+**/playwright-report
+**/artifact
+out
+build
+*.snap
