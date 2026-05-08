@@ -1,0 +1,23 @@
+{
+  "name": "syncloud-store-web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "dev:stub": "VITE_STUB=1 vite",
+    "build": "vite build",
+    "preview": "vite preview --host --port 4173",
+    "preview:stub": "VITE_STUB=1 vite build && vite preview --host --port 4173",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed"
+  },
+  "dependencies": {
+    "vue": "^3.4.21"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.50.1",
+    "@vitejs/plugin-vue": "^5.0.4",
+    "miragejs": "^0.1.48",
+    "vite": "^5.2.6"
+  }
+}
