@@ -18,6 +18,33 @@ local build(arch) = {
                 "echo $DRONE_BUILD_NUMBER > version"
             ]
         },
+    ] + (if arch == "amd64" then [
+        {
+            name: "web build",
+            image: "mcr.microsoft.com/playwright:" + playwright,
+            commands: [
+              "cd web",
+              "npm ci --prefer-offline --no-audit --no-fund",
+              "npm run build",
+              "npm run build:stub",
+            ]
+        },
+        {
+            name: "web e2e",
+            image: "mcr.microsoft.com/playwright:" + playwright,
+            environment: {
+              PLAYWRIGHT_ARTIFACT_DIR: "/drone/src/artifact",
+            },
+            commands: [
+              "(cd web && npx vite preview --host 127.0.0.1 --port 4173) &",
+              "for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4173 >/dev/null && break || sleep 1; done",
+              "cd web/e2e",
+              "npm ci --no-audit --no-fund",
+              "PLAYWRIGHT_BASE_URL=http://127.0.0.1:4173 npx playwright test --project=desktop",
+              "PLAYWRIGHT_BASE_URL=http://127.0.0.1:4173 npx playwright test --project=mobile",
+            ]
+        },
+    ] else []) + [
         {
             name: "build store",
             image: "golang:" + go,
@@ -50,33 +77,6 @@ local build(arch) = {
               "./test/test.sh"
             ]
         },
-    ] + (if arch == "amd64" then [
-        {
-            name: "web build",
-            image: "mcr.microsoft.com/playwright:" + playwright,
-            commands: [
-              "cd web",
-              "npm ci --prefer-offline --no-audit --no-fund",
-              "npm run build",
-              "npm run build:stub",
-            ]
-        },
-        {
-            name: "web e2e",
-            image: "mcr.microsoft.com/playwright:" + playwright,
-            environment: {
-              PLAYWRIGHT_ARTIFACT_DIR: "/drone/src/artifact",
-            },
-            commands: [
-              "(cd web && npx vite preview --host 127.0.0.1 --port 4173) &",
-              "for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4173 >/dev/null && break || sleep 1; done",
-              "cd web/e2e",
-              "npm ci --no-audit --no-fund",
-              "PLAYWRIGHT_BASE_URL=http://127.0.0.1:4173 npx playwright test --project=desktop",
-              "PLAYWRIGHT_BASE_URL=http://127.0.0.1:4173 npx playwright test --project=mobile",
-            ]
-        },
-    ] else []) + [
         {
             name: "artifact",
             image: "appleboy/drone-scp:1.6.4",
