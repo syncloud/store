@@ -9,9 +9,15 @@ rm -rf ${BUILD_DIR}
 mkdir -p ${BUILD_DIR}/bin
 cd $DIR
 
-go test ./...
-go build -ldflags '-linkmode external -extldflags -static' -o ${BUILD_DIR}/bin/store ./cmd/store
-go build -ldflags '-linkmode external -extldflags -static' -o ${BUILD_DIR}/bin/cli ./cmd/cli
+GIT_SHA=${DRONE_COMMIT_SHA:-unknown}
+BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+LDFLAGS="-linkmode external -extldflags -static \
+    -X github.com/syncloud/store/internal/version.GitSha=${GIT_SHA} \
+    -X github.com/syncloud/store/internal/version.BuildNumber=${VERSION} \
+    -X github.com/syncloud/store/internal/version.BuildTime=${BUILD_TIME}"
+
+go build -ldflags "${LDFLAGS}" -o ${BUILD_DIR}/bin/store ./cmd/store
+go build -ldflags "${LDFLAGS}" -o ${BUILD_DIR}/bin/cli ./cmd/cli
 cp -r ${DIR}/config ${BUILD_DIR}
 mkdir ${BUILD_DIR}/www
 

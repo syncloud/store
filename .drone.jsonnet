@@ -63,6 +63,13 @@ local build(arch) = {
         },
     ] else []) + [
         {
+            name: "unit test",
+            image: "golang:" + go,
+            commands: [
+                "./unit-test.sh",
+            ]
+        },
+        {
             name: "build store",
             image: "golang:" + go,
             commands: [
@@ -107,10 +114,6 @@ local build(arch) = {
                     "${DRONE_BRANCH}-${DRONE_BUILD_NUMBER}",
                     "${DRONE_BRANCH}",
                 ],
-                build_args: [
-                    "GIT_SHA=${DRONE_COMMIT_SHA}",
-                    "BUILD_NUMBER=${DRONE_BUILD_NUMBER}",
-                ],
             },
             when: {
                 event: ["push", "tag"],
@@ -124,10 +127,6 @@ local build(arch) = {
                 username: { from_secret: "DOCKER_USERNAME" },
                 password: { from_secret: "DOCKER_PASSWORD" },
                 tags: ["latest"],
-                build_args: [
-                    "GIT_SHA=${DRONE_COMMIT_SHA}",
-                    "BUILD_NUMBER=${DRONE_BUILD_NUMBER}",
-                ],
             },
             when: {
                 event: ["push"],
