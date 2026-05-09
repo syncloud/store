@@ -154,9 +154,12 @@ local build(arch) = {
                 SSHPASS: "syncloud",
             },
             commands: [
-                "apt-get update && apt-get install -y sshpass openssh-client curl",
+                "apt-get update && apt-get install -y sshpass openssh-client curl python3",
+                "MOCK_IP=$(getent hosts apps.syncloud.org | awk '{print $1}' | head -1)",
+                "echo \"mock apps.syncloud.org ip: $MOCK_IP\"",
+                "sshpass -e ssh -o StrictHostKeyChecking=no root@api.store.test \"echo $MOCK_IP apps.syncloud.org >> /etc/hosts\"",
                 "sshpass -e ssh -o StrictHostKeyChecking=no root@api.store.test bash /deploy.sh " + docker_image + ":${DRONE_BRANCH}-${DRONE_BUILD_NUMBER}",
-                "for i in $(seq 1 60); do if curl -fsS http://api.store.test/api/ui/v1/apps; then echo OK; exit 0; fi; sleep 2; done; echo 'store did not come up'; sshpass -e ssh -o StrictHostKeyChecking=no root@api.store.test docker logs syncloud-store 2>&1 | tail -40; exit 1",
+                "for i in $(seq 1 60); do n=$(curl -fsS http://api.store.test/api/ui/v1/apps 2>/dev/null | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))' 2>/dev/null || echo 0); if [ \"$n\" -gt 0 ]; then echo \"OK ($n apps)\"; exit 0; fi; sleep 2; done; echo 'store did not populate index'; sshpass -e ssh -o StrictHostKeyChecking=no root@api.store.test docker logs syncloud-store 2>&1 | tail -40; exit 1",
             ],
             when: {
                 event: ["push", "tag"],

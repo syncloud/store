@@ -39,6 +39,7 @@ docker run -d \
     --restart=unless-stopped \
     --user "$STORE_UID:$STORE_GID" \
     -v "$STORE_DIR:$STORE_DIR" \
+    -v /etc/hosts:/etc/hosts:ro \
     "$TAG"
 
 sleep 3
