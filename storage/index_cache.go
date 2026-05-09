@@ -330,15 +330,12 @@ func (i *CachedIndex) Read(channel string) (ByArch, bool) {
 }
 
 func (i *CachedIndex) Start() error {
-	err := i.Refresh()
-	if err != nil {
-		i.logger.Error("error", zap.Error(err))
-		return err
-	}
 	go func() {
+		if err := i.Refresh(); err != nil {
+			i.logger.Error("initial refresh failed", zap.Error(err))
+		}
 		for range time.Tick(time.Minute * 60) {
-			err := i.Refresh()
-			if err != nil {
+			if err := i.Refresh(); err != nil {
 				i.logger.Error("error", zap.Error(err))
 			}
 		}
