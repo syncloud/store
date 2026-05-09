@@ -37,7 +37,6 @@ docker rm -f "$CONTAINER" 2>/dev/null || true
 docker run -d \
     --name "$CONTAINER" \
     --restart=unless-stopped \
-    --network host \
     --user "$STORE_UID:$STORE_GID" \
     -v "$STORE_DIR:$STORE_DIR" \
     "$TAG"
