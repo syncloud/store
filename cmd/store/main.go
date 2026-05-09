@@ -34,7 +34,8 @@ func main() {
 			if err != nil {
 				return err
 			}
-			public := api.NewSyncloudStore(args[0], index, client, signer, config.Token, webFS, logger)
+			ui := api.NewWeb(webFS, index)
+			public := api.NewSyncloudStore(args[0], index, client, signer, config.Token, ui, logger)
 			internal := api.NewApi(index)
 			err = index.Start()
 			if err != nil {
