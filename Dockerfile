@@ -16,9 +16,9 @@ COPY . .
 COPY --from=web /src/web/dist ./web/dist
 RUN CGO_ENABLED=0 go build -trimpath \
     -ldflags "-s -w \
-        -X github.com/syncloud/store/version.GitSha=${GIT_SHA} \
-        -X github.com/syncloud/store/version.BuildNumber=${BUILD_NUMBER} \
-        -X github.com/syncloud/store/version.BuildTime=${BUILD_TIME}" \
+        -X github.com/syncloud/store/internal/version.GitSha=${GIT_SHA} \
+        -X github.com/syncloud/store/internal/version.BuildNumber=${BUILD_NUMBER} \
+        -X github.com/syncloud/store/internal/version.BuildTime=${BUILD_TIME}" \
     -o /out/store ./cmd/store
 RUN printf 'gitSha=%s\nbuildNumber=%s\nbuildTime=%s\n' "${GIT_SHA}" "${BUILD_NUMBER}" "${BUILD_TIME}" > /out/VERSION
 

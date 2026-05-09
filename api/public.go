@@ -8,7 +8,7 @@ import (
 	"github.com/syncloud/store/model"
 	"github.com/syncloud/store/rest"
 	"github.com/syncloud/store/storage"
-	"github.com/syncloud/store/version"
+	"github.com/syncloud/store/internal/version"
 	"go.uber.org/zap"
 	"io"
 	"io/fs"
