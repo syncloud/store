@@ -24,12 +24,6 @@ func NewWeb(webFS fs.FS, index storage.Index) *Web {
 	}
 }
 
-func (w *Web) Register(e *echo.Echo) {
-	e.GET("/api/ui/v1/apps", w.Apps)
-	e.GET("/api/ui/v1/version", w.Version)
-	e.GET("/*", echo.WrapHandler(http.HandlerFunc(w.serve)))
-}
-
 func (w *Web) Apps(c echo.Context) error {
 	channel := c.QueryParam("channel")
 	if channel == "" {
@@ -51,7 +45,7 @@ func (w *Web) Version(c echo.Context) error {
 	})
 }
 
-func (w *Web) serve(rw http.ResponseWriter, r *http.Request) {
+func (w *Web) Serve(rw http.ResponseWriter, r *http.Request) {
 	requested := strings.TrimPrefix(r.URL.Path, "/")
 	if requested == "" {
 		w.fileServer.ServeHTTP(rw, r)
