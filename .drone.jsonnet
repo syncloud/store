@@ -228,7 +228,7 @@ local build(arch) = {
     [
         {
             name: "device",
-            image: "syncloud/platform-bookworm-" + arch + ":" + platform,
+            image: "syncloud/bootstrap-bookworm-" + arch + ":" + platform,
             privileged: true,
             volumes: [
                 {
@@ -243,7 +243,7 @@ local build(arch) = {
         },
         {
             name: "api.store.test",
-            image: "syncloud/platform-bookworm-" + arch + ":" + platform,
+            image: "syncloud/bootstrap-bookworm-" + arch + ":" + platform,
             privileged: true,
             volumes: [
                 {
@@ -258,7 +258,7 @@ local build(arch) = {
         },
         {
             name: "apps.syncloud.org",
-            image: "syncloud/platform-bookworm-" + arch + ":" + platform,
+            image: "syncloud/bootstrap-bookworm-" + arch + ":" + platform,
             privileged: true,
             volumes: [
                 {

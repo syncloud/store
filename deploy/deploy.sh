@@ -50,7 +50,12 @@ docker run -d \
     -v /etc/hosts:/etc/hosts:ro \
     "$TAG"
 
-sleep 3
+for i in $(seq 1 30); do
+    if docker ps -q --filter name="$CONTAINER" --filter status=running | grep -q .; then
+        break
+    fi
+    sleep 2
+done
 if ! docker ps -q --filter name="$CONTAINER" --filter status=running | grep -q .; then
     echo "container is not running:"
     docker ps -a --filter name="$CONTAINER"
@@ -64,10 +69,7 @@ if a2query -s 000-default >/dev/null 2>&1; then
     a2dissite 000-default
 fi
 a2ensite store
-a2enmod proxy proxy_http rewrite
-if [ "$ENV" != "test" ]; then
-    a2enmod ssl
-fi
+a2enmod proxy proxy_http rewrite ssl
 apache2ctl configtest
 systemctl reload apache2 || systemctl restart apache2
 
