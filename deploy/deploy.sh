@@ -1,15 +1,17 @@
 #!/bin/bash
 set -ex
 
-if [ "$#" -ne 1 ]; then
-    echo "usage: $0 <docker-tag>" >&2
+if [ "$#" -ne 2 ]; then
+    echo "usage: $0 <docker-tag> <env: test|uat|prod>" >&2
     exit 1
 fi
 
 TAG=$1
+ENV=$2
 CONTAINER=syncloud-store
 STORE_DIR=/var/www/store
 SERVICE=syncloud-store.service
+APACHE_SITE=/etc/apache2/sites-available/store.conf
 
 if ! command -v docker >/dev/null 2>&1; then
     apt-get update
@@ -49,5 +51,20 @@ if ! docker ps -q --filter name="$CONTAINER" --filter status=running | grep -q .
     docker logs "$CONTAINER" 2>&1 | tail -40
     exit 1
 fi
+
+TMP=$(docker create "$TAG")
+docker cp "$TMP:/config/$ENV/apache.conf" "$APACHE_SITE"
+docker rm "$TMP" >/dev/null
+
+if a2query -s 000-default >/dev/null 2>&1; then
+    a2dissite 000-default
+fi
+a2ensite store
+a2enmod proxy proxy_http rewrite
+if [ "$ENV" != "test" ]; then
+    a2enmod ssl
+fi
+apache2ctl configtest
+systemctl reload apache2 || systemctl restart apache2
 
 docker image prune -f

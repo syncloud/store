@@ -25,5 +25,6 @@ RUN printf 'gitSha=%s\nbuildNumber=%s\nbuildTime=%s\n' "${GIT_SHA}" "${BUILD_NUM
 FROM gcr.io/distroless/static-debian12
 COPY --from=go /out/store /usr/local/bin/store
 COPY --from=go /out/VERSION /VERSION
+COPY config /config
 ENTRYPOINT ["/usr/local/bin/store"]
 CMD ["start", "/var/www/store/api.socket", "/var/www/store/secret.yaml"]
