@@ -34,10 +34,17 @@ chown "$STORE_UID:$STORE_GID" "$STORE_DIR"
 
 docker pull "$TAG"
 docker rm -f "$CONTAINER" 2>/dev/null || true
+
+APPS_IP=$(getent hosts apps.syncloud.org | awk '{print $1}' | head -1)
+if [ -z "$APPS_IP" ]; then
+    echo "could not resolve apps.syncloud.org from host" >&2
+    exit 1
+fi
+
 docker run -d \
     --name "$CONTAINER" \
     --restart=unless-stopped \
-    --network host \
+    --add-host "apps.syncloud.org:$APPS_IP" \
     --user "$STORE_UID:$STORE_GID" \
     -v "$STORE_DIR:$STORE_DIR" \
     "$TAG"
