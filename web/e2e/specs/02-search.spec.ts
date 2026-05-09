@@ -7,13 +7,13 @@ test.describe('search filter', () => {
 
     const search = page.getByTestId('search')
     await expect(search).toBeVisible()
-    await search.fill('jelly')
+    await search.fill('App 1')
 
     const cards = page.getByTestId('app-card-item')
     await expect(cards).toHaveCount(1)
-    await expect(cards.first().getByTestId('app-name')).toHaveText('Jellyfin')
+    await expect(cards.first().getByTestId('app-name')).toHaveText('Test App 1')
 
-    await shoot(page, testInfo, 'search-jelly')
+    await shoot(page, testInfo, 'search-app1')
   })
 
   test('shows empty state for unknown query', async ({ page }, testInfo) => {
@@ -30,9 +30,9 @@ test.describe('search filter', () => {
 
     await expect(cards.first()).toBeVisible()
     const total = await cards.count()
-    expect(total).toBeGreaterThan(1)
+    expect(total).toBeGreaterThanOrEqual(2)
 
-    await search.fill('jelly')
+    await search.fill('App 1')
     await expect(cards).toHaveCount(1)
 
     await search.fill('')

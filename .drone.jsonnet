@@ -56,27 +56,11 @@ local build(arch) = {
     ] + (if arch == "amd64" then [
         {
             name: "web build",
-            image: "mcr.microsoft.com/playwright:" + playwright,
+            image: "node:20-bookworm-slim",
             commands: [
               "cd web",
               "npm ci --prefer-offline --no-audit --no-fund",
               "npm run build",
-              "npm run build:stub",
-            ]
-        },
-        {
-            name: "web e2e",
-            image: "mcr.microsoft.com/playwright:" + playwright,
-            environment: {
-              PLAYWRIGHT_ARTIFACT_DIR: "/drone/src/artifact",
-            },
-            commands: [
-              "(cd web && npx vite preview --host 127.0.0.1 --port 4173) &",
-              "for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4173 >/dev/null && break || sleep 1; done",
-              "cd web/e2e",
-              "npm ci --no-audit --no-fund",
-              "PLAYWRIGHT_BASE_URL=http://127.0.0.1:4173 npx playwright test --project=desktop",
-              "PLAYWRIGHT_BASE_URL=http://127.0.0.1:4173 npx playwright test --project=mobile",
             ]
         },
     ] else []) + [
@@ -173,6 +157,23 @@ local build(arch) = {
                 "apt-get update && apt-get install -y sshpass openssh-client curl",
                 "sshpass -e ssh -o StrictHostKeyChecking=no root@api.store.test bash /deploy.sh " + docker_image + ":${DRONE_BRANCH}-${DRONE_BUILD_NUMBER}",
                 "for i in $(seq 1 30); do curl -fsS http://api.store.test/api/ui/v1/apps && break || sleep 2; done",
+            ],
+            when: {
+                event: ["push", "tag"],
+            },
+        },
+        {
+            name: "web e2e",
+            image: "mcr.microsoft.com/playwright:" + playwright,
+            environment: {
+                PLAYWRIGHT_ARTIFACT_DIR: "/drone/src/artifact",
+                PLAYWRIGHT_BASE_URL: "http://api.store.test",
+            },
+            commands: [
+                "cd web/e2e",
+                "npm ci --no-audit --no-fund",
+                "npx playwright test --project=desktop",
+                "npx playwright test --project=mobile",
             ],
             when: {
                 event: ["push", "tag"],

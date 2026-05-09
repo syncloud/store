@@ -12,8 +12,10 @@ test.describe('app list', () => {
     await expect(cards.first()).toBeVisible()
 
     const total = await cards.count()
-    expect(total).toBeGreaterThan(1)
+    expect(total).toBeGreaterThanOrEqual(2)
     await expect(page.getByTestId('results-count')).toContainText(`${total} of ${total} apps`)
+    const names = await cards.locator('[data-testid="app-name"]').allTextContents()
+    expect(names).toEqual(expect.arrayContaining(['Test App 1', 'Test App 2']))
 
     await shoot(page, testInfo, 'app-list')
   })
