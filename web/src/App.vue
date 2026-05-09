@@ -7,6 +7,14 @@ const apps = ref([])
 const loading = ref(true)
 const error = ref(null)
 const query = ref('')
+const version = ref(null)
+
+async function loadVersion () {
+  try {
+    const res = await fetch('/api/ui/v1/version')
+    if (res.ok) version.value = await res.json()
+  } catch (_) { /* version is best-effort */ }
+}
 
 async function load () {
   loading.value = true
@@ -39,7 +47,10 @@ const filtered = computed(() => {
   )
 })
 
-onMounted(load)
+onMounted(() => {
+  load()
+  loadVersion()
+})
 </script>
 
 <template>
@@ -91,6 +102,11 @@ onMounted(load)
 
     <footer class="footer">
       <span>syncloud.org</span>
+      <span v-if="version" class="version-pill" data-testid="version" :title="`build ${version.buildNumber} · ${version.buildTime}`">
+        <span class="version-label">build</span>
+        <span class="version-num">{{ version.buildNumber }}</span>
+        <span class="version-sha">{{ version.gitSha.slice(0, 7) }}</span>
+      </span>
     </footer>
   </div>
 </template>
@@ -203,6 +219,31 @@ onMounted(load)
   text-align: center;
   color: var(--text-muted);
   font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.version-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  cursor: default;
+}
+.version-label { color: var(--text-muted); }
+.version-num { font-weight: 600; color: var(--text); }
+.version-sha {
+  color: var(--accent);
+  padding-left: 6px;
+  border-left: 1px solid var(--border);
+  margin-left: 2px;
 }
 @media (max-width: 480px) {
   .main { padding: 20px 14px 48px; }

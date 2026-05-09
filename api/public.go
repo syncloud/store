@@ -8,6 +8,7 @@ import (
 	"github.com/syncloud/store/model"
 	"github.com/syncloud/store/rest"
 	"github.com/syncloud/store/storage"
+	"github.com/syncloud/store/version"
 	"go.uber.org/zap"
 	"io"
 	"io/fs"
@@ -72,6 +73,7 @@ func (s *SyncloudStore) Start() error {
 	s.echo.GET("/v2/snaps/info/:name", s.Info)
 	s.echo.POST("/syncloud/v1/cache/refresh", s.SyncloudCacheRefresh)
 	s.echo.GET("/api/ui/v1/apps", s.UIApps)
+	s.echo.GET("/api/ui/v1/version", s.Version)
 
 	if s.web != nil {
 		fileServer := http.FileServer(http.FS(s.web))
@@ -246,6 +248,14 @@ func (s *SyncloudStore) spaHandler(fileServer http.Handler) http.Handler {
 		r2 := r.Clone(r.Context())
 		r2.URL.Path = "/"
 		fileServer.ServeHTTP(w, r2)
+	})
+}
+
+func (s *SyncloudStore) Version(c echo.Context) error {
+	return c.JSON(http.StatusOK, map[string]string{
+		"gitSha":      version.GitSha,
+		"buildNumber": version.BuildNumber,
+		"buildTime":   version.BuildTime,
 	})
 }
 

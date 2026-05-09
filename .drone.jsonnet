@@ -119,11 +119,15 @@ local build(arch) = {
             image: "plugins/docker:20.18",
             settings: {
                 repo: docker_image,
-                username: { from_secret: "docker_username" },
-                password: { from_secret: "docker_password" },
+                username: { from_secret: "DOCKER_USERNAME" },
+                password: { from_secret: "DOCKER_PASSWORD" },
                 tags: [
                     "${DRONE_BRANCH}-${DRONE_BUILD_NUMBER}",
                     "${DRONE_BRANCH}",
+                ],
+                build_args: [
+                    "GIT_SHA=${DRONE_COMMIT_SHA}",
+                    "BUILD_NUMBER=${DRONE_BUILD_NUMBER}",
                 ],
             },
             when: {
@@ -135,9 +139,13 @@ local build(arch) = {
             image: "plugins/docker:20.18",
             settings: {
                 repo: docker_image,
-                username: { from_secret: "docker_username" },
-                password: { from_secret: "docker_password" },
+                username: { from_secret: "DOCKER_USERNAME" },
+                password: { from_secret: "DOCKER_PASSWORD" },
                 tags: ["latest"],
+                build_args: [
+                    "GIT_SHA=${DRONE_COMMIT_SHA}",
+                    "BUILD_NUMBER=${DRONE_BUILD_NUMBER}",
+                ],
             },
             when: {
                 event: ["push"],

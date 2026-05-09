@@ -94,6 +94,14 @@ export function mock () {
         return new Response(200, { 'Content-Type': 'application/json' }, apps)
       })
 
+      this.get('/api/ui/v1/version', () => {
+        return new Response(200, { 'Content-Type': 'application/json' }, {
+          gitSha: 'devstub00000000000000000000000000000000',
+          buildNumber: 'dev',
+          buildTime: new Date().toISOString()
+        })
+      })
+
       this.passthrough()
     }
   })
