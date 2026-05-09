@@ -106,21 +106,6 @@ local build(arch) = {
             ]
         },
         {
-            name: "probe snapd compat",
-            image: "debian:" + debian,
-            commands: [
-              "apt-get update && apt-get install -y sshpass openssh-client wget",
-              "ARCH=$(dpkg --print-architecture)",
-              "wget -q https://github.com/syncloud/snapd/releases/download/1.2/snapd-361-$ARCH.tar.gz -O /tmp/snapd1.tar.gz",
-              "wget -q https://github.com/syncloud/snapd/releases/download/syncloud-2.0/snapd-583-$ARCH.tar.gz -O /tmp/snapd2.tar.gz",
-              "sshpass -p syncloud scp -o StrictHostKeyChecking=no /tmp/snapd1.tar.gz /tmp/snapd2.tar.gz root@device:/tmp/",
-              "echo '=== snapd v1 361 ==='",
-              "sshpass -p syncloud ssh -o StrictHostKeyChecking=no root@device 'mkdir -p /tmp/probe1 && tar xzf /tmp/snapd1.tar.gz -C /tmp/probe1 && /tmp/probe1/snapd/bin/snap --version 2>&1; echo exit=$?' || true",
-              "echo '=== snapd v2 583 ==='",
-              "sshpass -p syncloud ssh -o StrictHostKeyChecking=no root@device 'mkdir -p /tmp/probe2 && tar xzf /tmp/snapd2.tar.gz -C /tmp/probe2 && /tmp/probe2/snapd/bin/snap --version 2>&1; echo exit=$?' || true",
-            ],
-        },
-        {
             name: "test",
             image: "debian:" + debian,
             commands: [

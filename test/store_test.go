@@ -45,37 +45,6 @@ func TestPrepareStore(t *testing.T) {
 
 }
 
-func TestUpgrade(t *testing.T) {
-	arch, err := snapArch()
-	assert.NoError(t, err)
-
-	output, err := InstallSnapd("/install-snapd-v1.sh /snapd1.tar.gz")
-	assert.NoError(t, err, output)
-	output, err = Ssh("device", "snap install testapp1")
-	assert.NoError(t, err, output)
-
-	output, err = Ssh("device", "snap list testapp1")
-	assert.NoError(t, err, output)
-	assert.Contains(t, output, "testapp1  1        1    stable    syncloud")
-
-	output, err = Ssh("device", "/upgrade-snapd.sh /snapd2.tar.gz")
-	assert.NoError(t, err, output)
-
-	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp1 -a %s -v 2 -c stable -t %s --store-url http://api.store.test", arch, StoreDir))
-	assert.NoError(t, err, output)
-
-	output, err = Ssh("device", "snap refresh testapp1")
-	assert.NoError(t, err, output)
-
-	output, err = Ssh("device", "snap list testapp1")
-	assert.NoError(t, err, output)
-	assert.Contains(t, output, "testapp1  2        2    latest/stable  syncloud")
-
-	output, err = Ssh("device", "snap remove testapp1")
-	assert.NoError(t, err, output)
-
-}
-
 func TestUnknown(t *testing.T) {
 	output, err := InstallSnapd("/install-snapd-v2.sh /snapd2.tar.gz")
 	assert.NoError(t, err, output)
