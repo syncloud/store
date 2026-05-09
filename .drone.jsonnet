@@ -156,7 +156,7 @@ local build(arch) = {
             commands: [
                 "apt-get update && apt-get install -y sshpass openssh-client curl",
                 "sshpass -e ssh -o StrictHostKeyChecking=no root@api.store.test bash /deploy.sh " + docker_image + ":${DRONE_BRANCH}-${DRONE_BUILD_NUMBER}",
-                "for i in $(seq 1 30); do curl -fsS http://api.store.test/api/ui/v1/apps && break || sleep 2; done",
+                "for i in $(seq 1 60); do if curl -fsS http://api.store.test/api/ui/v1/apps; then echo OK; exit 0; fi; sleep 2; done; echo 'store did not come up'; sshpass -e ssh -o StrictHostKeyChecking=no root@api.store.test docker logs syncloud-store 2>&1 | tail -40; exit 1",
             ],
             when: {
                 event: ["push", "tag"],
