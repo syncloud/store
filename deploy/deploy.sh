@@ -8,6 +8,12 @@ fi
 
 TAG=$1
 ENV=$2
+DIR=$( cd "$( dirname "$0" )" && pwd )
+APACHE_SRC="$DIR/../config/$ENV/apache.conf"
+if [ ! -f "$APACHE_SRC" ]; then
+    echo "missing $APACHE_SRC" >&2
+    exit 1
+fi
 CONTAINER=syncloud-store
 STORE_DIR=/var/www/store
 SERVICE=syncloud-store.service
@@ -52,9 +58,7 @@ if ! docker ps -q --filter name="$CONTAINER" --filter status=running | grep -q .
     exit 1
 fi
 
-TMP=$(docker create "$TAG")
-docker cp "$TMP:/config/$ENV/apache.conf" "$APACHE_SITE"
-docker rm "$TMP" >/dev/null
+cp "$APACHE_SRC" "$APACHE_SITE"
 
 if a2query -s 000-default >/dev/null 2>&1; then
     a2dissite 000-default

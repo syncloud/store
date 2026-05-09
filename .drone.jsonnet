@@ -14,7 +14,7 @@ local deploySteps(env, hostSecret) = [
             username: { from_secret: env + "_deploy_user" },
             key: { from_secret: env + "_deploy_key" },
             target: "/tmp/syncloud-store",
-            source: "deploy/deploy.sh",
+            source: ["deploy/deploy.sh", "config/" + env + "/apache.conf"],
             rm: true,
         },
     },
@@ -141,7 +141,9 @@ local build(arch) = {
             image: "debian:" + debian,
             commands: [
                 "apt-get update && apt-get install -y sshpass openssh-client",
-                "sshpass -p syncloud scp -o StrictHostKeyChecking=no deploy/deploy.sh root@api.store.test:/deploy.sh",
+                "sshpass -p syncloud ssh -o StrictHostKeyChecking=no root@api.store.test rm -rf /tmp/syncloud-store && mkdir -p /tmp/syncloud-store/config",
+                "sshpass -p syncloud scp -r -o StrictHostKeyChecking=no deploy root@api.store.test:/tmp/syncloud-store/",
+                "sshpass -p syncloud scp -r -o StrictHostKeyChecking=no config/test root@api.store.test:/tmp/syncloud-store/config/",
             ],
             when: {
                 event: ["push", "tag"],

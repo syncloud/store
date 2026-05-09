@@ -23,7 +23,7 @@ MOCK_IP=$(getent hosts apps.syncloud.org | awk '{print $1}' | head -1)
 echo "mock apps.syncloud.org ip: $MOCK_IP"
 $SSH "grep -q 'apps.syncloud.org' /etc/hosts || echo $MOCK_IP apps.syncloud.org >> /etc/hosts"
 
-$SSH bash /deploy.sh "$TAG" test
+$SSH bash /tmp/syncloud-store/deploy/deploy.sh "$TAG" test
 
 for i in $(seq 1 60); do
     n=$(curl -fsS http://${TARGET}/api/ui/v1/apps 2>/dev/null \
