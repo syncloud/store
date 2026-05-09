@@ -131,6 +131,20 @@ local build(arch) = {
             },
         },
         {
+            name: "docker latest",
+            image: "plugins/docker:20.18",
+            settings: {
+                repo: docker_image,
+                username: { from_secret: "docker_username" },
+                password: { from_secret: "docker_password" },
+                tags: ["latest"],
+            },
+            when: {
+                event: ["push"],
+                branch: ["stable"],
+            },
+        },
+        {
             name: "deploy prepare test",
             image: "debian:" + debian,
             commands: [
