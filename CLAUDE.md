@@ -54,8 +54,8 @@ web/e2e/
 Each spec calls `shoot(page, testInfo, '<name>')` to capture full-page PNG + HTML into `${PLAYWRIGHT_ARTIFACT_DIR}/playwright/<project>/screenshot/`. Both `desktop` (1440x960) and `mobile` (390x844) projects run, so every shot has a `-desktop.png` and `-mobile.png` variant. The HTML report lands at `${PLAYWRIGHT_ARTIFACT_DIR}/playwright/report/`.
 
 Playwright runs in two modes:
-- **Local dev** (`npm test` in `web/e2e/`): no `PLAYWRIGHT_BASE_URL` set → Playwright auto-starts `npm --prefix .. run preview:stub` (stub-backed production build, no Go store needed).
-- **CI** (`web e2e` step in `.drone.jsonnet`): runs *after* `deploy run test`, which deploys the just-built docker image to `api.store.test`. Playwright then targets `PLAYWRIGHT_BASE_URL=http://api.store.test`, hitting the real apache → unix socket → Go store → embedded SPA path. Test data is the snap-publishing fixture (`testapp1`, `testapp2`).
+- **Local dev** (`npm run test:stub` in `web/e2e/`): sets `PLAYWRIGHT_STUB=1` and `PLAYWRIGHT_BASE_URL=http://127.0.0.1:4173`; Playwright auto-starts `npm --prefix .. run preview:stub` (stub-backed production build, no Go store needed).
+- **CI** (`web e2e` step in `.drone.jsonnet`): runs *after* `deploy run test`, which deploys the just-built docker image to `api.store.test`. Playwright then targets `PLAYWRIGHT_BASE_URL=http://api.store.test`, hitting the real apache → unix socket → Go store → embedded SPA path. Test data is the snap-publishing fixture (`testapp1`, `testapp2`). `PLAYWRIGHT_BASE_URL` is required (no default); `PLAYWRIGHT_STUB` controls webServer auto-start.
 
 ## Local limitations
 

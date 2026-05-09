@@ -58,9 +58,7 @@ local build(arch) = {
             name: "web build",
             image: "node:20-bookworm-slim",
             commands: [
-              "cd web",
-              "npm ci --prefer-offline --no-audit --no-fund",
-              "npm run build",
+              "bash web/build.sh",
             ]
         },
     ] else []) + [
@@ -160,14 +158,10 @@ local build(arch) = {
             name: "web e2e",
             image: "mcr.microsoft.com/playwright:" + playwright,
             environment: {
-                PLAYWRIGHT_ARTIFACT_DIR: "/drone/src/artifact",
                 PLAYWRIGHT_BASE_URL: "http://api.store.test",
             },
             commands: [
-                "cd web/e2e",
-                "npm ci --no-audit --no-fund",
-                "npx playwright test --project=desktop",
-                "npx playwright test --project=mobile",
+                "bash web/e2e/run.sh",
             ],
             when: {
                 event: ["push", "tag"],

@@ -38,9 +38,7 @@ if ! a2query -s store; then
   a2ensite store
 fi
 a2enmod rewrite
-if [ "$ENV" != "test" ]; then
-  a2enmod ssl
-fi
+a2enmod ssl
 a2enmod proxy
 a2enmod proxy_http
 

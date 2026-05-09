@@ -13,9 +13,8 @@ fi
 
 ENV=$1
 TARGET=api.store.test
-SSHPASS=${SSHPASS:-syncloud}
-SSH="sshpass -p ${SSHPASS} ssh -o StrictHostKeyChecking=no root@${TARGET}"
-SCP="sshpass -p ${SSHPASS} scp -r -o StrictHostKeyChecking=no"
+SSH="sshpass -p syncloud ssh -o StrictHostKeyChecking=no root@${TARGET}"
+SCP="sshpass -p syncloud scp -r -o StrictHostKeyChecking=no"
 
 apt-get update
 apt-get install -y sshpass openssh-client

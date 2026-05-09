@@ -1,7 +1,10 @@
 import { defineConfig, devices } from '@playwright/test'
+import * as path from 'node:path'
 
-const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:4173'
-const artifactDir = process.env.PLAYWRIGHT_ARTIFACT_DIR ?? 'artifact'
+const baseURL = process.env.PLAYWRIGHT_BASE_URL
+if (!baseURL) throw new Error('PLAYWRIGHT_BASE_URL is required')
+const stub = process.env.PLAYWRIGHT_STUB === '1'
+const artifactDir = path.resolve(__dirname, '../../artifact')
 
 export default defineConfig({
   testDir: './specs',
@@ -16,14 +19,14 @@ export default defineConfig({
   outputDir: `${artifactDir}/playwright/test-results`,
   timeout: 60_000,
   expect: { timeout: 10_000 },
-  webServer: process.env.PLAYWRIGHT_BASE_URL
-    ? undefined
-    : {
+  webServer: stub
+    ? {
         command: 'npm --prefix .. run preview:stub',
-        url: 'http://127.0.0.1:4173',
+        url: baseURL,
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,
-      },
+      }
+    : undefined,
   use: {
     baseURL,
     ignoreHTTPSErrors: true,
