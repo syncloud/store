@@ -140,10 +140,7 @@ local build(arch) = {
             name: "deploy prepare test",
             image: "debian:" + debian,
             commands: [
-                "apt-get update && apt-get install -y sshpass openssh-client",
-                "sshpass -p syncloud ssh -o StrictHostKeyChecking=no root@api.store.test rm -rf /tmp/syncloud-store && mkdir -p /tmp/syncloud-store/config",
-                "sshpass -p syncloud scp -r -o StrictHostKeyChecking=no deploy root@api.store.test:/tmp/syncloud-store/",
-                "sshpass -p syncloud scp -r -o StrictHostKeyChecking=no config/test root@api.store.test:/tmp/syncloud-store/config/",
+                "bash ci/prepare-deploy.sh test",
             ],
             when: {
                 event: ["push", "tag"],
