@@ -22,12 +22,12 @@ type Index interface {
 }
 
 type CachedIndex struct {
-	cache     SnapCache
-	appsCache AppCache
-	lock      sync.RWMutex
-	client    rest.Client
-	baseUrl   string
-	logger    *zap.Logger
+	cache    SnapCache
+	appCache AppCache
+	lock     sync.RWMutex
+	client   rest.Client
+	baseUrl  string
+	logger   *zap.Logger
 }
 
 type SnapByName map[string]*model.Snap
@@ -52,11 +52,11 @@ var AvailableArchitectures = []string{ArchAmd64, ArchArm64, ArchArm32}
 
 func New(client rest.Client, baseUrl string, logger *zap.Logger) *CachedIndex {
 	return &CachedIndex{
-		client:    client,
-		baseUrl:   baseUrl,
-		logger:    logger,
-		cache:     make(SnapCache),
-		appsCache: make(AppCache),
+		client:   client,
+		baseUrl:  baseUrl,
+		logger:   logger,
+		cache:    make(SnapCache),
+		appCache: make(AppCache),
 	}
 }
 
@@ -182,15 +182,15 @@ func (i *CachedIndex) Find(channel string, query string, architecture string) *m
 func (i *CachedIndex) Refresh() error {
 	i.logger.Info("refresh cache")
 	for _, channel := range AvailableChannels {
-		index, appsMeta, err := i.downloadIndex(channel)
+		snaps, apps, err := i.downloadIndex(channel)
 		if err != nil {
 			return err
 		}
-		if index == nil {
+		if snaps == nil {
 			i.logger.Warn("index not found", zap.String("channel", channel))
 			continue
 		}
-		i.WriteIndex(channel, index, appsMeta)
+		i.WriteIndex(channel, snaps, apps)
 	}
 	i.logger.Info("refresh cache finished")
 	return nil
@@ -210,26 +210,26 @@ func (i *CachedIndex) downloadIndex(channel string) (SnapByArch, AppByName, erro
 	if err != nil {
 		return nil, nil, err
 	}
-	apps := make(SnapByArch)
+	snaps := make(SnapByArch)
 	for _, indexApp := range index {
 		for _, arch := range AvailableArchitectures {
-			app, err := i.downloadAppInfo(indexApp, channel, arch)
+			snap, err := i.downloadAppInfo(indexApp, channel, arch)
 			if err != nil {
 				return nil, nil, err
 			}
-			if app == nil {
+			if snap == nil {
 				i.logger.Info("not found", zap.String("app", indexApp.Name), zap.String("channel", channel))
 				continue
 			}
-			_, found := apps[arch]
+			_, found := snaps[arch]
 			if !found {
-				apps[arch] = make(SnapByName)
+				snaps[arch] = make(SnapByName)
 			}
-			apps[arch][indexApp.Name] = app
+			snaps[arch][indexApp.Name] = snap
 		}
 	}
 
-	return apps, index, nil
+	return snaps, index, nil
 }
 
 func (i *CachedIndex) downloadAppInfo(app *model.App, channel string, arch string) (*model.Snap, error) {
@@ -269,18 +269,18 @@ func (i *CachedIndex) downloadAppInfo(app *model.App, channel string, arch strin
 	return app.ToInfo(version, size, fmt.Sprintf("%x", sha384), downloadUrl, arch)
 }
 
-func (i *CachedIndex) WriteIndex(channel string, index SnapByArch, apps AppByName) {
+func (i *CachedIndex) WriteIndex(channel string, snaps SnapByArch, apps AppByName) {
 	i.lock.Lock()
 	defer i.lock.Unlock()
-	i.cache[channel] = index
-	i.appsCache[channel] = apps
+	i.cache[channel] = snaps
+	i.appCache[channel] = apps
 }
 
 func (i *CachedIndex) UIApps(channel string) []*model.UIApp {
 	i.lock.RLock()
 	defer i.lock.RUnlock()
 
-	apps := i.appsCache[channel]
+	apps := i.appCache[channel]
 	archs := i.cache[channel]
 	results := make([]*model.UIApp, 0, len(apps))
 	for name, app := range apps {
