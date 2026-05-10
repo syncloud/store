@@ -13,14 +13,6 @@ import (
 	"time"
 )
 
-type Index interface {
-	Refresh() error
-	Find(channel string, query string, architecture string) *model.SearchResults
-	Info(name, arch string) *model.StoreInfo
-	InfoById(channel, snapId, action, actionName, arch string) (*model.StoreResult, error)
-	UIApps(channel string) []*model.UIApp
-}
-
 type Cache struct {
 	snapCache SnapCache
 	appCache  AppCache

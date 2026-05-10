@@ -28,16 +28,16 @@ func main() {
 				return err
 			}
 			client := rest.New()
-			index := storage.New(client, api.Url, logger)
+			cache := storage.New(client, api.Url, logger)
 			signer := crypto.NewSigner(logger)
 			webFS, err := fs.Sub(web.FS, "dist")
 			if err != nil {
 				return err
 			}
-			ui := api.NewWeb(webFS, index)
-			public := api.NewSyncloudStore(args[0], index, client, signer, config.Token, ui, logger)
-			internal := api.NewApi(index)
-			err = index.Start()
+			ui := api.NewWeb(webFS, cache)
+			public := api.NewSyncloudStore(args[0], cache, client, signer, config.Token, ui, logger)
+			internal := api.NewApi(cache)
+			err = cache.Start()
 			if err != nil {
 				return err
 			}

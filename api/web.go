@@ -3,22 +3,26 @@ package api
 import (
 	"github.com/labstack/echo/v4"
 	"github.com/syncloud/store/internal/version"
-	"github.com/syncloud/store/storage"
+	"github.com/syncloud/store/model"
 	"io/fs"
 	"net/http"
 	"strings"
 )
 
+type WebCache interface {
+	UIApps(channel string) []*model.UIApp
+}
+
 type Web struct {
 	fs         fs.FS
-	index      storage.Index
+	webCache   WebCache
 	fileServer http.Handler
 }
 
-func NewWeb(webFS fs.FS, index storage.Index) *Web {
+func NewWeb(webFS fs.FS, webCache WebCache) *Web {
 	return &Web{
 		fs:         webFS,
-		index:      index,
+		webCache:   webCache,
 		fileServer: http.FileServer(http.FS(webFS)),
 	}
 }
@@ -28,7 +32,7 @@ func (w *Web) Apps(c echo.Context) error {
 	if channel == "" {
 		channel = "stable"
 	}
-	apps := w.index.UIApps(channel)
+	apps := w.webCache.UIApps(channel)
 	c.Response().Header().Set(echo.HeaderContentType, "application/json")
 	return c.JSON(http.StatusOK, apps)
 }
