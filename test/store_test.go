@@ -248,31 +248,23 @@ func InstallSnapd(cmd string) (string, error) {
 			return strings.Contains(output, "No snaps")
 		},
 	)
-	output, err = SshWaitFor("device", "snap find unknown",
-		func(output string) bool {
-			return !strings.Contains(output, "too early for operation")
-		},
-	)
-	return output, err
+	if err != nil {
+		return output, err
+	}
+	return Ssh("device", "snap wait system seed.loaded")
 }
 
 func SshWaitFor(host string, command string, predicate func(string) bool) (string, error) {
-	retries := 10
-	retry := 0
-	for retry < retries {
-		retry++
+	retries := 60
+	for retry := 1; retry <= retries; retry++ {
 		output, err := Ssh(host, command)
-		if err != nil {
-			fmt.Printf("error: %v", err)
-			time.Sleep(1 * time.Second)
-			fmt.Printf("retry %d/%d", retry, retries)
-			continue
-		}
-		if predicate(output) {
+		if err == nil && predicate(output) {
 			return output, nil
 		}
+		fmt.Printf("retry %d/%d: err=%v\n", retry, retries, err)
+		time.Sleep(1 * time.Second)
 	}
-	return "", fmt.Errorf("%d: %d (exhausted)", retry, retries)
+	return "", fmt.Errorf("waited %d retries for %q on %s", retries, command, host)
 }
 
 func Publish(name string, version int) (string, error) {
