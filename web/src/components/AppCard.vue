@@ -20,13 +20,14 @@ function initial (name) {
         :src="app.icon"
         :alt="app.name + ' icon'"
         loading="lazy"
+        data-testid="app-icon"
         @error="broken = true"
       />
-      <span v-else class="fallback">{{ initial(app.name) }}</span>
+      <span v-else class="fallback" data-testid="app-icon-fallback">{{ initial(app.name) }}</span>
     </div>
     <div class="body">
       <h3 class="name" data-testid="app-name">{{ app.name }}</h3>
-      <p v-if="app.summary" class="summary">{{ app.summary }}</p>
+      <p v-if="app.summary" class="summary" data-testid="app-summary">{{ app.summary }}</p>
       <span v-if="app.version" class="version" data-testid="app-version">v{{ app.version }}</span>
     </div>
   </article>

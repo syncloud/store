@@ -11,6 +11,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 )
@@ -78,6 +79,22 @@ func (s *SyncloudStore) Start() error {
 	s.echo.POST("/syncloud/v1/cache/refresh", s.SyncloudCacheRefresh)
 	s.echo.GET("/api/ui/v1/apps", s.web.Apps)
 	s.echo.GET("/api/ui/v1/version", s.web.Version)
+
+	iconTarget, err := url.Parse(Url)
+	if err != nil {
+		return err
+	}
+	iconBalancer := middleware.NewRoundRobinBalancer([]*middleware.ProxyTarget{
+		{Name: "icons", URL: iconTarget},
+	})
+	icons := s.echo.Group("/api/ui/v1/icons", middleware.ProxyWithConfig(middleware.ProxyConfig{
+		Balancer: iconBalancer,
+		Rewrite: map[string]string{
+			"/api/ui/v1/icons/*": "/releases/stable/images/$1",
+		},
+	}))
+	icons.GET("/*", func(c echo.Context) error { return nil })
+
 	s.echo.GET("/*", echo.WrapHandler(http.HandlerFunc(s.web.Serve)))
 
 	s.logger.Info("listening on", zap.String("address", s.address))

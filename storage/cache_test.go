@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/syncloud/store/log"
 	"github.com/syncloud/store/model"
+	"strings"
 	"testing"
 )
 
@@ -367,4 +368,60 @@ func TestCache_UIApps_UnknownChannel(t *testing.T) {
 	apps := cache.UIApps("nonexistent")
 	assert.NotNil(t, apps)
 	assert.Equal(t, 0, len(apps))
+}
+
+func TestCache_UIApps_SummaryFromDescription(t *testing.T) {
+	cache := &Cache{
+		baseUrl: "http://apps.syncloud.org",
+		snapCache: SnapCache{
+			"stable": {
+				"amd64": {
+					"nextcloud": &model.Snap{Version: "42", SnapID: "nextcloud.42"},
+				},
+			},
+		},
+		appCache: AppCache{
+			"stable": {
+				"nextcloud": &model.App{
+					Name:        "nextcloud",
+					Summary:     "Nextcloud file sharing",
+					Description: "Access & share your files from any device",
+				},
+			},
+		},
+		logger: log.Default(),
+	}
+
+	apps := cache.UIApps("stable")
+	assert.Equal(t, 1, len(apps))
+	assert.Equal(t, "Nextcloud file sharing", apps[0].Name)
+	assert.Equal(t, "Access & share your files from any device", apps[0].Summary,
+		"UI summary must come from app.Description, not duplicate the title")
+}
+
+func TestCache_UIApps_IconUrlSameOrigin(t *testing.T) {
+	cache := &Cache{
+		baseUrl: "http://apps.syncloud.org",
+		snapCache: SnapCache{
+			"stable": {
+				"amd64": {
+					"nextcloud": &model.Snap{Version: "42", SnapID: "nextcloud.42"},
+				},
+			},
+		},
+		appCache: AppCache{
+			"stable": {
+				"nextcloud": &model.App{
+					Name: "nextcloud",
+					Icon: "nextcloud-128.png",
+				},
+			},
+		},
+		logger: log.Default(),
+	}
+
+	apps := cache.UIApps("stable")
+	assert.Equal(t, 1, len(apps))
+	assert.False(t, strings.HasPrefix(apps[0].IconUrl, "http://"),
+		"icon URL must be same-origin so it inherits HTTPS; was %q", apps[0].IconUrl)
 }

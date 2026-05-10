@@ -291,12 +291,11 @@ func (i *Cache) UIApps(channel string) []*model.UIApp {
 			continue
 		}
 		results = append(results, &model.UIApp{
-			Name:        app.Summary,
-			Summary:     app.Summary,
-			Description: app.Description,
-			IconUrl:     i.iconUrl(channel, app.Icon),
-			Version:     version,
-			SnapID:      snapId,
+			Name:    app.Summary,
+			Summary: app.Description,
+			IconUrl: i.iconUrl(app.Icon),
+			Version: version,
+			SnapID:  snapId,
 		})
 	}
 	slices.SortFunc(results, func(a, b *model.UIApp) bool {
@@ -305,11 +304,11 @@ func (i *Cache) UIApps(channel string) []*model.UIApp {
 	return results
 }
 
-func (i *Cache) iconUrl(channel, icon string) string {
+func (i *Cache) iconUrl(icon string) string {
 	if icon == "" {
 		return ""
 	}
-	return fmt.Sprintf("%s/releases/%s/images/%s", i.baseUrl, channel, icon)
+	return "/api/ui/v1/icons/" + icon
 }
 
 func (i *Cache) Read(channel string) (SnapByArch, bool) {
