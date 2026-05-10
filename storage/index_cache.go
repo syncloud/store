@@ -23,7 +23,7 @@ type Index interface {
 
 type CachedIndex struct {
 	cache     SnapCache
-	appsCache AppsCache
+	appsCache AppCache
 	lock      sync.RWMutex
 	client    rest.Client
 	baseUrl   string
@@ -35,8 +35,8 @@ type SnapByArch map[string]SnapByName
 type SnapByChannel map[string]SnapByArch
 type SnapCache SnapByChannel
 
-type AppsByName map[string]*model.App
-type AppsCache map[string]AppsByName
+type AppByName map[string]*model.App
+type AppCache map[string]AppByName
 
 const (
 	ChannelMaster = "master"
@@ -56,7 +56,7 @@ func New(client rest.Client, baseUrl string, logger *zap.Logger) *CachedIndex {
 		baseUrl:   baseUrl,
 		logger:    logger,
 		cache:     make(SnapCache),
-		appsCache: make(AppsCache),
+		appsCache: make(AppCache),
 	}
 }
 
@@ -196,7 +196,7 @@ func (i *CachedIndex) Refresh() error {
 	return nil
 }
 
-func (i *CachedIndex) downloadIndex(channel string) (SnapByArch, AppsByName, error) {
+func (i *CachedIndex) downloadIndex(channel string) (SnapByArch, AppByName, error) {
 	resp, code, err := i.client.Get(fmt.Sprintf("%s/releases/%s/index-v2", i.baseUrl, channel))
 	if err != nil {
 		return nil, nil, err
@@ -269,7 +269,7 @@ func (i *CachedIndex) downloadAppInfo(app *model.App, channel string, arch strin
 	return app.ToInfo(version, size, fmt.Sprintf("%x", sha384), downloadUrl, arch)
 }
 
-func (i *CachedIndex) WriteIndex(channel string, index SnapByArch, apps AppsByName) {
+func (i *CachedIndex) WriteIndex(channel string, index SnapByArch, apps AppByName) {
 	i.lock.Lock()
 	defer i.lock.Unlock()
 	i.cache[channel] = index
