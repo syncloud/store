@@ -58,7 +58,7 @@ onMounted(() => {
     <header class="header">
       <div class="header-inner">
         <div class="brand" data-testid="brand">
-          <span class="logo-dot" />
+          <img src="/syncloud-logo.svg" alt="Syncloud" class="logo" />
           <span class="brand-name">Syncloud Store</span>
         </div>
         <ThemeSwitcher />
@@ -143,12 +143,10 @@ onMounted(() => {
   font-size: 17px;
   letter-spacing: -0.01em;
 }
-.logo-dot {
-  width: 22px;
-  height: 22px;
-  border-radius: 7px;
-  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 60%, white));
-  box-shadow: var(--shadow);
+.logo {
+  width: 28px;
+  height: 28px;
+  display: block;
 }
 .main {
   flex: 1;
