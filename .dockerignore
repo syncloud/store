@@ -6,5 +6,4 @@
 **/playwright-report
 **/artifact
 out
-build
 *.snap
