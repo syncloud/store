@@ -102,7 +102,7 @@ func TestIndexCache_Refresh_EmptySize(t *testing.T) {
 
 func TestIndexCache_Find(t *testing.T) {
 
-	cache := &CachedIndex{
+	cache := &Cache{
 		snapCache: SnapCache{
 			"channel1": {
 				"amd64": {
@@ -127,7 +127,7 @@ func TestIndexCache_Find(t *testing.T) {
 }
 func TestIndexCache_Find_Sorted(t *testing.T) {
 
-	cache := &CachedIndex{
+	cache := &Cache{
 		snapCache: SnapCache{
 			"channel": {
 				"amd64": {
@@ -154,7 +154,7 @@ func TestIndexCache_Find_Sorted(t *testing.T) {
 
 func TestIndexCache_Find_PopulateChannel(t *testing.T) {
 
-	cache := &CachedIndex{
+	cache := &Cache{
 		snapCache: SnapCache{
 			"channel": {
 				"amd64": {
@@ -172,7 +172,7 @@ func TestIndexCache_Find_PopulateChannel(t *testing.T) {
 
 func TestIndexCache_Info(t *testing.T) {
 
-	cache := &CachedIndex{
+	cache := &Cache{
 		snapCache: SnapCache{
 			"stable": {
 				"amd64": {
@@ -204,7 +204,7 @@ func TestIndexCache_Info(t *testing.T) {
 
 func TestIndexCache_Info_NotFound(t *testing.T) {
 
-	cache := &CachedIndex{
+	cache := &Cache{
 		snapCache: SnapCache{
 			"amd64": {
 				"stable": {
@@ -222,7 +222,7 @@ func TestIndexCache_Info_NotFound(t *testing.T) {
 
 func TestIndexCache_Info_FirstOneIsASpecial(t *testing.T) {
 
-	cache := &CachedIndex{
+	cache := &Cache{
 		snapCache: SnapCache{
 			"master": {
 				"amd64": {
@@ -248,7 +248,7 @@ func TestIndexCache_Info_FirstOneIsASpecial(t *testing.T) {
 
 func TestIndexCache_Info_PreferStable(t *testing.T) {
 
-	cache := &CachedIndex{
+	cache := &Cache{
 		snapCache: SnapCache{
 			"master": {
 				"amd64": {
@@ -277,7 +277,7 @@ func TestIndexCache_Info_PreferStable(t *testing.T) {
 
 func TestIndexCache_InfoById(t *testing.T) {
 
-	cache := &CachedIndex{
+	cache := &Cache{
 		snapCache: SnapCache{
 			"stable": {
 				"amd64": {
@@ -301,7 +301,7 @@ func TestIndexCache_InfoById(t *testing.T) {
 /*
 func TestIndexCache_InfoById_OldSnapId_DefaultArch(t *testing.T) {
 
-	cache := &CachedIndex{
+	cache := &Cache{
 		snapCache: SnapCache{
 			"stable": {
 				"amd64": {
@@ -325,7 +325,7 @@ func TestIndexCache_InfoById_OldSnapId_DefaultArch(t *testing.T) {
 */
 func TestIndexCache_InfoById_NotFound(t *testing.T) {
 
-	cache := &CachedIndex{
+	cache := &Cache{
 		snapCache: SnapCache{
 			"stable": {},
 		},
@@ -338,7 +338,7 @@ func TestIndexCache_InfoById_NotFound(t *testing.T) {
 
 func TestIndexCache_InfoById_SnapIdEmpty(t *testing.T) {
 
-	cache := &CachedIndex{
+	cache := &Cache{
 		snapCache: SnapCache{
 			"stable": {},
 		},
