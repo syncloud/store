@@ -1,10 +1,12 @@
 import { defineConfig, devices } from '@playwright/test'
 import * as path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const baseURL = process.env.PLAYWRIGHT_BASE_URL
 if (!baseURL) throw new Error('PLAYWRIGHT_BASE_URL is required')
 const stub = process.env.PLAYWRIGHT_STUB === '1'
-const artifactDir = path.resolve(__dirname, '../../artifact')
+const here = path.dirname(fileURLToPath(import.meta.url))
+const artifactDir = path.resolve(here, '../../artifact')
 
 export default defineConfig({
   testDir: './specs',

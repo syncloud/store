@@ -1,8 +1,10 @@
 import { Page, TestInfo } from '@playwright/test'
 import * as path from 'node:path'
 import * as fs from 'node:fs'
+import { fileURLToPath } from 'node:url'
 
-const artifactRoot = path.resolve(__dirname, '../../../artifact')
+const here = path.dirname(fileURLToPath(import.meta.url))
+const artifactRoot = path.resolve(here, '../../../artifact')
 
 export async function shoot(page: Page, testInfo: TestInfo, name: string) {
   await page.evaluate(() =>
