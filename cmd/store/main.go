@@ -10,6 +10,7 @@ import (
 	"github.com/syncloud/store/util"
 	"github.com/syncloud/store/web"
 	"io/fs"
+	"net/url"
 )
 
 func main() {
@@ -22,8 +23,15 @@ func main() {
 		Short: "Start Syncloud Store",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			listenAddress := args[0]
+			configPath := args[1]
+
 			logger := log.Default()
-			config, err := util.LoadConfig(args[1])
+			config, err := util.LoadConfig(configPath)
+			if err != nil {
+				return err
+			}
+			upstream, err := url.Parse(api.Url)
 			if err != nil {
 				return err
 			}
@@ -35,7 +43,8 @@ func main() {
 				return err
 			}
 			ui := api.NewWeb(webFS, cache)
-			public := api.NewSyncloudStore(args[0], cache, client, signer, config.Token, ui, logger)
+			iconProxy := api.NewIconProxy(upstream)
+			public := api.NewSyncloudStore(listenAddress, cache, client, signer, config.Token, ui, iconProxy, logger)
 			internal := api.NewApi(cache)
 			err = cache.Start()
 			if err != nil {
