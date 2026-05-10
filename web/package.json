@@ -2,6 +2,7 @@
   "name": "syncloud-store-web",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "vite",
     "dev:stub": "VITE_STUB=1 vite",

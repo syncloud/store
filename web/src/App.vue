@@ -67,7 +67,7 @@ onMounted(() => {
 
     <main class="main">
       <section class="hero">
-        <h1 class="title">Apps for your Syncloud</h1>
+        <h1 class="title">Apps for your device</h1>
         <p class="subtitle">Self-hosted, private, one click away.</p>
         <div class="search-wrap">
           <input
