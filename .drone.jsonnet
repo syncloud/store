@@ -4,34 +4,8 @@ local playwright = "v1.48.2-jammy";
 local docker_image = "syncloud/store";
 local debian = "bookworm-slim";
 local platform = "26.04.10";
-
-local deploySteps(env, hostSecret) = [
-    {
-        name: "deploy prepare " + env,
-        image: "appleboy/drone-scp:1.6.4",
-        settings: {
-            host: { from_secret: hostSecret },
-            username: { from_secret: env + "_deploy_user" },
-            key: { from_secret: env + "_deploy_key" },
-            target: "/tmp/syncloud-store",
-            source: ["deploy/deploy.sh", "config/" + env + "/apache.conf"],
-            rm: true,
-        },
-    },
-    {
-        name: "deploy run " + env,
-        image: "appleboy/drone-ssh:1.7.0",
-        settings: {
-            host: { from_secret: hostSecret },
-            username: { from_secret: env + "_deploy_user" },
-            key: { from_secret: env + "_deploy_key" },
-            command_timeout: "10m",
-            script: [
-                "bash /tmp/syncloud-store/deploy/deploy.sh " + docker_image + ":${DRONE_BRANCH}-${DRONE_BUILD_NUMBER} " + env,
-            ],
-        },
-    },
-];
+local version = "${DRONE_BRANCH}-${DRONE_BUILD_NUMBER}";
+local image_tag = docker_image + ":" + version;
 
 local build(arch) = {
     kind: "pipeline",
@@ -77,7 +51,6 @@ local build(arch) = {
                 "./build.sh $VERSION " + arch
             ]
         },
-    ] + [
         {
             name: "build apps",
             image: "debian:" + debian,
@@ -111,7 +84,7 @@ local build(arch) = {
                 username: { from_secret: "DOCKER_USERNAME" },
                 password: { from_secret: "DOCKER_PASSWORD" },
                 tags: [
-                    "${DRONE_BRANCH}-${DRONE_BUILD_NUMBER}",
+                    version,
                     "${DRONE_BRANCH}",
                 ],
             },
@@ -134,20 +107,18 @@ local build(arch) = {
             },
         },
         {
-            name: "deploy prepare test",
+            name: "deploy test",
             image: "debian:" + debian,
-            commands: [
-                "bash ci/prepare-deploy.sh test",
-            ],
-            when: {
-                event: ["push", "tag"],
+            environment: {
+                DEPLOY_HOST: "api.store.test",
+                DEPLOY_USER: "root",
+                DEPLOY_URL: "http://api.store.test",
             },
-        },
-        {
-            name: "deploy run test",
-            image: "debian:" + debian,
             commands: [
-                "bash ci/test-deploy.sh " + docker_image + ":${DRONE_BRANCH}-${DRONE_BUILD_NUMBER}",
+                "./ci/test-init.sh",
+                "./ci/deploy-prepare.sh test",
+                "./ci/deploy-run.sh test " + image_tag,
+                "./ci/deploy-verify.sh test",
             ],
             when: {
                 event: ["push", "tag"],
@@ -166,12 +137,38 @@ local build(arch) = {
                 event: ["push", "tag"],
             },
         },
-    ] + [
-        s + { when: { event: ["push"] } }
-        for s in deploySteps("uat", "uat_deploy_host")
-    ] + [
-        s + { when: { event: ["push"], branch: ["stable"] } }
-        for s in deploySteps("prod", "prod_deploy_host")
+        {
+            name: "deploy uat",
+            image: "debian:" + debian,
+            environment: {
+                DEPLOY_HOST: { from_secret: "uat_deploy_host" },
+                DEPLOY_USER: { from_secret: "uat_deploy_user" },
+                DEPLOY_KEY: { from_secret: "uat_deploy_key" },
+                DEPLOY_URL: { from_secret: "uat_deploy_url" },
+            },
+            commands: [
+                "./ci/deploy-prepare.sh uat",
+                "./ci/deploy-run.sh uat " + image_tag,
+                "./ci/deploy-verify.sh uat",
+            ],
+            when: { event: ["push"] },
+        },
+        {
+            name: "deploy prod",
+            image: "debian:" + debian,
+            environment: {
+                DEPLOY_HOST: { from_secret: "prod_deploy_host" },
+                DEPLOY_USER: { from_secret: "prod_deploy_user" },
+                DEPLOY_KEY: { from_secret: "prod_deploy_key" },
+                DEPLOY_URL: { from_secret: "prod_deploy_url" },
+            },
+            commands: [
+                "./ci/deploy-prepare.sh prod",
+                "./ci/deploy-run.sh prod " + image_tag,
+                "./ci/deploy-verify.sh prod",
+            ],
+            when: { event: ["push"], branch: ["stable"] },
+        },
     ] else []) + [
         {
             name: "artifact",

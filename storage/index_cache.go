@@ -22,7 +22,7 @@ type Index interface {
 }
 
 type CachedIndex struct {
-	cache     Cache
+	cache     SnapCache
 	appsCache AppsCache
 	lock      sync.RWMutex
 	client    rest.Client
@@ -30,10 +30,10 @@ type CachedIndex struct {
 	logger    *zap.Logger
 }
 
-type ByName map[string]*model.Snap
-type ByArch map[string]ByName
-type ByChannel map[string]ByArch
-type Cache ByChannel
+type SnapByName map[string]*model.Snap
+type SnapByArch map[string]SnapByName
+type SnapByChannel map[string]SnapByArch
+type SnapCache SnapByChannel
 
 type AppsByName map[string]*model.App
 type AppsCache map[string]AppsByName
@@ -55,7 +55,7 @@ func New(client rest.Client, baseUrl string, logger *zap.Logger) *CachedIndex {
 		client:    client,
 		baseUrl:   baseUrl,
 		logger:    logger,
-		cache:     make(Cache),
+		cache:     make(SnapCache),
 		appsCache: make(AppsCache),
 	}
 }
@@ -196,7 +196,7 @@ func (i *CachedIndex) Refresh() error {
 	return nil
 }
 
-func (i *CachedIndex) downloadIndex(channel string) (ByArch, AppsByName, error) {
+func (i *CachedIndex) downloadIndex(channel string) (SnapByArch, AppsByName, error) {
 	resp, code, err := i.client.Get(fmt.Sprintf("%s/releases/%s/index-v2", i.baseUrl, channel))
 	if err != nil {
 		return nil, nil, err
@@ -210,7 +210,7 @@ func (i *CachedIndex) downloadIndex(channel string) (ByArch, AppsByName, error) 
 	if err != nil {
 		return nil, nil, err
 	}
-	apps := make(ByArch)
+	apps := make(SnapByArch)
 	for _, indexApp := range index {
 		for _, arch := range AvailableArchitectures {
 			app, err := i.downloadAppInfo(indexApp, channel, arch)
@@ -223,7 +223,7 @@ func (i *CachedIndex) downloadIndex(channel string) (ByArch, AppsByName, error) 
 			}
 			_, found := apps[arch]
 			if !found {
-				apps[arch] = make(ByName)
+				apps[arch] = make(SnapByName)
 			}
 			apps[arch][indexApp.Name] = app
 		}
@@ -269,13 +269,11 @@ func (i *CachedIndex) downloadAppInfo(app *model.App, channel string, arch strin
 	return app.ToInfo(version, size, fmt.Sprintf("%x", sha384), downloadUrl, arch)
 }
 
-func (i *CachedIndex) WriteIndex(channel string, index ByArch, apps AppsByName) {
+func (i *CachedIndex) WriteIndex(channel string, index SnapByArch, apps AppsByName) {
 	i.lock.Lock()
 	defer i.lock.Unlock()
 	i.cache[channel] = index
-	if apps != nil {
-		i.appsCache[channel] = apps
-	}
+	i.appsCache[channel] = apps
 }
 
 func (i *CachedIndex) UIApps(channel string) []*model.UIApp {
@@ -322,7 +320,7 @@ func (i *CachedIndex) iconUrl(channel, icon string) string {
 	return fmt.Sprintf("%s/releases/%s/images/%s", i.baseUrl, channel, icon)
 }
 
-func (i *CachedIndex) Read(channel string) (ByArch, bool) {
+func (i *CachedIndex) Read(channel string) (SnapByArch, bool) {
 	i.lock.RLock()
 	defer i.lock.RUnlock()
 	apps, ok := i.cache[channel]
