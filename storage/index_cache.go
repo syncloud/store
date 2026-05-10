@@ -22,12 +22,12 @@ type Index interface {
 }
 
 type CachedIndex struct {
-	cache    SnapCache
-	appCache AppCache
-	lock     sync.RWMutex
-	client   rest.Client
-	baseUrl  string
-	logger   *zap.Logger
+	snapCache SnapCache
+	appCache  AppCache
+	lock      sync.RWMutex
+	client    rest.Client
+	baseUrl   string
+	logger    *zap.Logger
 }
 
 type SnapByName map[string]*model.Snap
@@ -52,11 +52,11 @@ var AvailableArchitectures = []string{ArchAmd64, ArchArm64, ArchArm32}
 
 func New(client rest.Client, baseUrl string, logger *zap.Logger) *CachedIndex {
 	return &CachedIndex{
-		client:   client,
-		baseUrl:  baseUrl,
-		logger:   logger,
-		cache:    make(SnapCache),
-		appCache: make(AppCache),
+		client:    client,
+		baseUrl:   baseUrl,
+		logger:    logger,
+		snapCache: make(SnapCache),
+		appCache:  make(AppCache),
 	}
 }
 
@@ -272,7 +272,7 @@ func (i *CachedIndex) downloadAppInfo(app *model.App, channel string, arch strin
 func (i *CachedIndex) WriteIndex(channel string, snaps SnapByArch, apps AppByName) {
 	i.lock.Lock()
 	defer i.lock.Unlock()
-	i.cache[channel] = snaps
+	i.snapCache[channel] = snaps
 	i.appCache[channel] = apps
 }
 
@@ -281,7 +281,7 @@ func (i *CachedIndex) UIApps(channel string) []*model.UIApp {
 	defer i.lock.RUnlock()
 
 	apps := i.appCache[channel]
-	archs := i.cache[channel]
+	archs := i.snapCache[channel]
 	results := make([]*model.UIApp, 0, len(apps))
 	for name, app := range apps {
 		if app.Required {
@@ -323,8 +323,8 @@ func (i *CachedIndex) iconUrl(channel, icon string) string {
 func (i *CachedIndex) Read(channel string) (SnapByArch, bool) {
 	i.lock.RLock()
 	defer i.lock.RUnlock()
-	apps, ok := i.cache[channel]
-	return apps, ok
+	snaps, ok := i.snapCache[channel]
+	return snaps, ok
 }
 
 func (i *CachedIndex) Start() error {
