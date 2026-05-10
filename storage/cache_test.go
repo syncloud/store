@@ -348,3 +348,23 @@ func TestIndexCache_InfoById_SnapIdEmpty(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "error", result.Result)
 }
+
+func TestCache_UIApps_EmptyCache(t *testing.T) {
+	cache := New(nil, "http://localhost", log.Default())
+
+	apps := cache.UIApps("stable")
+	assert.NotNil(t, apps)
+	assert.Equal(t, 0, len(apps))
+}
+
+func TestCache_UIApps_UnknownChannel(t *testing.T) {
+	cache := &Cache{
+		snapCache: SnapCache{"stable": {}},
+		appCache:  AppCache{"stable": {}},
+		logger:    log.Default(),
+	}
+
+	apps := cache.UIApps("nonexistent")
+	assert.NotNil(t, apps)
+	assert.Equal(t, 0, len(apps))
+}

@@ -3,7 +3,6 @@ package api
 import (
 	"github.com/labstack/echo/v4"
 	"github.com/syncloud/store/internal/version"
-	"github.com/syncloud/store/model"
 	"github.com/syncloud/store/storage"
 	"io/fs"
 	"net/http"
@@ -30,9 +29,6 @@ func (w *Web) Apps(c echo.Context) error {
 		channel = "stable"
 	}
 	apps := w.index.UIApps(channel)
-	if apps == nil {
-		apps = []*model.UIApp{}
-	}
 	c.Response().Header().Set(echo.HeaderContentType, "application/json")
 	return c.JSON(http.StatusOK, apps)
 }
