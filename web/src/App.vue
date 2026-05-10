@@ -38,6 +38,14 @@ async function load () {
   }
 }
 
+const buildDate = computed(() => {
+  const t = version.value?.buildTime
+  if (!t) return null
+  const d = new Date(t)
+  if (isNaN(d.getTime())) return null
+  return d.toISOString().slice(0, 10)
+})
+
 const filtered = computed(() => {
   const q = query.value.trim().toLowerCase()
   if (!q) return apps.value
@@ -101,11 +109,11 @@ onMounted(() => {
     </main>
 
     <footer class="footer">
-      <span>syncloud.org</span>
       <span v-if="version" class="version-pill" data-testid="version" :title="`build ${version.buildNumber} · ${version.buildTime}`">
         <span class="version-label">build</span>
         <span class="version-num">{{ version.buildNumber }}</span>
         <span class="version-sha">{{ version.gitSha.slice(0, 7) }}</span>
+        <span v-if="buildDate" class="version-date" data-testid="version-date">{{ buildDate }}</span>
       </span>
     </footer>
   </div>
@@ -239,6 +247,12 @@ onMounted(() => {
 .version-num { font-weight: 600; color: var(--text); }
 .version-sha {
   color: var(--accent);
+  padding-left: 6px;
+  border-left: 1px solid var(--border);
+  margin-left: 2px;
+}
+.version-date {
+  color: var(--text-muted);
   padding-left: 6px;
   border-left: 1px solid var(--border);
   margin-left: 2px;

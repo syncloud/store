@@ -14,7 +14,9 @@ fi
 
 KEYFILE=/tmp/_deploy_key
 if [ ! -f "$KEYFILE" ]; then
+    set +x
     printf '%s\n' "$DEPLOY_KEY" > "$KEYFILE"
+    set -x
     chmod 600 "$KEYFILE"
 fi
 
