@@ -54,21 +54,17 @@ function initial (name) {
   width: 56px;
   height: 56px;
   border-radius: 14px;
-  background: #f1f5f9;
+  background: #e2e8f0;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
   flex-shrink: 0;
-  padding: 4px;
-}
-[data-theme="dark"] .icon-wrap {
-  background: #e2e8f0;
 }
 .icon-wrap img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
 }
 .fallback {
   font-weight: 700;
