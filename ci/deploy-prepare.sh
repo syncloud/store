@@ -24,6 +24,6 @@ SSH="ssh -i $KEYFILE -o StrictHostKeyChecking=no"
 SCP="scp -i $KEYFILE -o StrictHostKeyChecking=no -r"
 REMOTE="${DEPLOY_USER}@${DEPLOY_HOST}"
 
-$SSH $REMOTE "rm -rf /tmp/syncloud-store && mkdir -p /tmp/syncloud-store/config"
+$SSH $REMOTE "sudo -n rm -rf /tmp/syncloud-store && mkdir -p /tmp/syncloud-store/config"
 $SCP deploy "${REMOTE}:/tmp/syncloud-store/"
 $SCP "config/${ENV}" "${REMOTE}:/tmp/syncloud-store/config/"
