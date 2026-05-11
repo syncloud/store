@@ -28,7 +28,7 @@ for i in $(seq 1 60); do
 done
 if [ "${n:-0}" -eq 0 ]; then
     echo "store did not populate index"
-    $SSH $REMOTE docker logs syncloud-store 2>&1 | tail -40
+    $SSH $REMOTE sudo -n docker logs syncloud-store 2>&1 | tail -40
     exit 1
 fi
 

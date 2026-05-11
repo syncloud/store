@@ -12,4 +12,4 @@ KEYFILE=/tmp/_deploy_key
 SSH="ssh -i $KEYFILE -o StrictHostKeyChecking=no"
 REMOTE="${DEPLOY_USER}@${DEPLOY_HOST}"
 
-$SSH $REMOTE "bash /tmp/syncloud-store/deploy/deploy.sh $TAG $ENV"
+$SSH $REMOTE "sudo -n bash /tmp/syncloud-store/deploy/deploy.sh $TAG $ENV"
