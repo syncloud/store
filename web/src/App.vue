@@ -8,6 +8,17 @@ const loading = ref(true)
 const error = ref(null)
 const query = ref('')
 const version = ref(null)
+const sortBy = ref('popular')
+const sortDir = ref('desc')
+
+function toggleSort (col) {
+  if (sortBy.value === col) {
+    sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortBy.value = col
+    sortDir.value = col === 'popular' ? 'desc' : 'asc'
+  }
+}
 
 async function loadVersion () {
   try {
@@ -23,14 +34,20 @@ async function load () {
     const res = await fetch('/api/ui/v1/apps')
     if (!res.ok) throw new Error('http ' + res.status)
     const data = await res.json()
-    apps.value = (data || []).map(a => ({
-      id: a.snapId,
-      name: a.name,
-      summary: a.summary || '',
-      description: a.description || '',
-      version: a.version || '',
-      icon: a.iconUrl || ''
-    }))
+    let rank = 0
+    apps.value = (data || []).map(a => {
+      const popularity = a.popularity || 0
+      return {
+        id: a.snapId,
+        name: a.name,
+        summary: a.summary || '',
+        description: a.description || '',
+        version: a.version || '',
+        icon: a.iconUrl || '',
+        popularity,
+        rank: popularity > 0 ? ++rank : 0
+      }
+    })
   } catch (e) {
     error.value = e.message
   } finally {
@@ -48,11 +65,24 @@ const buildDate = computed(() => {
 
 const filtered = computed(() => {
   const q = query.value.trim().toLowerCase()
-  if (!q) return apps.value
-  return apps.value.filter(a =>
-    a.name.toLowerCase().includes(q) ||
-    (a.summary || '').toLowerCase().includes(q)
-  )
+  const arr = q
+    ? apps.value.filter(a =>
+        a.name.toLowerCase().includes(q) ||
+        (a.summary || '').toLowerCase().includes(q))
+    : apps.value.slice()
+  const dir = sortDir.value === 'asc' ? 1 : -1
+  arr.sort((a, b) => {
+    let cmp
+    if (sortBy.value === 'popular') {
+      cmp = (b.popularity || 0) - (a.popularity || 0)
+      cmp = cmp * (sortDir.value === 'desc' ? 1 : -1)
+    } else {
+      cmp = a.name.localeCompare(b.name) * dir
+    }
+    if (cmp === 0) cmp = a.name.localeCompare(b.name)
+    return cmp
+  })
+  return arr
 })
 
 onMounted(() => {
@@ -95,7 +125,31 @@ onMounted(() => {
       </div>
       <div v-else>
         <div class="meta-row">
-          <span data-testid="results-count">{{ filtered.length }} of {{ apps.length }} apps</span>
+          <span class="count" data-testid="results-count">{{ filtered.length }} of {{ apps.length }} apps</span>
+          <div class="sort-controls" data-testid="sort-controls">
+            <button
+              type="button"
+              class="sort-btn"
+              :class="{ active: sortBy === 'popular' }"
+              data-testid="sort-popular"
+              :title="sortBy === 'popular' ? 'Toggle direction' : 'Sort by popularity'"
+              @click="toggleSort('popular')"
+            >
+              Popular
+              <span v-if="sortBy === 'popular'" class="arrow">{{ sortDir === 'desc' ? '↓' : '↑' }}</span>
+            </button>
+            <button
+              type="button"
+              class="sort-btn"
+              :class="{ active: sortBy === 'name' }"
+              data-testid="sort-name"
+              :title="sortBy === 'name' ? 'Toggle direction' : 'Sort alphabetically'"
+              @click="toggleSort('name')"
+            >
+              Name
+              <span v-if="sortBy === 'name'" class="arrow">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
+            </button>
+          </div>
         </div>
         <div v-if="filtered.length === 0" class="state" data-testid="empty">
           No apps match "{{ query }}".
@@ -202,7 +256,36 @@ onMounted(() => {
   font-size: 14px;
   margin: 0 0 14px;
   padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
 }
+.sort-controls {
+  display: inline-flex;
+  gap: 6px;
+}
+.sort-btn {
+  font: inherit;
+  font-size: 12px;
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  padding: 4px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.sort-btn:hover { border-color: var(--accent); }
+.sort-btn.active {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.sort-btn .arrow { font-weight: 700; }
 .grid {
   list-style: none;
   margin: 0;

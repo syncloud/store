@@ -14,6 +14,11 @@ function initial (name) {
 
 <template>
   <article class="card" data-testid="app-card" :data-name="app.name">
+    <span
+      v-if="app.rank"
+      class="rank"
+      data-testid="app-rank"
+    >#{{ app.rank }}</span>
     <div class="icon-wrap">
       <img
         v-if="app.icon && !broken"
@@ -35,6 +40,7 @@ function initial (name) {
 
 <style scoped>
 .card {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -45,6 +51,18 @@ function initial (name) {
   box-shadow: var(--shadow);
   height: 100%;
   transition: transform 0.15s ease, border-color 0.15s ease;
+}
+.rank {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+  color: #fff;
+  background: var(--accent);
 }
 .card:hover {
   transform: translateY(-2px);

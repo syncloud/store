@@ -28,16 +28,22 @@ type ApiCache interface {
 	InfoById(channel, snapId, action, actionName, arch string) (*model.StoreResult, error)
 }
 
+type Popularity interface {
+	Record(snap, device string)
+	Count(snap string) int
+}
+
 type SyncloudStore struct {
-	client    rest.Client
-	echo      *echo.Echo
-	address   string
-	apiCache  ApiCache
-	signer    Signer
-	token     string
-	logger    *zap.Logger
-	web       *Web
-	iconProxy *IconProxy
+	client     rest.Client
+	echo       *echo.Echo
+	address    string
+	apiCache   ApiCache
+	signer     Signer
+	token      string
+	logger     *zap.Logger
+	web        *Web
+	iconProxy  *IconProxy
+	popularity Popularity
 }
 
 func NewSyncloudStore(
@@ -48,18 +54,20 @@ func NewSyncloudStore(
 	token string,
 	web *Web,
 	iconProxy *IconProxy,
+	popularity Popularity,
 	logger *zap.Logger,
 ) *SyncloudStore {
 	return &SyncloudStore{
-		client:    client,
-		echo:      echo.New(),
-		signer:    signer,
-		apiCache:  apiCache,
-		address:   address,
-		token:     token,
-		web:       web,
-		iconProxy: iconProxy,
-		logger:    logger,
+		client:     client,
+		echo:       echo.New(),
+		signer:     signer,
+		apiCache:   apiCache,
+		address:    address,
+		token:      token,
+		web:        web,
+		iconProxy:  iconProxy,
+		popularity: popularity,
+		logger:     logger,
 	}
 }
 
@@ -140,7 +148,14 @@ func (s *SyncloudStore) Refresh(c echo.Context) error {
 		return nil
 	}
 	arch := c.Request().Header.Get("Syncloud-Architecture")
-	s.logger.Info("refresh", zap.String("arch", arch))
+	device := s.deviceId(c)
+	s.logger.Info("refresh",
+		zap.String("arch", arch),
+		zap.String("device", device),
+		zap.String("remote_addr", c.RealIP()),
+		zap.Any("headers", c.Request().Header),
+		zap.String("body", string(req)),
+	)
 
 	var request model.SnapActionRequest
 	err = json.Unmarshal(req, &request)
@@ -148,7 +163,6 @@ func (s *SyncloudStore) Refresh(c echo.Context) error {
 		c.Error(err)
 		return nil
 	}
-	s.logger.Info(fmt.Sprintf("refresh request: %s", string(req)))
 	result := &model.StoreResults{}
 	for _, action := range request.Actions {
 		if action.Action == "fetch-assertions" {
@@ -164,9 +178,29 @@ func (s *SyncloudStore) Refresh(c echo.Context) error {
 			}
 			info.InstanceKey = action.InstanceKey
 			result.Results = append(result.Results, info)
+			s.popularity.Record(snapName(action), device)
 		}
 	}
 	return c.JSON(http.StatusOK, result)
+}
+
+func (s *SyncloudStore) deviceId(c echo.Context) string {
+	for _, h := range []string{"Syncloud-Device-Id", "Snap-Device-Authorization", "Snap-Device-Serial"} {
+		if v := c.Request().Header.Get(h); v != "" {
+			return v
+		}
+	}
+	return c.RealIP()
+}
+
+func snapName(action *model.SnapAction) string {
+	if action.Name != "" {
+		return action.Name
+	}
+	if action.SnapID != "" {
+		return model.SnapId(action.SnapID).Name()
+	}
+	return ""
 }
 
 func (s *SyncloudStore) Info(c echo.Context) error {

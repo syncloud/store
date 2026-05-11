@@ -4,6 +4,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/syncloud/store/internal/version"
 	"github.com/syncloud/store/model"
+	"golang.org/x/exp/slices"
 	"io/fs"
 	"net/http"
 	"strings"
@@ -16,13 +17,15 @@ type WebCache interface {
 type Web struct {
 	fs         fs.FS
 	webCache   WebCache
+	popularity Popularity
 	fileServer http.Handler
 }
 
-func NewWeb(webFS fs.FS, webCache WebCache) *Web {
+func NewWeb(webFS fs.FS, webCache WebCache, popularity Popularity) *Web {
 	return &Web{
 		fs:         webFS,
 		webCache:   webCache,
+		popularity: popularity,
 		fileServer: http.FileServer(http.FS(webFS)),
 	}
 }
@@ -33,6 +36,15 @@ func (w *Web) Apps(c echo.Context) error {
 		channel = "stable"
 	}
 	apps := w.webCache.UIApps(channel)
+	for _, a := range apps {
+		a.Popularity = w.popularity.Count(model.SnapId(a.SnapID).Name())
+	}
+	slices.SortFunc(apps, func(a, b *model.UIApp) bool {
+		if a.Popularity != b.Popularity {
+			return a.Popularity > b.Popularity
+		}
+		return a.Name < b.Name
+	})
 	c.Response().Header().Set(echo.HeaderContentType, "application/json")
 	return c.JSON(http.StatusOK, apps)
 }
