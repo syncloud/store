@@ -178,9 +178,7 @@ func (s *SyncloudStore) Refresh(c echo.Context) error {
 			}
 			info.InstanceKey = action.InstanceKey
 			result.Results = append(result.Results, info)
-			if s.popularity != nil {
-				s.popularity.Record(snapName(action), device)
-			}
+			s.popularity.Record(snapName(action), device)
 		}
 	}
 	return c.JSON(http.StatusOK, result)

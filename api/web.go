@@ -36,17 +36,15 @@ func (w *Web) Apps(c echo.Context) error {
 		channel = "stable"
 	}
 	apps := w.webCache.UIApps(channel)
-	if w.popularity != nil {
-		for _, a := range apps {
-			a.Popularity = w.popularity.Count(model.SnapId(a.SnapID).Name())
-		}
-		slices.SortFunc(apps, func(a, b *model.UIApp) bool {
-			if a.Popularity != b.Popularity {
-				return a.Popularity > b.Popularity
-			}
-			return a.Name < b.Name
-		})
+	for _, a := range apps {
+		a.Popularity = w.popularity.Count(model.SnapId(a.SnapID).Name())
 	}
+	slices.SortFunc(apps, func(a, b *model.UIApp) bool {
+		if a.Popularity != b.Popularity {
+			return a.Popularity > b.Popularity
+		}
+		return a.Name < b.Name
+	})
 	c.Response().Header().Set(echo.HeaderContentType, "application/json")
 	return c.JSON(http.StatusOK, apps)
 }
