@@ -7,7 +7,6 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/syncloud/store/model"
 	"github.com/syncloud/store/rest"
-	"github.com/syncloud/store/storage"
 	"go.uber.org/zap"
 	"io"
 	"net"
@@ -22,32 +21,45 @@ type Signer interface {
 	SnapRevision(key, revision string) (string, error)
 }
 
+type ApiCache interface {
+	Refresh() error
+	Find(channel string, query string, architecture string) *model.SearchResults
+	Info(name, arch string) *model.StoreInfo
+	InfoById(channel, snapId, action, actionName, arch string) (*model.StoreResult, error)
+}
+
 type SyncloudStore struct {
-	client  rest.Client
-	echo    *echo.Echo
-	address string
-	index   storage.Index
-	signer  Signer
-	token   string
-	logger  *zap.Logger
+	client    rest.Client
+	echo      *echo.Echo
+	address   string
+	apiCache  ApiCache
+	signer    Signer
+	token     string
+	logger    *zap.Logger
+	web       *Web
+	iconProxy *IconProxy
 }
 
 func NewSyncloudStore(
 	address string,
-	index storage.Index,
+	apiCache ApiCache,
 	client rest.Client,
 	signer Signer,
 	token string,
+	web *Web,
+	iconProxy *IconProxy,
 	logger *zap.Logger,
 ) *SyncloudStore {
 	return &SyncloudStore{
-		client:  client,
-		echo:    echo.New(),
-		signer:  signer,
-		index:   index,
-		address: address,
-		token:   token,
-		logger:  logger,
+		client:    client,
+		echo:      echo.New(),
+		signer:    signer,
+		apiCache:  apiCache,
+		address:   address,
+		token:     token,
+		web:       web,
+		iconProxy: iconProxy,
+		logger:    logger,
 	}
 }
 
@@ -67,6 +79,10 @@ func (s *SyncloudStore) Start() error {
 	s.echo.GET("/v2/snaps/find", s.Find)
 	s.echo.GET("/v2/snaps/info/:name", s.Info)
 	s.echo.POST("/syncloud/v1/cache/refresh", s.SyncloudCacheRefresh)
+	s.echo.GET("/api/ui/v1/apps", s.web.Apps)
+	s.echo.GET("/api/ui/v1/version", s.web.Version)
+	s.echo.GET("/api/ui/v1/icons/*", echo.WrapHandler(s.iconProxy))
+	s.echo.GET("/*", echo.WrapHandler(http.HandlerFunc(s.web.Serve)))
 
 	s.logger.Info("listening on", zap.String("address", s.address))
 	if s.IsUnixSocket() {
@@ -142,7 +158,7 @@ func (s *SyncloudStore) Refresh(c echo.Context) error {
 			}
 			result.Results = append(result.Results, info)
 		} else {
-			info, err := s.index.InfoById(action.Channel, action.SnapID, action.Action, action.Name, arch)
+			info, err := s.apiCache.InfoById(action.Channel, action.SnapID, action.Action, action.Name, arch)
 			if err != nil {
 				return err
 			}
@@ -156,7 +172,7 @@ func (s *SyncloudStore) Refresh(c echo.Context) error {
 func (s *SyncloudStore) Info(c echo.Context) error {
 	name := c.Param("name")
 	arch := c.QueryParam("architecture")
-	result := s.index.Info(name, arch)
+	result := s.apiCache.Info(name, arch)
 	if result == nil {
 		return c.String(http.StatusNotFound, "not found")
 	}
@@ -177,7 +193,7 @@ func (s *SyncloudStore) Find(c echo.Context) error {
 	if channel == "" {
 		channel = "stable"
 	}
-	results := s.index.Find(channel, query, architecture)
+	results := s.apiCache.Find(channel, query, architecture)
 	if results == nil {
 		c.Error(fmt.Errorf("no channel: %s in the index", channel))
 		return nil
@@ -236,5 +252,5 @@ func (s *SyncloudStore) SyncloudCacheRefresh(c echo.Context) error {
 		return c.String(http.StatusUnauthorized, "unauthorized")
 	}
 
-	return s.index.Refresh()
+	return s.apiCache.Refresh()
 }

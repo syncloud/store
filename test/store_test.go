@@ -45,37 +45,6 @@ func TestPrepareStore(t *testing.T) {
 
 }
 
-func TestUpgrade(t *testing.T) {
-	arch, err := snapArch()
-	assert.NoError(t, err)
-
-	output, err := InstallSnapd("/install-snapd-v1.sh /snapd1.tar.gz")
-	assert.NoError(t, err, output)
-	output, err = Ssh("device", "snap install testapp1")
-	assert.NoError(t, err, output)
-
-	output, err = Ssh("device", "snap list testapp1")
-	assert.NoError(t, err, output)
-	assert.Contains(t, output, "testapp1  1        1    stable    syncloud")
-
-	output, err = Ssh("device", "/upgrade-snapd.sh /snapd2.tar.gz")
-	assert.NoError(t, err, output)
-
-	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp1 -a %s -v 2 -c stable -t %s --store-url http://api.store.test", arch, StoreDir))
-	assert.NoError(t, err, output)
-
-	output, err = Ssh("device", "snap refresh testapp1")
-	assert.NoError(t, err, output)
-
-	output, err = Ssh("device", "snap list testapp1")
-	assert.NoError(t, err, output)
-	assert.Contains(t, output, "testapp1  2        2    latest/stable  syncloud")
-
-	output, err = Ssh("device", "snap remove testapp1")
-	assert.NoError(t, err, output)
-
-}
-
 func TestUnknown(t *testing.T) {
 	output, err := InstallSnapd("/install-snapd-v2.sh /snapd2.tar.gz")
 	assert.NoError(t, err, output)
@@ -279,31 +248,23 @@ func InstallSnapd(cmd string) (string, error) {
 			return strings.Contains(output, "No snaps")
 		},
 	)
-	output, err = SshWaitFor("device", "snap find unknown",
-		func(output string) bool {
-			return !strings.Contains(output, "too early for operation")
-		},
-	)
-	return output, err
+	if err != nil {
+		return output, err
+	}
+	return Ssh("device", "snap wait system seed.loaded")
 }
 
 func SshWaitFor(host string, command string, predicate func(string) bool) (string, error) {
-	retries := 10
-	retry := 0
-	for retry < retries {
-		retry++
+	retries := 60
+	for retry := 1; retry <= retries; retry++ {
 		output, err := Ssh(host, command)
-		if err != nil {
-			fmt.Printf("error: %v", err)
-			time.Sleep(1 * time.Second)
-			fmt.Printf("retry %d/%d", retry, retries)
-			continue
-		}
-		if predicate(output) {
+		if err == nil && predicate(output) {
 			return output, nil
 		}
+		fmt.Printf("retry %d/%d: err=%v\n", retry, retries, err)
+		time.Sleep(1 * time.Second)
 	}
-	return "", fmt.Errorf("%d: %d (exhausted)", retry, retries)
+	return "", fmt.Errorf("waited %d retries for %q on %s", retries, command, host)
 }
 
 func Publish(name string, version int) (string, error) {

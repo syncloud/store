@@ -1,0 +1,14 @@
+{
+  "name": "store-web-e2e",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:stub": "PLAYWRIGHT_BASE_URL=http://127.0.0.1:4173 PLAYWRIGHT_STUB=1 playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.48.2",
+    "typescript": "5.6.3"
+  }
+}

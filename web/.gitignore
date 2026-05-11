@@ -1,0 +1,8 @@
+node_modules
+dist/*
+!dist/.gitkeep
+test-results
+playwright-report
+.vite
+e2e/artifact
+artifact

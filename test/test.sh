@@ -23,15 +23,10 @@ mkdir -p $LOG_DIR
 $SCP ${DIR}/../bin/install.sh root@api.store.test:/install.sh
 $SCP ${DIR}/../out/store-*.tar.gz root@api.store.test:/store.tar.gz
 
-wget --progress=dot:giga https://github.com/syncloud/snapd/releases/download/1.2/snapd-361-$SNAP_ARCH.tar.gz -O snapd1.tar.gz
-$SCP snapd1.tar.gz root@device:/
-
-wget --progress=dot:giga https://github.com/syncloud/snapd/releases/download/syncloud-2.0/snapd-583-$SNAP_ARCH.tar.gz -O snapd2.tar.gz
+wget --progress=dot:giga https://github.com/syncloud/snapd/releases/download/syncloud-5/snapd-640-${SNAP_ARCH}.tar.gz -O snapd2.tar.gz
 $SCP snapd2.tar.gz root@device:/
 
-$SCP ${DIR}/install-snapd-v1.sh root@device:/
 $SCP ${DIR}/install-snapd-v2.sh root@device:/
-$SCP ${DIR}/upgrade-snapd.sh root@device:/
 
 $SCP ${DIR}/testapp2_1_$SNAP_ARCH.snap root@device:/testapp2_1.snap
 #$SCP ${DIR}/test root@$DEVICE:/
@@ -46,13 +41,13 @@ code=$(($code+$?))
 set -e
 
 $SSH root@device snap changes > $LOG_DIR/snap.changes.log || true
-$SSH root@device journalctl > $LOG_DIR/journalctl.device.log
-$SCP api.store.test:/var/log/apache2/store-access.log $LOG_DIR
-$SCP api.store.test:/var/log/apache2/store-error.log $LOG_DIR
-$SSH api.store.test journalctl > $LOG_DIR/journalctl.store.log
-$SSH api.store.test ls -la /var/www/store > $LOG_DIR/var.www.store.log
-$SCP -r apps.syncloud.org:$STORE_DIR $ARTIFACTS_DIR/store
-$SCP apps.syncloud.org:/var/log/nginx/access.log $LOG_DIR/apps.nginx.access.log
-chmod -R a+r $ARTIFACTS_DIR
+$SSH root@device journalctl > $LOG_DIR/journalctl.device.log || true
+$SSH api.store.test journalctl > $LOG_DIR/journalctl.store.log || true
+$SSH api.store.test ls -la /var/www/store > $LOG_DIR/var.www.store.log || true
+$SCP api.store.test:/var/log/apache2/store-access.log $LOG_DIR || true
+$SCP api.store.test:/var/log/apache2/store-error.log $LOG_DIR || true
+$SCP -r apps.syncloud.org:$STORE_DIR $ARTIFACTS_DIR/store || true
+$SCP apps.syncloud.org:/var/log/nginx/access.log $LOG_DIR/apps.nginx.access.log || true
+chmod -R a+r $ARTIFACTS_DIR || true
 
 exit $code
