@@ -8,7 +8,7 @@ const loading = ref(true)
 const error = ref(null)
 const query = ref('')
 const version = ref(null)
-const sortBy = ref('rank')
+const sortBy = ref('popular')
 const sortDir = ref('desc')
 
 function toggleSort (col) {
@@ -16,7 +16,7 @@ function toggleSort (col) {
     sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
   } else {
     sortBy.value = col
-    sortDir.value = col === 'rank' ? 'desc' : 'asc'
+    sortDir.value = col === 'popular' ? 'desc' : 'asc'
   }
 }
 
@@ -73,7 +73,7 @@ const filtered = computed(() => {
   const dir = sortDir.value === 'asc' ? 1 : -1
   arr.sort((a, b) => {
     let cmp
-    if (sortBy.value === 'rank') {
+    if (sortBy.value === 'popular') {
       cmp = (b.popularity || 0) - (a.popularity || 0)
       cmp = cmp * (sortDir.value === 'desc' ? 1 : -1)
     } else {
@@ -130,13 +130,13 @@ onMounted(() => {
             <button
               type="button"
               class="sort-btn"
-              :class="{ active: sortBy === 'rank' }"
-              data-testid="sort-rank"
-              :title="sortBy === 'rank' ? 'Toggle direction' : 'Sort by popularity'"
-              @click="toggleSort('rank')"
+              :class="{ active: sortBy === 'popular' }"
+              data-testid="sort-popular"
+              :title="sortBy === 'popular' ? 'Toggle direction' : 'Sort by popularity'"
+              @click="toggleSort('popular')"
             >
-              Rank
-              <span v-if="sortBy === 'rank'" class="arrow">{{ sortDir === 'desc' ? '↓' : '↑' }}</span>
+              Popular
+              <span v-if="sortBy === 'popular'" class="arrow">{{ sortDir === 'desc' ? '↓' : '↑' }}</span>
             </button>
             <button
               type="button"
