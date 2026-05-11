@@ -236,6 +236,29 @@ func TestPopularityRanking(t *testing.T) {
 		assert.Equal(t, 200, resp.StatusCode(), string(resp.Body()))
 	}
 
+	type uiApp struct {
+		Name       string `json:"name"`
+		SnapID     string `json:"snapId"`
+		Popularity int    `json:"popularity"`
+	}
+	read := func() (map[string]int, []string) {
+		resp, err := client.R().Get("http://api.store.test/api/ui/v1/apps?channel=stable")
+		assert.NoError(t, err)
+		assert.Equal(t, 200, resp.StatusCode(), string(resp.Body()))
+		var apps []uiApp
+		assert.NoError(t, json.Unmarshal(resp.Body(), &apps), string(resp.Body()))
+		pop := map[string]int{}
+		var order []string
+		for _, a := range apps {
+			snap := strings.SplitN(a.SnapID, ".", 2)[0]
+			pop[snap] = a.Popularity
+			order = append(order, snap)
+		}
+		return pop, order
+	}
+
+	before, _ := read()
+
 	for i := 0; i < 5; i++ {
 		record("testapp1", "testapp1.1", fmt.Sprintf("dev-app1-%d", i))
 	}
@@ -243,27 +266,10 @@ func TestPopularityRanking(t *testing.T) {
 		record("testapp2", "testapp2.1", fmt.Sprintf("dev-app2-%d", i))
 	}
 
-	resp, err := client.R().Get("http://api.store.test/api/ui/v1/apps?channel=stable")
-	assert.NoError(t, err)
-	assert.Equal(t, 200, resp.StatusCode(), string(resp.Body()))
+	after, order := read()
 
-	var apps []struct {
-		Name       string `json:"name"`
-		SnapID     string `json:"snapId"`
-		Popularity int    `json:"popularity"`
-	}
-	err = json.Unmarshal(resp.Body(), &apps)
-	assert.NoError(t, err, string(resp.Body()))
-
-	pop := map[string]int{}
-	var order []string
-	for _, a := range apps {
-		snap := strings.SplitN(a.SnapID, ".", 2)[0]
-		pop[snap] = a.Popularity
-		order = append(order, snap)
-	}
-	assert.Equal(t, 5, pop["testapp1"], "ui apps response: %s", string(resp.Body()))
-	assert.Equal(t, 2, pop["testapp2"], "ui apps response: %s", string(resp.Body()))
+	assert.Equal(t, 5, after["testapp1"]-before["testapp1"], "delta testapp1 mismatch; before=%v after=%v", before, after)
+	assert.Equal(t, 2, after["testapp2"]-before["testapp2"], "delta testapp2 mismatch; before=%v after=%v", before, after)
 
 	idx1, idx2 := -1, -1
 	for i, n := range order {
