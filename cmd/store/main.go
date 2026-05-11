@@ -11,6 +11,7 @@ import (
 	"github.com/syncloud/store/web"
 	"io/fs"
 	"net/url"
+	"time"
 )
 
 func main() {
@@ -42,9 +43,10 @@ func main() {
 			if err != nil {
 				return err
 			}
-			ui := api.NewWeb(webFS, cache)
+			popularity := storage.NewPopularity(7 * 24 * time.Hour)
+			ui := api.NewWeb(webFS, cache, popularity)
 			iconProxy := api.NewIconProxy(upstream)
-			public := api.NewSyncloudStore(listenAddress, cache, client, signer, config.Token, ui, iconProxy, logger)
+			public := api.NewSyncloudStore(listenAddress, cache, client, signer, config.Token, ui, iconProxy, popularity, logger)
 			internal := api.NewApi(cache)
 			err = cache.Start()
 			if err != nil {

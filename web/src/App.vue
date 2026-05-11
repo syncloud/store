@@ -23,14 +23,20 @@ async function load () {
     const res = await fetch('/api/ui/v1/apps')
     if (!res.ok) throw new Error('http ' + res.status)
     const data = await res.json()
-    apps.value = (data || []).map(a => ({
-      id: a.snapId,
-      name: a.name,
-      summary: a.summary || '',
-      description: a.description || '',
-      version: a.version || '',
-      icon: a.iconUrl || ''
-    }))
+    let rank = 0
+    apps.value = (data || []).map(a => {
+      const popularity = a.popularity || 0
+      return {
+        id: a.snapId,
+        name: a.name,
+        summary: a.summary || '',
+        description: a.description || '',
+        version: a.version || '',
+        icon: a.iconUrl || '',
+        popularity,
+        rank: popularity > 0 ? ++rank : 0
+      }
+    })
   } catch (e) {
     error.value = e.message
   } finally {

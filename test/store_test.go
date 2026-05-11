@@ -1,6 +1,7 @@
 package test
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/assert"
@@ -210,6 +211,70 @@ func TestFind(t *testing.T) {
 	output, err = Ssh("device", "snap remove testapp1")
 	assert.NoError(t, err, output)
 
+}
+
+func TestPopularityRanking(t *testing.T) {
+	arch, err := snapArch()
+	assert.NoError(t, err)
+
+	output, err := Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp1 -a %s -v 1 -c stable -t %s --store-url http://api.store.test", arch, StoreDir))
+	assert.NoError(t, err, output)
+	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp2 -a %s -v 1 -c stable -t %s --store-url http://api.store.test", arch, StoreDir))
+	assert.NoError(t, err, output)
+
+	client := resty.New()
+
+	record := func(name, snapId, deviceId string) {
+		body := fmt.Sprintf(`{"actions":[{"action":"refresh","instance-key":"k","name":"%s","snap-id":"%s","channel":"stable"}]}`, name, snapId)
+		resp, err := client.R().
+			SetHeader("Content-Type", "application/json").
+			SetHeader("Syncloud-Architecture", arch).
+			SetHeader("Syncloud-Device-Id", deviceId).
+			SetBody(body).
+			Post("http://api.store.test/v2/snaps/refresh")
+		assert.NoError(t, err)
+		assert.Equal(t, 200, resp.StatusCode(), string(resp.Body()))
+	}
+
+	for i := 0; i < 5; i++ {
+		record("testapp1", "testapp1.1", fmt.Sprintf("dev-app1-%d", i))
+	}
+	for i := 0; i < 2; i++ {
+		record("testapp2", "testapp2.1", fmt.Sprintf("dev-app2-%d", i))
+	}
+
+	resp, err := client.R().Get("http://api.store.test/api/ui/v1/apps?channel=stable")
+	assert.NoError(t, err)
+	assert.Equal(t, 200, resp.StatusCode(), string(resp.Body()))
+
+	var apps []struct {
+		Name       string `json:"name"`
+		SnapID     string `json:"snapId"`
+		Popularity int    `json:"popularity"`
+	}
+	err = json.Unmarshal(resp.Body(), &apps)
+	assert.NoError(t, err, string(resp.Body()))
+
+	pop := map[string]int{}
+	var order []string
+	for _, a := range apps {
+		snap := strings.SplitN(a.SnapID, ".", 2)[0]
+		pop[snap] = a.Popularity
+		order = append(order, snap)
+	}
+	assert.Equal(t, 5, pop["testapp1"], "ui apps response: %s", string(resp.Body()))
+	assert.Equal(t, 2, pop["testapp2"], "ui apps response: %s", string(resp.Body()))
+
+	idx1, idx2 := -1, -1
+	for i, n := range order {
+		if n == "testapp1" {
+			idx1 = i
+		}
+		if n == "testapp2" {
+			idx2 = i
+		}
+	}
+	assert.True(t, idx1 >= 0 && idx2 >= 0 && idx1 < idx2, "testapp1 should rank before testapp2; got order %v", order)
 }
 
 func TestRest_SnapsInfo(t *testing.T) {
