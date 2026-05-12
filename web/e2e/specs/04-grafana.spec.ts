@@ -13,6 +13,7 @@ test.describe('grafana popularity dashboard', () => {
   )
 
   test('renders panels with seeded popularity data', async ({ page, request }, testInfo) => {
+    test.skip(testInfo.project.name === 'mobile', 'grafana dashboard is desktop-only')
     await page.setViewportSize({ width: 1440, height: 1400 })
 
     const refresh = async (snap: string, snapId: string, device: string) => {
