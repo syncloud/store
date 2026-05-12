@@ -43,13 +43,16 @@ test.describe('grafana popularity dashboard', () => {
     await page.waitForTimeout(2000)
 
     await page.goto(
-      `${GRAFANA}/d/popularity/store-popularity?orgId=1&kiosk=tv&from=now-5m&to=now`,
+      `${GRAFANA}/d/popularity/store-popularity?orgId=1&from=now-5m&to=now`,
       { waitUntil: 'networkidle' }
     )
 
-    await page.waitForSelector('text=Unique devices', { timeout: 30_000 })
-    await page.waitForSelector('text=Active devices per snap', { timeout: 10_000 })
-    await page.waitForTimeout(5_000)
+    await page.waitForSelector('[data-testid="data-testid Panel header Unique devices"]', { timeout: 30_000 })
+    await page.waitForSelector('[data-testid="data-testid VizLegend series testapp1"]', { timeout: 30_000 })
+    await page.waitForSelector('[data-testid="data-testid Bar gauge value"]', { timeout: 30_000 })
+    await page.evaluate(() => window.scrollTo(0, 0))
+    await page.waitForLoadState('networkidle')
+    await page.waitForTimeout(3_000)
 
     await shoot(page, testInfo, 'grafana-popularity')
   })
