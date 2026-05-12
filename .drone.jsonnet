@@ -7,6 +7,10 @@ local platform = "26.04.10";
 local version = "${DRONE_BRANCH}-${DRONE_BUILD_NUMBER}";
 local image_tag = docker_image + ":" + version;
 
+local grafanaDatasources = importstr "ci/grafana/datasources.yml";
+local grafanaDashboards = importstr "ci/grafana/dashboards.yml";
+local grafanaPopularity = importstr "ci/grafana/popularity.json";
+
 local build(arch) = {
     kind: "pipeline",
     name: arch,
@@ -269,6 +273,27 @@ local build(arch) = {
             name: "vm",
             image: "victoriametrics/victoria-metrics:v1.110.0",
             command: ["-search.latencyOffset=0s"],
+        },
+        {
+            name: "grafana",
+            image: "grafana/grafana:11.3.0",
+            environment: {
+                GF_AUTH_ANONYMOUS_ENABLED: "true",
+                GF_AUTH_ANONYMOUS_ORG_ROLE: "Admin",
+                GF_AUTH_DISABLE_LOGIN_FORM: "true",
+                GF_SECURITY_ADMIN_PASSWORD: "admin",
+                DS_YML: grafanaDatasources,
+                DB_YML: grafanaDashboards,
+                DASH_JSON: grafanaPopularity,
+            },
+            entrypoint: ["/bin/sh", "-c"],
+            command: [
+                "mkdir -p /var/lib/grafana/dashboards && "
+                + "printf '%s' \"$DS_YML\" > /etc/grafana/provisioning/datasources/vm.yml && "
+                + "printf '%s' \"$DB_YML\" > /etc/grafana/provisioning/dashboards/store.yml && "
+                + "printf '%s' \"$DASH_JSON\" > /var/lib/grafana/dashboards/popularity.json && "
+                + "exec /run.sh",
+            ],
         }
     ],
     volumes: [
