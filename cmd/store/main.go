@@ -64,19 +64,24 @@ func start(listenAddress, configPath, metricsAddr string) error {
 	metricsServer := api.NewMetricsServer(metricsAddr, logger)
 	internal := api.NewApi(cache)
 
-	if err := cache.Start(); err != nil {
+	err = cache.Start()
+	if err != nil {
 		return err
 	}
-	if err := internal.Start(); err != nil {
+	err = internal.Start()
+	if err != nil {
 		return err
 	}
 
+	storeErrs := storeServer.Start()
+	metricsErrs := metricsServer.Start()
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+
 	select {
-	case err := <-storeServer.Start():
+	case err = <-storeErrs:
 		return err
-	case err := <-metricsServer.Start():
+	case err = <-metricsErrs:
 		return err
 	case <-sig:
 		return nil
