@@ -40,8 +40,8 @@ test.describe('grafana popularity dashboard', () => {
       { waitUntil: 'networkidle' }
     )
 
-    await page.waitForSelector('[data-testid="data-testid Panel header Unique devices"]', { timeout: 30_000 })
-    await page.waitForSelector('[data-testid="data-testid VizLegend series testapp1"]', { timeout: 30_000 })
+    await page.waitForSelector('[data-testid="data-testid Panel header Refresh requests (last 24h, sum)"]', { timeout: 30_000 })
+    await page.waitForSelector('[data-testid="data-testid Panel header Active devices per snap (refresh count, last 24h)"]', { timeout: 30_000 })
     await page.waitForSelector('[data-testid="data-testid Bar gauge value"]', { timeout: 30_000 })
     await page.waitForLoadState('networkidle')
     await page.waitForTimeout(3_000)
