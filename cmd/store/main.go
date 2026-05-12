@@ -1,6 +1,8 @@
 package main
 
 import (
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
 	"github.com/syncloud/store/api"
 	"github.com/syncloud/store/crypto"
@@ -9,7 +11,9 @@ import (
 	"github.com/syncloud/store/storage"
 	"github.com/syncloud/store/util"
 	"github.com/syncloud/store/web"
+	"go.uber.org/zap"
 	"io/fs"
+	"net/http"
 	"net/url"
 	"time"
 )
@@ -19,6 +23,7 @@ func main() {
 		Use: "store",
 	}
 
+	var metricsAddr string
 	var cmdStart = &cobra.Command{
 		Use:   "start",
 		Short: "Start Syncloud Store",
@@ -44,6 +49,7 @@ func main() {
 				return err
 			}
 			popularity := storage.NewPopularity(7 * 24 * time.Hour)
+			prometheus.MustRegister(popularity)
 			ui := api.NewWeb(webFS, cache, popularity)
 			iconProxy := api.NewIconProxy(upstream)
 			public := api.NewSyncloudStore(listenAddress, cache, client, signer, config.Token, ui, iconProxy, popularity, logger)
@@ -56,9 +62,18 @@ func main() {
 			if err != nil {
 				return err
 			}
+			go func() {
+				mux := http.NewServeMux()
+				mux.Handle("/metrics", promhttp.Handler())
+				logger.Info("metrics listening on", zap.String("address", metricsAddr))
+				if err := http.ListenAndServe(metricsAddr, mux); err != nil {
+					logger.Error("metrics server failed", zap.Error(err))
+				}
+			}()
 			return public.Start()
 		},
 	}
+	cmdStart.Flags().StringVar(&metricsAddr, "metrics-addr", ":9090", "address for prometheus /metrics endpoint")
 
 	rootCmd.AddCommand(cmdStart)
 	err := rootCmd.Execute()

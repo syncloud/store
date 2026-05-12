@@ -48,6 +48,7 @@ docker run -d \
     --user "$STORE_UID:$STORE_GID" \
     -v "$STORE_DIR:$STORE_DIR" \
     -v /etc/hosts:/etc/hosts:ro \
+    -p 9090:9090 \
     "$TAG"
 
 for i in $(seq 1 30); do

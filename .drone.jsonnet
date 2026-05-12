@@ -75,6 +75,13 @@ local build(arch) = {
               "./test/test.sh"
             ]
         },
+        {
+            name: "metrics",
+            image: "debian:" + debian,
+            commands: [
+              "./ci/metrics-verify.sh",
+            ],
+        },
     ] + (if arch == "amd64" then [
         {
             name: "docker",
@@ -257,6 +264,10 @@ local build(arch) = {
                     path: "/dev"
                 }
             ]
+        },
+        {
+            name: "vm",
+            image: "victoriametrics/victoria-metrics:v1.110.0",
         }
     ],
     volumes: [
