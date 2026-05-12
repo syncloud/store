@@ -93,6 +93,7 @@ func (s *SyncloudStore) Start() error {
 	s.echo.GET("/*", echo.WrapHandler(http.HandlerFunc(s.web.Serve)))
 
 	s.logger.Info("listening on", zap.String("address", s.address))
+	startAddr := s.address
 	if s.IsUnixSocket() {
 		_ = os.RemoveAll(s.address)
 		l, err := net.Listen("unix", s.address)
@@ -103,12 +104,16 @@ func (s *SyncloudStore) Start() error {
 		if err := os.Chmod(s.address, 0777); err != nil {
 			return err
 		}
-
 		s.echo.Listener = l
-		return s.echo.Start("")
-	} else {
-		return s.echo.Start(s.address)
+		startAddr = ""
 	}
+	go func() {
+		err := s.echo.Start(startAddr)
+		if err != nil && err != http.ErrServerClosed {
+			s.logger.Error("public server stopped", zap.Error(err))
+		}
+	}()
+	return nil
 }
 
 func (s *SyncloudStore) IsUnixSocket() bool {
