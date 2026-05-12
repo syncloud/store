@@ -1,0 +1,10 @@
+global:
+  scrape_interval: 5s
+  scrape_timeout: 4s
+
+scrape_configs:
+  - job_name: store
+    static_configs:
+      - targets: ['api.store.test:9090']
+        labels:
+          env: test

@@ -2,8 +2,6 @@ import { test } from '@playwright/test'
 import { shoot } from '../helpers/screenshot'
 
 const STORE = process.env.PLAYWRIGHT_BASE_URL!
-const STORE_METRICS = 'http://api.store.test:9090/metrics'
-const VM = 'http://vm:8428'
 const GRAFANA = 'http://grafana:3000'
 
 test.describe('grafana popularity dashboard', () => {
@@ -34,16 +32,8 @@ test.describe('grafana popularity dashboard', () => {
     for (let i = 0; i < 8; i++) await refresh('testapp1', 'testapp1.1', `e2e-app1-${i}`)
     for (let i = 0; i < 3; i++) await refresh('testapp2', 'testapp2.1', `e2e-app2-${i}`)
 
-    const metricsResp = await request.get(STORE_METRICS)
-    if (!metricsResp.ok()) throw new Error(`store /metrics ${metricsResp.status()}`)
-    const metrics = await metricsResp.text()
-    const importResp = await request.post(`${VM}/api/v1/import/prometheus`, {
-      headers: { 'Content-Type': 'text/plain' },
-      data: metrics,
-    })
-    if (!importResp.ok()) throw new Error(`vm import ${importResp.status()}`)
-
-    await page.waitForTimeout(2000)
+    // wait one VM scrape interval (5s) + slack so the latest popularity is in VM
+    await page.waitForTimeout(8000)
 
     await page.goto(
       `${GRAFANA}/d/popularity/store-popularity?orgId=1&from=now-5m&to=now`,

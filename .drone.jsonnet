@@ -28,6 +28,17 @@ local build(arch) = {
                 "echo $DRONE_BUILD_NUMBER > version"
             ]
         },
+        {
+            name: "vm",
+            image: "victoriametrics/victoria-metrics:v1.110.0",
+            detach: true,
+            command: [
+                "-storageDataPath=/storage",
+                "-promscrape.config=/drone/src/ci/vm/prometheus.yml",
+                "-httpListenAddr=:8428",
+                "-search.latencyOffset=0s",
+            ],
+        },
     ] + (if arch == "amd64" then [
         {
             name: "web build",
@@ -75,13 +86,6 @@ local build(arch) = {
               "VERSION=$(cat version)",
               "./test/test.sh"
             ]
-        },
-        {
-            name: "metrics",
-            image: "debian:" + debian,
-            commands: [
-              "./ci/metrics-verify.sh",
-            ],
         },
         {
             name: "grafana provision",
@@ -272,11 +276,6 @@ local build(arch) = {
                     path: "/dev"
                 }
             ]
-        },
-        {
-            name: "vm",
-            image: "victoriametrics/victoria-metrics:v1.110.0",
-            command: ["-search.latencyOffset=0s"],
         },
         {
             name: "grafana",
