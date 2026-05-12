@@ -29,7 +29,7 @@ type ApiCache interface {
 }
 
 type Popularity interface {
-	Record(snap, device string)
+	Record(snap string)
 	Count(snap string) int
 }
 
@@ -44,6 +44,7 @@ type SyncloudStore struct {
 	web        *Web
 	iconProxy  *IconProxy
 	popularity Popularity
+	metrics    *SnapdMetrics
 }
 
 func NewSyncloudStore(
@@ -55,6 +56,7 @@ func NewSyncloudStore(
 	web *Web,
 	iconProxy *IconProxy,
 	popularity Popularity,
+	metrics *SnapdMetrics,
 	logger *zap.Logger,
 ) *SyncloudStore {
 	return &SyncloudStore{
@@ -67,6 +69,7 @@ func NewSyncloudStore(
 		web:        web,
 		iconProxy:  iconProxy,
 		popularity: popularity,
+		metrics:    metrics,
 		logger:     logger,
 	}
 }
@@ -152,12 +155,9 @@ func (s *SyncloudStore) Refresh(c echo.Context) error {
 		return nil
 	}
 	arch := c.Request().Header.Get("Syncloud-Architecture")
-	device := s.deviceId(c)
 	s.logger.Info("refresh",
 		zap.String("arch", arch),
-		zap.String("device", device),
 		zap.String("remote_addr", c.RealIP()),
-		zap.Any("headers", c.Request().Header),
 		zap.String("body", string(req)),
 	)
 
@@ -175,26 +175,22 @@ func (s *SyncloudStore) Refresh(c echo.Context) error {
 				Key:    action.Key,
 			}
 			result.Results = append(result.Results, info)
-		} else {
-			info, err := s.apiCache.InfoById(action.Channel, action.SnapID, action.Action, action.Name, arch)
-			if err != nil {
-				return err
-			}
-			info.InstanceKey = action.InstanceKey
-			result.Results = append(result.Results, info)
-			s.popularity.Record(snapName(action), device)
+			s.metrics.Record("", action.Action, arch, http.StatusOK)
+			continue
+		}
+		info, err := s.apiCache.InfoById(action.Channel, action.SnapID, action.Action, action.Name, arch)
+		if err != nil {
+			return err
+		}
+		info.InstanceKey = action.InstanceKey
+		result.Results = append(result.Results, info)
+		snap := snapName(action)
+		s.metrics.Record(snap, action.Action, arch, http.StatusOK)
+		if action.Action == "refresh" {
+			s.popularity.Record(snap)
 		}
 	}
 	return c.JSON(http.StatusOK, result)
-}
-
-func (s *SyncloudStore) deviceId(c echo.Context) string {
-	for _, h := range []string{"Syncloud-Device-Id", "Snap-Device-Authorization", "Snap-Device-Serial"} {
-		if v := c.Request().Header.Get(h); v != "" {
-			return v
-		}
-	}
-	return c.RealIP()
 }
 
 func snapName(action *model.SnapAction) string {
@@ -212,9 +208,11 @@ func (s *SyncloudStore) Info(c echo.Context) error {
 	arch := c.QueryParam("architecture")
 	result := s.apiCache.Info(name, arch)
 	if result == nil {
+		s.metrics.Record(name, "info", arch, http.StatusNotFound)
 		return c.String(http.StatusNotFound, "not found")
 	}
 	c.Response().Header().Set(echo.HeaderContentType, "application/json")
+	s.metrics.Record(name, "info", arch, http.StatusOK)
 	return c.JSON(http.StatusOK, result)
 }
 
@@ -233,10 +231,12 @@ func (s *SyncloudStore) Find(c echo.Context) error {
 	}
 	results := s.apiCache.Find(channel, query, architecture)
 	if results == nil {
+		s.metrics.Record("", "find", architecture, http.StatusInternalServerError)
 		c.Error(fmt.Errorf("no channel: %s in the index", channel))
 		return nil
 	}
 	c.Response().Header().Set(echo.HeaderContentType, "application/json")
+	s.metrics.Record("", "find", architecture, http.StatusOK)
 	return c.JSON(http.StatusOK, results)
 }
 

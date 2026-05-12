@@ -10,11 +10,11 @@
     {
       "id": 1,
       "type": "stat",
-      "title": "Unique devices",
+      "title": "Refresh requests (last 24h, sum)",
       "gridPos": { "x": 0, "y": 0, "w": 6, "h": 5 },
       "datasource": { "type": "prometheus", "uid": "vm" },
       "targets": [
-        { "expr": "store_popularity_devices_unique", "refId": "A", "instant": true }
+        { "expr": "sum(increase(store_snapd_request_total{action=\"refresh\"}[24h]))", "refId": "A", "instant": true }
       ],
       "fieldConfig": {
         "defaults": {
@@ -25,7 +25,8 @@
               { "color": "blue", "value": null },
               { "color": "green", "value": 1 }
             ]
-          }
+          },
+          "decimals": 0
         }
       },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none" }
@@ -33,28 +34,29 @@
     {
       "id": 2,
       "type": "bargauge",
-      "title": "Active devices per snap",
+      "title": "Active devices per snap (refresh count, last 24h)",
       "gridPos": { "x": 6, "y": 0, "w": 18, "h": 5 },
       "datasource": { "type": "prometheus", "uid": "vm" },
       "targets": [
-        { "expr": "store_popularity_devices_active", "refId": "A", "legendFormat": "{{snap}}", "instant": true }
+        { "expr": "topk(20, sum by (snap) (increase(store_snapd_request_total{action=\"refresh\"}[24h])))", "refId": "A", "legendFormat": "{{snap}}", "instant": true }
       ],
       "options": { "orientation": "horizontal", "displayMode": "gradient", "showUnfilled": true },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "continuous-GrYlRd" },
-          "thresholds": { "mode": "absolute", "steps": [ { "color": "blue", "value": null } ] }
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "blue", "value": null } ] },
+          "decimals": 0
         }
       }
     },
     {
       "id": 3,
       "type": "timeseries",
-      "title": "Record events rate (per minute, by snap)",
+      "title": "Snapd request rate (per minute, by action)",
       "gridPos": { "x": 0, "y": 5, "w": 24, "h": 10 },
       "datasource": { "type": "prometheus", "uid": "vm" },
       "targets": [
-        { "expr": "sum by (snap) (rate(store_popularity_record_total[1m])) * 60", "refId": "A", "legendFormat": "{{snap}}" }
+        { "expr": "sum by (action) (rate(store_snapd_request_total[1m])) * 60", "refId": "A", "legendFormat": "{{action}}" }
       ],
       "fieldConfig": {
         "defaults": {
@@ -68,17 +70,36 @@
     {
       "id": 4,
       "type": "bargauge",
-      "title": "Total record events per snap (cumulative)",
-      "gridPos": { "x": 0, "y": 15, "w": 24, "h": 8 },
+      "title": "Refresh requests per arch (last 24h)",
+      "gridPos": { "x": 0, "y": 15, "w": 12, "h": 8 },
       "datasource": { "type": "prometheus", "uid": "vm" },
       "targets": [
-        { "expr": "store_popularity_record_total", "refId": "A", "legendFormat": "{{snap}}", "instant": true }
+        { "expr": "sum by (arch) (increase(store_snapd_request_total{action=\"refresh\"}[24h]))", "refId": "A", "legendFormat": "{{arch}}", "instant": true }
       ],
       "options": { "orientation": "horizontal", "displayMode": "gradient", "showUnfilled": true },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "continuous-BlPu" },
-          "thresholds": { "mode": "absolute", "steps": [ { "color": "blue", "value": null } ] }
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "blue", "value": null } ] },
+          "decimals": 0
+        }
+      }
+    },
+    {
+      "id": 5,
+      "type": "bargauge",
+      "title": "Requests per status (last 24h)",
+      "gridPos": { "x": 12, "y": 15, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "vm" },
+      "targets": [
+        { "expr": "sum by (status) (increase(store_snapd_request_total[24h]))", "refId": "A", "legendFormat": "{{status}}", "instant": true }
+      ],
+      "options": { "orientation": "horizontal", "displayMode": "gradient", "showUnfilled": true },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "continuous-RdYlGr" },
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "blue", "value": null } ] },
+          "decimals": 0
         }
       }
     }

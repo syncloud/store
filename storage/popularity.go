@@ -1,95 +1,27 @@
 package storage
 
-import (
-	"sync"
-	"time"
-
-	"github.com/prometheus/client_golang/prometheus"
-)
-
-var (
-	popularityDevicesDesc = prometheus.NewDesc(
-		"store_popularity_devices_active",
-		"Unique devices active within the TTL window, by snap.",
-		[]string{"snap"}, nil,
-	)
-	popularityDevicesUniqueDesc = prometheus.NewDesc(
-		"store_popularity_devices_unique",
-		"Total unique devices active within the TTL window across all snaps.",
-		nil, nil,
-	)
-)
+import "sync"
 
 type Popularity struct {
-	mu      sync.Mutex
-	seen    map[string]map[string]time.Time
-	ttl     time.Duration
-	records *prometheus.CounterVec
+	mu     sync.Mutex
+	counts map[string]int
 }
 
-func NewPopularity(ttl time.Duration) *Popularity {
-	return &Popularity{
-		seen: make(map[string]map[string]time.Time),
-		ttl:  ttl,
-		records: prometheus.NewCounterVec(
-			prometheus.CounterOpts{
-				Name: "store_popularity_record_total",
-				Help: "Number of device check-ins recorded, by snap.",
-			},
-			[]string{"snap"},
-		),
-	}
+func NewPopularity() *Popularity {
+	return &Popularity{counts: map[string]int{}}
 }
 
-func (p *Popularity) Record(snap, device string) {
-	if snap == "" || device == "" {
+func (p *Popularity) Record(snap string) {
+	if snap == "" {
 		return
 	}
 	p.mu.Lock()
-	m, ok := p.seen[snap]
-	if !ok {
-		m = make(map[string]time.Time)
-		p.seen[snap] = m
-	}
-	m[device] = time.Now()
+	p.counts[snap]++
 	p.mu.Unlock()
-	p.records.WithLabelValues(snap).Inc()
 }
 
 func (p *Popularity) Count(snap string) int {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	cutoff := time.Now().Add(-p.ttl)
-	n := 0
-	for _, t := range p.seen[snap] {
-		if t.After(cutoff) {
-			n++
-		}
-	}
-	return n
-}
-
-func (p *Popularity) Describe(ch chan<- *prometheus.Desc) {
-	ch <- popularityDevicesDesc
-	ch <- popularityDevicesUniqueDesc
-	p.records.Describe(ch)
-}
-
-func (p *Popularity) Collect(ch chan<- prometheus.Metric) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	cutoff := time.Now().Add(-p.ttl)
-	unique := make(map[string]struct{})
-	for snap, devs := range p.seen {
-		n := 0
-		for dev, t := range devs {
-			if t.After(cutoff) {
-				n++
-				unique[dev] = struct{}{}
-			}
-		}
-		ch <- prometheus.MustNewConstMetric(popularityDevicesDesc, prometheus.GaugeValue, float64(n), snap)
-	}
-	ch <- prometheus.MustNewConstMetric(popularityDevicesUniqueDesc, prometheus.GaugeValue, float64(len(unique)))
-	p.records.Collect(ch)
+	return p.counts[snap]
 }

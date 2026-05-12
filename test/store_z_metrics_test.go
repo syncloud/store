@@ -21,10 +21,11 @@ func TestPopularityMetrics(t *testing.T) {
 		} `json:"data"`
 	}
 
+	query := `store_snapd_request_total{snap="testapp1",action="refresh"}`
 	var value int
 	for i := 0; i < 30; i++ {
 		resp, err := client.R().
-			SetQueryParam("query", `store_popularity_record_total{snap="testapp1"}`).
+			SetQueryParam("query", query).
 			Get("http://vm:8428/api/v1/query")
 		assert.NoError(t, err)
 		assert.Equal(t, 200, resp.StatusCode(), string(resp.Body()))
@@ -37,7 +38,7 @@ func TestPopularityMetrics(t *testing.T) {
 				_ = json.Unmarshal([]byte(s), &n)
 			}
 			value = int(n)
-			t.Logf("attempt %d: store_popularity_record_total{snap=testapp1} = %d", i+1, value)
+			t.Logf("attempt %d: %s = %d", i+1, query, value)
 			if value > 0 {
 				break
 			}
@@ -46,5 +47,5 @@ func TestPopularityMetrics(t *testing.T) {
 		}
 		time.Sleep(2 * time.Second)
 	}
-	assert.Greater(t, value, 0, "VM never saw store_popularity_record_total{snap=testapp1}")
+	assert.Greater(t, value, 0, "VM never saw %s", query)
 }
