@@ -13,6 +13,8 @@ test.describe('grafana popularity dashboard', () => {
   )
 
   test('renders panels with seeded popularity data', async ({ page, request }, testInfo) => {
+    await page.setViewportSize({ width: 1440, height: 1400 })
+
     const refresh = async (snap: string, snapId: string, device: string) => {
       await request.post(`${STORE}/v2/snaps/refresh`, {
         headers: {
@@ -50,10 +52,9 @@ test.describe('grafana popularity dashboard', () => {
     await page.waitForSelector('[data-testid="data-testid Panel header Unique devices"]', { timeout: 30_000 })
     await page.waitForSelector('[data-testid="data-testid VizLegend series testapp1"]', { timeout: 30_000 })
     await page.waitForSelector('[data-testid="data-testid Bar gauge value"]', { timeout: 30_000 })
-    await page.evaluate(() => window.scrollTo(0, 0))
     await page.waitForLoadState('networkidle')
     await page.waitForTimeout(3_000)
 
-    await shoot(page, testInfo, 'grafana-popularity')
+    await shoot(page, testInfo, 'grafana-popularity', { fullPage: false })
   })
 })
