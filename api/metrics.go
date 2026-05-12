@@ -20,9 +20,11 @@ func NewMetricsServer(address string, logger *zap.Logger) *MetricsServer {
 	}
 }
 
-func (m *MetricsServer) Run() error {
+func (m *MetricsServer) Start() <-chan error {
 	m.echo.HideBanner = true
 	m.echo.GET("/metrics", echo.WrapHandler(promhttp.Handler()))
 	m.logger.Info("metrics listening on", zap.String("address", m.address))
-	return m.echo.Start(m.address)
+	errs := make(chan error, 1)
+	go func() { errs <- m.echo.Start(m.address) }()
+	return errs
 }

@@ -71,16 +71,14 @@ func start(listenAddress, configPath, metricsAddr string) error {
 		return err
 	}
 
-	errs := make(chan error, 3)
-	go func() { errs <- storeServer.Run() }()
-	go func() { errs <- metricsServer.Run() }()
-	go func() { errs <- waitForSignal() }()
-	return <-errs
-}
-
-func waitForSignal() error {
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
-	<-sig
-	return nil
+	select {
+	case err := <-storeServer.Start():
+		return err
+	case err := <-metricsServer.Start():
+		return err
+	case <-sig:
+		return nil
+	}
 }

@@ -71,7 +71,7 @@ func NewSyncloudStore(
 	}
 }
 
-func (s *SyncloudStore) Run() error {
+func (s *SyncloudStore) Start() <-chan error {
 
 	s.echo.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
 		Format: "method=${method}, uri=${uri}, status=${status}\n",
@@ -93,19 +93,26 @@ func (s *SyncloudStore) Run() error {
 	s.echo.GET("/*", echo.WrapHandler(http.HandlerFunc(s.web.Serve)))
 
 	s.logger.Info("listening on", zap.String("address", s.address))
-	if s.IsUnixSocket() {
-		_ = os.RemoveAll(s.address)
-		l, err := net.Listen("unix", s.address)
-		if err != nil {
-			return err
+	errs := make(chan error, 1)
+	go func() {
+		if s.IsUnixSocket() {
+			_ = os.RemoveAll(s.address)
+			l, err := net.Listen("unix", s.address)
+			if err != nil {
+				errs <- err
+				return
+			}
+			if err := os.Chmod(s.address, 0777); err != nil {
+				errs <- err
+				return
+			}
+			s.echo.Listener = l
+			errs <- s.echo.Start("")
+			return
 		}
-		if err := os.Chmod(s.address, 0777); err != nil {
-			return err
-		}
-		s.echo.Listener = l
-		return s.echo.Start("")
-	}
-	return s.echo.Start(s.address)
+		errs <- s.echo.Start(s.address)
+	}()
+	return errs
 }
 
 func (s *SyncloudStore) IsUnixSocket() bool {
