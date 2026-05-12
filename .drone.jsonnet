@@ -268,6 +268,7 @@ local build(arch) = {
         {
             name: "vm",
             image: "victoriametrics/victoria-metrics:v1.110.0",
+            command: ["-search.latencyOffset=0s"],
         }
     ],
     volumes: [

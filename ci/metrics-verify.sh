@@ -12,9 +12,13 @@ echo "---store_* lines in /metrics:"
 grep -E '^(# (HELP|TYPE) store|store_)' /tmp/metrics.txt || echo '(none found)'
 echo "---end store lines"
 
-curl -fsS -X POST --data-binary @/tmp/metrics.txt "$VM/api/v1/import/prometheus"
+echo '---import HTTP response:'
+curl -i -sS -X POST --data-binary @/tmp/metrics.txt "$VM/api/v1/import/prometheus" | head -5
+echo '---wait for VM search-latency window'
+sleep 35
 
-sleep 1
+echo '---vm ingestion counters:'
+curl -fsS "$VM/metrics" | grep -E '^vm_(rows_inserted_total|http_request_calls_total)' || true
 
 echo '---all metric names in VM:'
 curl -fsS "$VM/api/v1/label/__name__/values" | python3 -c 'import json,sys; print("\n".join(json.load(sys.stdin)["data"]))'
