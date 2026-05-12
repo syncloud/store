@@ -1,11 +1,28 @@
 {
   "uid": "popularity",
-  "title": "Store Popularity",
+  "title": "store",
   "schemaVersion": 39,
   "version": 1,
   "refresh": "5s",
   "time": { "from": "now-5m", "to": "now" },
   "timepicker": {},
+  "templating": {
+    "list": [
+      {
+        "name": "env",
+        "label": "Environment",
+        "type": "custom",
+        "current": { "selected": true, "text": "uat", "value": "uat" },
+        "options": [
+          { "selected": true, "text": "uat", "value": "uat" },
+          { "selected": false, "text": "prod", "value": "prod" }
+        ],
+        "query": "uat,prod",
+        "includeAll": false,
+        "multi": false
+      }
+    ]
+  },
   "panels": [
     {
       "id": 1,
@@ -14,7 +31,7 @@
       "gridPos": { "x": 0, "y": 0, "w": 6, "h": 5 },
       "datasource": { "type": "prometheus", "uid": "vm" },
       "targets": [
-        { "expr": "sum(increase(store_snapd_request_total{action=\"refresh\"}[24h]))", "refId": "A", "instant": true }
+        { "expr": "sum(increase(store_snapd_request_total{action=\"refresh\",env=\"$env\"}[24h]))", "refId": "A", "instant": true }
       ],
       "fieldConfig": {
         "defaults": {
@@ -38,7 +55,7 @@
       "gridPos": { "x": 6, "y": 0, "w": 18, "h": 5 },
       "datasource": { "type": "prometheus", "uid": "vm" },
       "targets": [
-        { "expr": "topk(20, sum by (snap) (increase(store_snapd_request_total{action=\"refresh\"}[24h])))", "refId": "A", "legendFormat": "{{snap}}", "instant": true }
+        { "expr": "topk(20, sum by (snap) (increase(store_snapd_request_total{action=\"refresh\",env=\"$env\"}[24h])))", "refId": "A", "legendFormat": "{{snap}}", "instant": true }
       ],
       "options": { "orientation": "horizontal", "displayMode": "gradient", "showUnfilled": true },
       "fieldConfig": {
@@ -56,7 +73,7 @@
       "gridPos": { "x": 0, "y": 5, "w": 24, "h": 10 },
       "datasource": { "type": "prometheus", "uid": "vm" },
       "targets": [
-        { "expr": "sum by (action) (rate(store_snapd_request_total[1m])) * 60", "refId": "A", "legendFormat": "{{action}}" }
+        { "expr": "sum by (action) (rate(store_snapd_request_total{env=\"$env\"}[1m])) * 60", "refId": "A", "legendFormat": "{{action}}" }
       ],
       "fieldConfig": {
         "defaults": {
@@ -74,7 +91,7 @@
       "gridPos": { "x": 0, "y": 15, "w": 12, "h": 8 },
       "datasource": { "type": "prometheus", "uid": "vm" },
       "targets": [
-        { "expr": "sum by (arch) (increase(store_snapd_request_total{action=\"refresh\"}[24h]))", "refId": "A", "legendFormat": "{{arch}}", "instant": true }
+        { "expr": "sum by (arch) (increase(store_snapd_request_total{action=\"refresh\",env=\"$env\"}[24h]))", "refId": "A", "legendFormat": "{{arch}}", "instant": true }
       ],
       "options": { "orientation": "horizontal", "displayMode": "gradient", "showUnfilled": true },
       "fieldConfig": {
@@ -92,7 +109,7 @@
       "gridPos": { "x": 12, "y": 15, "w": 12, "h": 8 },
       "datasource": { "type": "prometheus", "uid": "vm" },
       "targets": [
-        { "expr": "sum by (status) (increase(store_snapd_request_total[24h]))", "refId": "A", "legendFormat": "{{status}}", "instant": true }
+        { "expr": "sum by (status) (increase(store_snapd_request_total{env=\"$env\"}[24h]))", "refId": "A", "legendFormat": "{{status}}", "instant": true }
       ],
       "options": { "orientation": "horizontal", "displayMode": "gradient", "showUnfilled": true },
       "fieldConfig": {
