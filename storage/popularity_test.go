@@ -50,6 +50,10 @@ store_popularity_devices_active{snap="b"} 1
 # HELP store_popularity_devices_unique Total unique devices active within the TTL window across all snaps.
 # TYPE store_popularity_devices_unique gauge
 store_popularity_devices_unique 2
+# HELP store_popularity_record_total Number of device check-ins recorded, by snap.
+# TYPE store_popularity_record_total counter
+store_popularity_record_total{snap="a"} 2
+store_popularity_record_total{snap="b"} 1
 `))
 	assert.NoError(t, err)
 }

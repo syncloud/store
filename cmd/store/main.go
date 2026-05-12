@@ -8,7 +8,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cobra"
 	"github.com/syncloud/store/api"
 	"github.com/syncloud/store/crypto"
@@ -57,11 +56,10 @@ func start(listenAddress, configPath, metricsAddr string) error {
 	cache := storage.New(client, api.Url, logger)
 	signer := crypto.NewSigner(logger)
 	popularity := storage.NewPopularity(7 * 24 * time.Hour)
-	prometheus.MustRegister(popularity)
 	ui := api.NewWeb(webFS, cache, popularity)
 	iconProxy := api.NewIconProxy(upstream)
 	storeServer := api.NewSyncloudStore(listenAddress, cache, client, signer, config.Token, ui, iconProxy, popularity, logger)
-	metricsServer := api.NewMetricsServer(metricsAddr, logger)
+	metricsServer := api.NewMetricsServer(metricsAddr, logger, popularity)
 	internal := api.NewApi(cache)
 
 	err = cache.Start()

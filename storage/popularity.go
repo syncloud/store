@@ -5,19 +5,39 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/syncloud/store/metrics"
+)
+
+var (
+	popularityDevicesDesc = prometheus.NewDesc(
+		"store_popularity_devices_active",
+		"Unique devices active within the TTL window, by snap.",
+		[]string{"snap"}, nil,
+	)
+	popularityDevicesUniqueDesc = prometheus.NewDesc(
+		"store_popularity_devices_unique",
+		"Total unique devices active within the TTL window across all snaps.",
+		nil, nil,
+	)
 )
 
 type Popularity struct {
-	mu   sync.Mutex
-	seen map[string]map[string]time.Time
-	ttl  time.Duration
+	mu      sync.Mutex
+	seen    map[string]map[string]time.Time
+	ttl     time.Duration
+	records *prometheus.CounterVec
 }
 
 func NewPopularity(ttl time.Duration) *Popularity {
 	return &Popularity{
 		seen: make(map[string]map[string]time.Time),
 		ttl:  ttl,
+		records: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Name: "store_popularity_record_total",
+				Help: "Number of device check-ins recorded, by snap.",
+			},
+			[]string{"snap"},
+		),
 	}
 }
 
@@ -33,7 +53,7 @@ func (p *Popularity) Record(snap, device string) {
 	}
 	m[device] = time.Now()
 	p.mu.Unlock()
-	metrics.PopularityRecord.WithLabelValues(snap).Inc()
+	p.records.WithLabelValues(snap).Inc()
 }
 
 func (p *Popularity) Count(snap string) int {
@@ -49,22 +69,10 @@ func (p *Popularity) Count(snap string) int {
 	return n
 }
 
-var (
-	popularityDevicesDesc = prometheus.NewDesc(
-		"store_popularity_devices_active",
-		"Unique devices active within the TTL window, by snap.",
-		[]string{"snap"}, nil,
-	)
-	popularityDevicesUniqueDesc = prometheus.NewDesc(
-		"store_popularity_devices_unique",
-		"Total unique devices active within the TTL window across all snaps.",
-		nil, nil,
-	)
-)
-
 func (p *Popularity) Describe(ch chan<- *prometheus.Desc) {
 	ch <- popularityDevicesDesc
 	ch <- popularityDevicesUniqueDesc
+	p.records.Describe(ch)
 }
 
 func (p *Popularity) Collect(ch chan<- prometheus.Metric) {
@@ -83,4 +91,5 @@ func (p *Popularity) Collect(ch chan<- prometheus.Metric) {
 		ch <- prometheus.MustNewConstMetric(popularityDevicesDesc, prometheus.GaugeValue, float64(n), snap)
 	}
 	ch <- prometheus.MustNewConstMetric(popularityDevicesUniqueDesc, prometheus.GaugeValue, float64(len(unique)))
+	p.records.Collect(ch)
 }
