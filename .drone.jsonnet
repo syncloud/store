@@ -7,9 +7,115 @@ local platform = "26.04.10";
 local version = "${DRONE_BRANCH}-${DRONE_BUILD_NUMBER}";
 local image_tag = docker_image + ":" + version;
 
-local grafanaDatasources = importstr "ci/grafana/datasources.yml";
-local grafanaDashboards = importstr "ci/grafana/dashboards.yml";
-local grafanaPopularity = importstr "ci/grafana/popularity.json";
+local grafanaDatasources = |||
+    apiVersion: 1
+    datasources:
+      - name: vm
+        type: prometheus
+        access: proxy
+        url: http://vm:8428
+        isDefault: true
+        editable: false
+|||;
+local grafanaDashboards = |||
+    apiVersion: 1
+    providers:
+      - name: store
+        type: file
+        disableDeletion: true
+        updateIntervalSeconds: 10
+        options:
+          path: /var/lib/grafana/dashboards
+          foldersFromFilesStructure: false
+|||;
+local grafanaPopularity = |||
+    {
+      "uid": "popularity",
+      "title": "Store Popularity",
+      "schemaVersion": 39,
+      "version": 1,
+      "refresh": "5s",
+      "time": { "from": "now-5m", "to": "now" },
+      "timepicker": {},
+      "panels": [
+        {
+          "id": 1,
+          "type": "stat",
+          "title": "Unique devices",
+          "gridPos": { "x": 0, "y": 0, "w": 6, "h": 5 },
+          "datasource": { "type": "prometheus", "uid": "vm" },
+          "targets": [
+            { "expr": "store_popularity_devices_unique", "refId": "A", "instant": true }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "blue", "value": null },
+                  { "color": "green", "value": 1 }
+                ]
+              }
+            }
+          },
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none" }
+        },
+        {
+          "id": 2,
+          "type": "bargauge",
+          "title": "Active devices per snap",
+          "gridPos": { "x": 6, "y": 0, "w": 18, "h": 5 },
+          "datasource": { "type": "prometheus", "uid": "vm" },
+          "targets": [
+            { "expr": "store_popularity_devices_active", "refId": "A", "legendFormat": "{{snap}}", "instant": true }
+          ],
+          "options": { "orientation": "horizontal", "displayMode": "gradient", "showUnfilled": true },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "continuous-GrYlRd" },
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "blue", "value": null } ] }
+            }
+          }
+        },
+        {
+          "id": 3,
+          "type": "timeseries",
+          "title": "Record events rate (per minute, by snap)",
+          "gridPos": { "x": 0, "y": 5, "w": 24, "h": 10 },
+          "datasource": { "type": "prometheus", "uid": "vm" },
+          "targets": [
+            { "expr": "sum by (snap) (rate(store_popularity_record_total[1m])) * 60", "refId": "A", "legendFormat": "{{snap}}" }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": { "drawStyle": "line", "lineInterpolation": "linear", "lineWidth": 2, "fillOpacity": 10, "pointSize": 5, "showPoints": "auto" },
+              "color": { "mode": "palette-classic" },
+              "unit": "short"
+            }
+          },
+          "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
+        },
+        {
+          "id": 4,
+          "type": "bargauge",
+          "title": "Total record events per snap (cumulative)",
+          "gridPos": { "x": 0, "y": 15, "w": 24, "h": 8 },
+          "datasource": { "type": "prometheus", "uid": "vm" },
+          "targets": [
+            { "expr": "store_popularity_record_total", "refId": "A", "legendFormat": "{{snap}}", "instant": true }
+          ],
+          "options": { "orientation": "horizontal", "displayMode": "gradient", "showUnfilled": true },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "continuous-BlPu" },
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "blue", "value": null } ] }
+            }
+          }
+        }
+      ]
+    }
+|||;
 
 local build(arch) = {
     kind: "pipeline",
