@@ -22,7 +22,7 @@ func NewMetricsServer(address string, logger *zap.Logger) *MetricsServer {
 	}
 }
 
-func (m *MetricsServer) Start() error {
+func (m *MetricsServer) Start() {
 	m.echo.HideBanner = true
 	m.echo.GET("/metrics", echo.WrapHandler(promhttp.Handler()))
 	m.logger.Info("metrics listening on", zap.String("address", m.address))
@@ -32,5 +32,4 @@ func (m *MetricsServer) Start() error {
 			m.logger.Error("metrics server stopped", zap.Error(err))
 		}
 	}()
-	return nil
 }

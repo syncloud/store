@@ -62,9 +62,7 @@ func main() {
 			if err := internal.Start(); err != nil {
 				return err
 			}
-			if err := metricsServer.Start(); err != nil {
-				return err
-			}
+			metricsServer.Start()
 			if err := storeServer.Start(); err != nil {
 				return err
 			}
