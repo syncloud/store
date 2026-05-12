@@ -20,63 +20,67 @@ import (
 )
 
 func main() {
-	var rootCmd = &cobra.Command{
-		Use: "store",
-	}
-
 	var metricsAddr string
-	var cmdStart = &cobra.Command{
+	cmdStart := &cobra.Command{
 		Use:   "start",
 		Short: "Start Syncloud Store",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			listenAddress := args[0]
-			configPath := args[1]
-
-			logger := log.Default()
-			config, err := util.LoadConfig(configPath)
-			if err != nil {
-				return err
-			}
-			upstream, err := url.Parse(api.Url)
-			if err != nil {
-				return err
-			}
-			client := rest.New()
-			cache := storage.New(client, api.Url, logger)
-			signer := crypto.NewSigner(logger)
-			webFS, err := fs.Sub(web.FS, "dist")
-			if err != nil {
-				return err
-			}
-			popularity := storage.NewPopularity(7 * 24 * time.Hour)
-			prometheus.MustRegister(popularity)
-			ui := api.NewWeb(webFS, cache, popularity)
-			iconProxy := api.NewIconProxy(upstream)
-			storeServer := api.NewSyncloudStore(listenAddress, cache, client, signer, config.Token, ui, iconProxy, popularity, logger)
-			metricsServer := api.NewMetricsServer(metricsAddr, logger)
-			internal := api.NewApi(cache)
-			if err := cache.Start(); err != nil {
-				return err
-			}
-			if err := internal.Start(); err != nil {
-				return err
-			}
-			metricsServer.Start()
-			if err := storeServer.Start(); err != nil {
-				return err
-			}
-			sig := make(chan os.Signal, 1)
-			signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
-			<-sig
-			return nil
+			return start(args[0], args[1], metricsAddr)
 		},
 	}
 	cmdStart.Flags().StringVar(&metricsAddr, "metrics-addr", ":9090", "address for prometheus /metrics endpoint")
 
+	rootCmd := &cobra.Command{Use: "store"}
 	rootCmd.AddCommand(cmdStart)
-	err := rootCmd.Execute()
-	if err != nil {
-		panic(err)
+	if err := rootCmd.Execute(); err != nil {
+		os.Exit(1)
 	}
+}
+
+func start(listenAddress, configPath, metricsAddr string) error {
+	logger := log.Default()
+	config, err := util.LoadConfig(configPath)
+	if err != nil {
+		return err
+	}
+	upstream, err := url.Parse(api.Url)
+	if err != nil {
+		return err
+	}
+	webFS, err := fs.Sub(web.FS, "dist")
+	if err != nil {
+		return err
+	}
+
+	client := rest.New()
+	cache := storage.New(client, api.Url, logger)
+	signer := crypto.NewSigner(logger)
+	popularity := storage.NewPopularity(7 * 24 * time.Hour)
+	prometheus.MustRegister(popularity)
+	ui := api.NewWeb(webFS, cache, popularity)
+	iconProxy := api.NewIconProxy(upstream)
+	storeServer := api.NewSyncloudStore(listenAddress, cache, client, signer, config.Token, ui, iconProxy, popularity, logger)
+	metricsServer := api.NewMetricsServer(metricsAddr, logger)
+	internal := api.NewApi(cache)
+
+	if err := cache.Start(); err != nil {
+		return err
+	}
+	if err := internal.Start(); err != nil {
+		return err
+	}
+
+	errs := make(chan error, 3)
+	go func() { errs <- storeServer.Run() }()
+	go func() { errs <- metricsServer.Run() }()
+	go func() { errs <- waitForSignal() }()
+	return <-errs
+}
+
+func waitForSignal() error {
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+	<-sig
+	return nil
 }

@@ -71,7 +71,7 @@ func NewSyncloudStore(
 	}
 }
 
-func (s *SyncloudStore) Start() error {
+func (s *SyncloudStore) Run() error {
 
 	s.echo.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
 		Format: "method=${method}, uri=${uri}, status=${status}\n",
@@ -93,27 +93,19 @@ func (s *SyncloudStore) Start() error {
 	s.echo.GET("/*", echo.WrapHandler(http.HandlerFunc(s.web.Serve)))
 
 	s.logger.Info("listening on", zap.String("address", s.address))
-	startAddr := s.address
 	if s.IsUnixSocket() {
 		_ = os.RemoveAll(s.address)
 		l, err := net.Listen("unix", s.address)
 		if err != nil {
-			s.logger.Error("error", zap.Error(err))
 			return err
 		}
 		if err := os.Chmod(s.address, 0777); err != nil {
 			return err
 		}
 		s.echo.Listener = l
-		startAddr = ""
+		return s.echo.Start("")
 	}
-	go func() {
-		err := s.echo.Start(startAddr)
-		if err != nil && err != http.ErrServerClosed {
-			s.logger.Error("public server stopped", zap.Error(err))
-		}
-	}()
-	return nil
+	return s.echo.Start(s.address)
 }
 
 func (s *SyncloudStore) IsUnixSocket() bool {
