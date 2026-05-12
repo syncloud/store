@@ -1,5 +1,5 @@
 local name = "syncloud-store";
-local go = "1.20";
+local go = "1.23";
 local playwright = "v1.48.2-jammy";
 local docker_image = "syncloud/store";
 local debian = "bookworm-slim";
