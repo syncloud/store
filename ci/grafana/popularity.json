@@ -60,6 +60,7 @@
       "options": { "orientation": "horizontal", "displayMode": "gradient", "showUnfilled": true },
       "fieldConfig": {
         "defaults": {
+          "displayName": "${__field.labels.snap}",
           "color": { "mode": "continuous-GrYlRd" },
           "thresholds": { "mode": "absolute", "steps": [ { "color": "blue", "value": null } ] },
           "decimals": 0
