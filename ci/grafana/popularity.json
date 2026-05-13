@@ -58,7 +58,9 @@
         { "expr": "sum by (snap, action) (increase(store_snapd_request_total{env=\"$env\"}[$__range]))", "refId": "A", "format": "table", "instant": true }
       ],
       "transformations": [
-        { "id": "groupingToMatrix", "options": { "columnField": "action", "rowField": "snap", "valueField": "Value" } }
+        { "id": "groupingToMatrix", "options": { "columnField": "action", "rowField": "snap", "valueField": "Value" } },
+        { "id": "calculateField", "options": { "mode": "reduceRow", "reduce": { "reducer": "sum" }, "alias": "Total" } },
+        { "id": "sortBy", "options": { "fields": {}, "sort": [ { "field": "Total", "desc": true } ] } }
       ],
       "options": {
         "orientation": "horizontal",
@@ -71,7 +73,15 @@
         "defaults": {
           "color": { "mode": "palette-classic" },
           "decimals": 0
-        }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Total" },
+            "properties": [
+              { "id": "custom.hideFrom", "value": { "tooltip": true, "viz": true, "legend": true } }
+            ]
+          }
+        ]
       }
     },
     {
