@@ -25,34 +25,10 @@
   },
   "panels": [
     {
-      "id": 1,
-      "type": "stat",
-      "title": "Refresh requests (last 24h, sum)",
-      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 5 },
-      "datasource": { "type": "prometheus", "uid": "vm" },
-      "targets": [
-        { "expr": "sum(increase(store_snapd_request_total{action=\"refresh\",env=\"$env\"}[24h]))", "refId": "A", "instant": true }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "blue", "value": null },
-              { "color": "green", "value": 1 }
-            ]
-          },
-          "decimals": 0
-        }
-      },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none" }
-    },
-    {
       "id": 2,
       "type": "table",
       "title": "Actions by app",
-      "gridPos": { "x": 6, "y": 0, "w": 18, "h": 12 },
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 12 },
       "datasource": { "type": "prometheus", "uid": "vm" },
       "targets": [
         { "expr": "sum by (snap, action) (increase(store_snapd_request_total{env=\"$env\",snap!=\"\"}[$__range]))", "refId": "A", "format": "table", "instant": true }
