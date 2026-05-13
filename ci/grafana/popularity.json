@@ -50,7 +50,7 @@
     },
     {
       "id": 2,
-      "type": "barchart",
+      "type": "table",
       "title": "Actions by app",
       "gridPos": { "x": 6, "y": 0, "w": 18, "h": 12 },
       "datasource": { "type": "prometheus", "uid": "vm" },
@@ -58,27 +58,24 @@
         { "expr": "sum by (snap, action) (increase(store_snapd_request_total{env=\"$env\",snap!=\"\"}[$__range]))", "refId": "A", "format": "table", "instant": true }
       ],
       "transformations": [
-        { "id": "groupingToMatrix", "options": { "columnField": "action", "rowField": "snap", "valueField": "Value" } },
-        { "id": "calculateField", "options": { "mode": "reduceRow", "reduce": { "reducer": "sum", "include": ["find", "info", "refresh", "install", "fetch-assertions"] }, "alias": "Total" } },
-        { "id": "sortBy", "options": { "fields": {}, "sort": [ { "field": "Total", "desc": true } ] } }
+        { "id": "groupingToMatrix", "options": { "columnField": "action", "rowField": "snap", "valueField": "Value", "emptyValue": "zero" } }
       ],
       "options": {
-        "orientation": "horizontal",
-        "stacking": "normal",
-        "showValue": "auto",
-        "legend": { "displayMode": "list", "placement": "right", "showLegend": true },
-        "tooltip": { "mode": "multi" }
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": { "show": false },
+        "sortBy": [ { "displayName": "refresh", "desc": true } ]
       },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
+          "custom": { "align": "auto", "cellOptions": { "type": "auto" } },
           "decimals": 0
         },
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "Total" },
+            "matcher": { "id": "byName", "options": "snap\\action" },
             "properties": [
-              { "id": "custom.hideFrom", "value": { "tooltip": true, "viz": true, "legend": true } }
+              { "id": "displayName", "value": "snap" }
             ]
           }
         ]
