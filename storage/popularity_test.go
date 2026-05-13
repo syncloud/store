@@ -2,18 +2,16 @@ package storage
 
 import (
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestPopularity_RecordCountsUniqueDevices(t *testing.T) {
-	p := NewPopularity(time.Hour)
+func TestPopularity_Counts(t *testing.T) {
+	p := NewPopularity()
 
-	p.Record("a", "d1")
-	p.Record("a", "d2")
-	p.Record("a", "d1")
-	p.Record("b", "d1")
+	p.Record("a")
+	p.Record("a")
+	p.Record("b")
 
 	assert.Equal(t, 2, p.Count("a"))
 	assert.Equal(t, 1, p.Count("b"))
@@ -21,11 +19,7 @@ func TestPopularity_RecordCountsUniqueDevices(t *testing.T) {
 }
 
 func TestPopularity_IgnoresEmpty(t *testing.T) {
-	p := NewPopularity(time.Hour)
-
-	p.Record("", "d1")
-	p.Record("a", "")
-
-	assert.Equal(t, 0, p.Count("a"))
+	p := NewPopularity()
+	p.Record("")
 	assert.Equal(t, 0, p.Count(""))
 }

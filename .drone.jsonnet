@@ -1,11 +1,12 @@
 local name = "syncloud-store";
-local go = "1.20";
+local go = "1.23";
 local playwright = "v1.48.2-jammy";
 local docker_image = "syncloud/store";
 local debian = "bookworm-slim";
 local platform = "26.04.10";
 local version = "${DRONE_BRANCH}-${DRONE_BUILD_NUMBER}";
 local image_tag = docker_image + ":" + version;
+
 
 local build(arch) = {
     kind: "pipeline",
@@ -26,6 +27,17 @@ local build(arch) = {
             commands: [
                 "echo $DRONE_BUILD_NUMBER > version"
             ]
+        },
+        {
+            name: "vm",
+            image: "victoriametrics/victoria-metrics:v1.110.0",
+            detach: true,
+            command: [
+                "-storageDataPath=/storage",
+                "-promscrape.config=/drone/src/ci/vm/prometheus.yml",
+                "-httpListenAddr=:8428",
+                "-search.latencyOffset=0s",
+            ],
         },
     ] + (if arch == "amd64" then [
         {
@@ -74,6 +86,13 @@ local build(arch) = {
               "VERSION=$(cat version)",
               "./test/test.sh"
             ]
+        },
+        {
+            name: "grafana provision",
+            image: "debian:" + debian,
+            commands: [
+              "./ci/grafana-provision.sh",
+            ],
         },
     ] + (if arch == "amd64" then [
         {
@@ -257,6 +276,15 @@ local build(arch) = {
                     path: "/dev"
                 }
             ]
+        },
+        {
+            name: "grafana",
+            image: "grafana/grafana:11.3.0",
+            environment: {
+                GF_AUTH_ANONYMOUS_ENABLED: "true",
+                GF_AUTH_ANONYMOUS_ORG_ROLE: "Viewer",
+                GF_SECURITY_ADMIN_PASSWORD: "admin",
+            },
         }
     ],
     volumes: [
