@@ -55,7 +55,7 @@
       "gridPos": { "x": 6, "y": 0, "w": 18, "h": 12 },
       "datasource": { "type": "prometheus", "uid": "vm" },
       "targets": [
-        { "expr": "sum by (snap, action) (increase(store_snapd_request_total{env=\"$env\"}[$__range]))", "refId": "A", "format": "table", "instant": true }
+        { "expr": "sum by (snap, action) (increase(store_snapd_request_total{env=\"$env\",snap!=\"\"}[$__range]))", "refId": "A", "format": "table", "instant": true }
       ],
       "transformations": [
         { "id": "groupingToMatrix", "options": { "columnField": "action", "rowField": "snap", "valueField": "Value" } },
