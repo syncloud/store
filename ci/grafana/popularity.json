@@ -50,19 +50,26 @@
     },
     {
       "id": 2,
-      "type": "bargauge",
-      "title": "Active devices per snap (refresh count, last 24h)",
+      "type": "barchart",
+      "title": "Actions by app",
       "gridPos": { "x": 6, "y": 0, "w": 18, "h": 5 },
       "datasource": { "type": "prometheus", "uid": "vm" },
       "targets": [
-        { "expr": "topk(20, sum by (snap) (increase(store_snapd_request_total{action=\"refresh\",env=\"$env\"}[24h])))", "refId": "A", "legendFormat": "{{snap}}", "instant": true }
+        { "expr": "sum by (snap, action) (increase(store_snapd_request_total{env=\"$env\"}[$__range]))", "refId": "A", "format": "table", "instant": true }
       ],
-      "options": { "orientation": "horizontal", "displayMode": "gradient", "showUnfilled": true },
+      "transformations": [
+        { "id": "groupingToMatrix", "options": { "columnField": "action", "rowField": "snap", "valueField": "Value" } }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "stacking": "normal",
+        "showValue": "auto",
+        "legend": { "displayMode": "list", "placement": "right", "showLegend": true },
+        "tooltip": { "mode": "multi" }
+      },
       "fieldConfig": {
         "defaults": {
-          "displayName": "${__field.labels.snap}",
-          "color": { "mode": "continuous-GrYlRd" },
-          "thresholds": { "mode": "absolute", "steps": [ { "color": "blue", "value": null } ] },
+          "color": { "mode": "palette-classic" },
           "decimals": 0
         }
       }
