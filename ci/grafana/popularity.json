@@ -59,7 +59,7 @@
       ],
       "transformations": [
         { "id": "groupingToMatrix", "options": { "columnField": "action", "rowField": "snap", "valueField": "Value" } },
-        { "id": "calculateField", "options": { "mode": "reduceRow", "reduce": { "reducer": "sum" }, "alias": "Total" } },
+        { "id": "calculateField", "options": { "mode": "reduceRow", "reduce": { "reducer": "sum", "include": ["find", "info", "refresh", "install", "fetch-assertions"] }, "alias": "Total" } },
         { "id": "sortBy", "options": { "fields": {}, "sort": [ { "field": "Total", "desc": true } ] } }
       ],
       "options": {
