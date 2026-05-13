@@ -80,7 +80,7 @@
       "id": 4,
       "type": "bargauge",
       "title": "Refresh requests per arch (last 24h)",
-      "gridPos": { "x": 0, "y": 22, "w": 12, "h": 8 },
+      "gridPos": { "x": 0, "y": 22, "w": 12, "h": 4 },
       "datasource": { "type": "prometheus", "uid": "vm" },
       "targets": [
         { "expr": "sum by (arch) (increase(store_snapd_request_total{action=\"refresh\",env=\"$env\"}[24h]))", "refId": "A", "legendFormat": "{{arch}}", "instant": true }
@@ -98,7 +98,7 @@
       "id": 5,
       "type": "bargauge",
       "title": "Requests per status (last 24h)",
-      "gridPos": { "x": 12, "y": 22, "w": 12, "h": 8 },
+      "gridPos": { "x": 12, "y": 22, "w": 12, "h": 4 },
       "datasource": { "type": "prometheus", "uid": "vm" },
       "targets": [
         { "expr": "sum by (status) (increase(store_snapd_request_total{env=\"$env\"}[24h]))", "refId": "A", "legendFormat": "{{status}}", "instant": true }
