@@ -53,18 +53,17 @@ func start(listenAddress, configPath, metricsAddr string) error {
 	}
 
 	client := rest.New()
-	cache := storage.New(client, api.Url, logger)
+	mp, err := release.NewMultipart("apps.syncloud.org")
+	if err != nil {
+		return err
+	}
+	cache := storage.New(client, mp, api.Url, logger)
 	signer := crypto.NewSigner(logger)
 	popularity := storage.NewPopularity()
 	snapdMetrics := api.NewSnapdMetrics()
 	ui := api.NewWeb(webFS, cache, popularity)
 	iconProxy := api.NewIconProxy(upstream)
-	var publish *api.Publish
-	if mp, mpErr := release.NewMultipart("apps.syncloud.org"); mpErr == nil {
-		publish = api.NewPublish(mp, cache, config.Token, logger)
-	} else {
-		logger.Warn("publish API disabled: " + mpErr.Error())
-	}
+	publish := api.NewPublish(mp, cache, config.Token, logger)
 	storeServer := api.NewSyncloudStore(listenAddress, cache, client, signer, config.Token, ui, iconProxy, popularity, snapdMetrics, publish, logger)
 	metricsServer := api.NewMetricsServer(metricsAddr, logger, snapdMetrics)
 	internal := api.NewApi(cache)

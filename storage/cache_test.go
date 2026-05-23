@@ -36,18 +36,26 @@ func (c *ClientStub) Get(url string) (string, int, error) {
 	return response.body, response.code, response.err
 }
 
+type ListerStub struct {
+	apps map[string][]string
+}
+
+func (l *ListerStub) ListAppIds(channel string) ([]string, error) {
+	return l.apps[channel], nil
+}
+
 func TestCache_Refresh_LoadsFromV2(t *testing.T) {
 	sha := base64.RawURLEncoding.EncodeToString([]byte("sha384"))
 	client := &ClientStub{
 		response: map[string]Response{
-			"http://localhost/v2/apps/master/apps.json":          OK(`{"apps":["app"]}`),
 			"http://localhost/v2/apps/master/app/snap.yaml":      OK("name: app\nsummary: My App\ndescription: D\n"),
 			"http://localhost/releases/master/app.amd64.version": OK("123"),
 			"http://localhost/apps/app_123_amd64.snap.size":      OK("1"),
 			"http://localhost/apps/app_123_amd64.snap.sha384":    OK(sha),
 		},
 	}
-	cache := New(client, "http://localhost", log.Default())
+	lister := &ListerStub{apps: map[string][]string{"master": {"app"}}}
+	cache := New(client, lister, "http://localhost", log.Default())
 	assert.NoError(t, cache.Refresh())
 
 	index, ok := cache.Read("master")
@@ -63,24 +71,24 @@ func TestCache_Refresh_TypeBaseFromSnapYaml(t *testing.T) {
 	sha := base64.RawURLEncoding.EncodeToString([]byte("sha384"))
 	client := &ClientStub{
 		response: map[string]Response{
-			"http://localhost/v2/apps/master/apps.json":               OK(`{"apps":["platform"]}`),
 			"http://localhost/v2/apps/master/platform/snap.yaml":      OK("name: platform\nsummary: Platform\ndescription: P\ntype: base\n"),
 			"http://localhost/releases/master/platform.amd64.version": OK("1"),
 			"http://localhost/apps/platform_1_amd64.snap.size":        OK("1"),
 			"http://localhost/apps/platform_1_amd64.snap.sha384":      OK(sha),
 		},
 	}
-	cache := New(client, "http://localhost", log.Default())
+	lister := &ListerStub{apps: map[string][]string{"master": {"platform"}}}
+	cache := New(client, lister, "http://localhost", log.Default())
 	assert.NoError(t, cache.Refresh())
 
 	index, _ := cache.Read("master")
 	assert.Equal(t, "base", index["amd64"]["platform"].Type)
 }
 
-func TestCache_Refresh_MissingChannelIsSkipped(t *testing.T) {
-	// apps.json absent for every channel → cache stays empty, no error
+func TestCache_Refresh_EmptyChannelIsSkipped(t *testing.T) {
 	client := &ClientStub{response: map[string]Response{}}
-	cache := New(client, "http://localhost", log.Default())
+	lister := &ListerStub{apps: map[string][]string{}}
+	cache := New(client, lister, "http://localhost", log.Default())
 	assert.NoError(t, cache.Refresh())
 	_, ok := cache.Read("master")
 	assert.False(t, ok)
@@ -132,6 +140,13 @@ func TestCache_InfoById_NotFound(t *testing.T) {
 	result, err := cache.InfoById("stable", "app.1", "action", "actionName", "amd64")
 	assert.NoError(t, err)
 	assert.Equal(t, "error", result.Result)
+}
+
+func TestCache_UIApps_EmptyChannel(t *testing.T) {
+	cache := New(nil, nil, "http://localhost", log.Default())
+	apps := cache.UIApps("stable")
+	assert.NotNil(t, apps)
+	assert.Equal(t, 0, len(apps))
 }
 
 func TestCache_UIApps_BaseHidden(t *testing.T) {

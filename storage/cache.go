@@ -2,7 +2,6 @@ package storage
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"strconv"
 	"sync"
@@ -15,11 +14,16 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+type AppLister interface {
+	ListAppIds(channel string) ([]string, error)
+}
+
 type Cache struct {
 	snapCache SnapCache
 	appCache  AppCache
 	lock      sync.RWMutex
 	client    rest.Client
+	lister    AppLister
 	baseUrl   string
 	logger    *zap.Logger
 }
@@ -44,9 +48,10 @@ const (
 var AvailableChannels = []string{ChannelStable, ChannelMaster, ChannelRc}
 var AvailableArchitectures = []string{ArchAmd64, ArchArm64, ArchArm32}
 
-func New(client rest.Client, baseUrl string, logger *zap.Logger) *Cache {
+func New(client rest.Client, lister AppLister, baseUrl string, logger *zap.Logger) *Cache {
 	return &Cache{
 		client:    client,
+		lister:    lister,
 		baseUrl:   baseUrl,
 		logger:    logger,
 		snapCache: make(SnapCache),
@@ -189,11 +194,11 @@ func (i *Cache) Refresh() error {
 }
 
 func (i *Cache) loadChannel(channel string) (SnapByArch, AppByName, error) {
-	idx, err := i.fetchAppsIndex(channel)
+	ids, err := i.lister.ListAppIds(channel)
 	if err != nil {
 		return nil, nil, err
 	}
-	if idx == nil {
+	if len(ids) == 0 {
 		return nil, nil, nil
 	}
 	apps := make(AppByName)
@@ -201,7 +206,7 @@ func (i *Cache) loadChannel(channel string) (SnapByArch, AppByName, error) {
 	for _, arch := range AvailableArchitectures {
 		snaps[arch] = make(SnapByName)
 	}
-	for _, appId := range idx.Apps {
+	for _, appId := range ids {
 		app, ferr := i.fetchAppMetadata(channel, appId)
 		if ferr != nil {
 			i.logger.Warn("snap.yaml fetch failed", zap.String("app", appId), zap.Error(ferr))
@@ -226,25 +231,6 @@ func (i *Cache) loadChannel(channel string) (SnapByArch, AppByName, error) {
 		}
 	}
 	return snaps, apps, nil
-}
-
-func (i *Cache) fetchAppsIndex(channel string) (*model.AppsIndex, error) {
-	url := fmt.Sprintf("%s/v2/apps/%s/apps.json", i.baseUrl, channel)
-	resp, code, err := i.client.Get(url)
-	if err != nil {
-		return nil, err
-	}
-	if code == 404 {
-		return nil, nil
-	}
-	if code != 200 {
-		return nil, fmt.Errorf("apps.json %s -> %d", url, code)
-	}
-	var idx model.AppsIndex
-	if err := json.Unmarshal([]byte(resp), &idx); err != nil {
-		return nil, err
-	}
-	return &idx, nil
 }
 
 type snapYamlMeta struct {

@@ -111,7 +111,6 @@ func TestPublishFinalise_WritesAllSidecars(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.Contains(t, mp.objects, "v2/apps/master/app/snap.yaml")
-	assert.Contains(t, mp.objects, "v2/apps/master/apps.json")
 	assert.Contains(t, mp.objects, "apps/app_1_amd64.snap.sha384")
 	assert.Contains(t, mp.objects, "releases/master/app.amd64.version")
 	assert.Equal(t, []byte("1"), mp.objects["releases/master/app.amd64.version"])
@@ -148,17 +147,3 @@ func TestPublishFinalise_IdenticalSnapYamlAccepted(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rec.Code)
 }
 
-func TestPublishFinalise_AppsIndexUpdated(t *testing.T) {
-	mp := newFakeMP()
-	mp.objects["v2/apps/master/apps.json"] = []byte(`{"apps":["existing"]}`)
-	p, _ := newHandler(t, mp)
-
-	_, _ = postJSON(t, p.Finalise, model.PublishFinaliseRequest{
-		Token: "secret", Name: "app", Version: "1", Arch: "amd64", Channel: "master",
-		Key: "apps/app_1_amd64.snap", UploadId: "u1",
-		Parts: []model.PublishPart{{PartNumber: 1, ETag: "etag1"}},
-	})
-	var idx model.AppsIndex
-	require.NoError(t, json.Unmarshal(mp.objects["v2/apps/master/apps.json"], &idx))
-	assert.ElementsMatch(t, []string{"existing", "app"}, idx.Apps)
-}

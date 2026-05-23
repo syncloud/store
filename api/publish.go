@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -62,10 +61,6 @@ func snapYamlKey(channel, app string) string {
 
 func iconKey(channel, app string) string {
 	return fmt.Sprintf("v2/apps/%s/%s/icon.png", channel, app)
-}
-
-func appsIndexKey(channel string) string {
-	return fmt.Sprintf("v2/apps/%s/apps.json", channel)
 }
 
 func (p *Publish) Init(c echo.Context) error {
@@ -197,10 +192,6 @@ func (p *Publish) Finalise(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
 
-	if err := p.updateAppsIndex(req.Channel, req.Name); err != nil {
-		p.logger.Warn("apps.json update failed", zap.Error(err))
-	}
-
 	if err := p.cache.Refresh(); err != nil {
 		p.logger.Warn("cache refresh after publish failed", zap.Error(err))
 	}
@@ -226,25 +217,6 @@ func (p *Publish) writeSnapYaml(channel, app string, newYaml []byte) error {
 		}
 	}
 	return p.mp.Put(key, newYaml, "application/x-yaml")
-}
-
-func (p *Publish) updateAppsIndex(channel, app string) error {
-	key := appsIndexKey(channel)
-	var idx model.AppsIndex
-	if existing, err := p.mp.Get(key); err == nil && len(existing) > 0 {
-		_ = json.Unmarshal(existing, &idx)
-	}
-	for _, id := range idx.Apps {
-		if id == app {
-			return nil
-		}
-	}
-	idx.Apps = append(idx.Apps, app)
-	b, err := json.MarshalIndent(idx, "", "  ")
-	if err != nil {
-		return err
-	}
-	return p.mp.Put(key, b, "application/json")
 }
 
 type snapMeta struct {

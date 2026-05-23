@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -14,8 +15,6 @@ import (
 )
 
 const (
-	AwsKey          = "AWS_ACCESS_KEY_ID"
-	AwsSecret       = "AWS_SECRET_ACCESS_KEY"
 	PresignedUrlTTL = 24 * time.Hour
 	DefaultPartSize = 16 * 1024 * 1024
 )
@@ -112,6 +111,36 @@ func (m *Multipart) Put(key string, body []byte, contentType string) error {
 		ContentType: aws.String(contentType),
 	})
 	return err
+}
+
+func (m *Multipart) ListAppIds(channel string) ([]string, error) {
+	prefix := fmt.Sprintf("v2/apps/%s/", channel)
+	var ids []string
+	var token *string
+	for {
+		out, err := m.svc.ListObjectsV2(&s3.ListObjectsV2Input{
+			Bucket:            aws.String(m.bucket),
+			Prefix:            aws.String(prefix),
+			Delimiter:         aws.String("/"),
+			ContinuationToken: token,
+		})
+		if err != nil {
+			return nil, err
+		}
+		for _, cp := range out.CommonPrefixes {
+			p := aws.StringValue(cp.Prefix)
+			id := p[len(prefix):]
+			id = strings.TrimSuffix(id, "/")
+			if id != "" {
+				ids = append(ids, id)
+			}
+		}
+		if !aws.BoolValue(out.IsTruncated) {
+			break
+		}
+		token = out.NextContinuationToken
+	}
+	return ids, nil
 }
 
 func (m *Multipart) Get(key string) ([]byte, error) {
