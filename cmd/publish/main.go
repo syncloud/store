@@ -139,7 +139,6 @@ func uploadParts(snapFile string, init *model.PublishInitResponse, client *rest.
 		body := buf[:n]
 		etag, uerr := uploadPart(httpClient, init.PartUrls[i], body)
 		if uerr != nil {
-			// one retry with a fresh URL in case the original expired
 			fresh, ferr := client.PartUrl(init.Key, init.UploadId, partNumber)
 			if ferr != nil {
 				return nil, fmt.Errorf("part %d upload failed (%v) and url refresh failed: %w", partNumber, uerr, ferr)
@@ -177,8 +176,6 @@ func uploadPart(c *http.Client, url string, body []byte) (string, error) {
 	return etag, nil
 }
 
-// validateSnapYamlMatches sanity-checks that snap.yaml's name field matches
-// the snap filename, catching mis-paired uploads early.
 func validateSnapYamlMatches(snapYaml []byte, expectedName string) error {
 	for _, line := range strings.Split(string(snapYaml), "\n") {
 		if strings.HasPrefix(line, "name:") {

@@ -24,11 +24,11 @@ func TestIconProxy_RewritesPathToReleasesImages(t *testing.T) {
 	require.NoError(t, err)
 	proxy := NewIconProxy(target)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/ui/v1/icons/bitwarden-128.png", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/ui/v1/icons/stable/bitwarden", nil)
 	rec := httptest.NewRecorder()
 	proxy.ServeHTTP(rec, req)
 
-	assert.Equal(t, "/releases/stable/images/bitwarden-128.png", gotPath)
+	assert.Equal(t, "/v2/apps/stable/bitwarden/icon.png", gotPath)
 	assert.Equal(t, http.StatusOK, rec.Code)
 }
 
@@ -49,7 +49,7 @@ func TestIconProxy_ForwardsUpstreamHostHeader(t *testing.T) {
 	require.NoError(t, err)
 	proxy := NewIconProxy(target)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/ui/v1/icons/bitwarden-128.png", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/ui/v1/icons/stable/bitwarden", nil)
 	req.Host = "uatstore.syncloud.org"
 	rec := httptest.NewRecorder()
 	proxy.ServeHTTP(rec, req)

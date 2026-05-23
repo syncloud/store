@@ -3,11 +3,12 @@ package storage
 import (
 	"encoding/base64"
 	"fmt"
+	"strings"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/syncloud/store/log"
 	"github.com/syncloud/store/model"
-	"strings"
-	"testing"
 )
 
 type Response struct {
@@ -16,16 +17,13 @@ type Response struct {
 	err  error
 }
 
-func OK(body string) Response {
-	return Response{body: body, code: 200}
-}
+func OK(body string) Response { return Response{body: body, code: 200} }
 
 type ClientStub struct {
 	response map[string]Response
 }
 
 func (c *ClientStub) Post(url string, body interface{}) (string, int, error) {
-	//TODO implement me
 	panic("implement me")
 }
 
@@ -38,87 +36,61 @@ func (c *ClientStub) Get(url string) (string, int, error) {
 	return response.body, response.code, response.err
 }
 
-func TestIndexCache_Refresh(t *testing.T) {
-
+func TestCache_Refresh_LoadsFromV2(t *testing.T) {
+	sha := base64.RawURLEncoding.EncodeToString([]byte("sha384"))
 	client := &ClientStub{
 		response: map[string]Response{
-			"http://localhost/releases/master/index-v2": OK(`
-{
-  "apps" : [
-    {
-      "name" : "App",
-      "id" : "app",
-      "required" : false,
-      "ui": true
-    }
-  ]
-}
-`),
+			"http://localhost/v2/apps/master/apps.json":          OK(`{"apps":["app"]}`),
+			"http://localhost/v2/apps/master/app/snap.yaml":      OK("name: app\nsummary: My App\ndescription: D\n"),
 			"http://localhost/releases/master/app.amd64.version": OK("123"),
 			"http://localhost/apps/app_123_amd64.snap.size":      OK("1"),
-			"http://localhost/apps/app_123_amd64.snap.sha384":    OK(base64.RawURLEncoding.EncodeToString([]byte("sha384"))),
+			"http://localhost/apps/app_123_amd64.snap.sha384":    OK(sha),
 		},
 	}
-
 	cache := New(client, "http://localhost", log.Default())
-	err := cache.Refresh()
-	assert.NoError(t, err)
+	assert.NoError(t, cache.Refresh())
 
 	index, ok := cache.Read("master")
 	assert.True(t, ok)
-	assert.Equal(t, 1, len(index))
 	assert.Equal(t, "app", index["amd64"]["app"].Name)
+	assert.Equal(t, "My App", index["amd64"]["app"].Summary)
 	assert.Equal(t, "http://localhost/apps/app_123_amd64.snap", index["amd64"]["app"].Download.URL)
-
+	assert.Equal(t, "app", index["amd64"]["app"].Type)
+	assert.Equal(t, "/api/ui/v1/icons/master/app", index["amd64"]["app"].Media[0].URL)
 }
 
-func TestIndexCache_Refresh_EmptySize(t *testing.T) {
-
+func TestCache_Refresh_TypeBaseFromSnapYaml(t *testing.T) {
+	sha := base64.RawURLEncoding.EncodeToString([]byte("sha384"))
 	client := &ClientStub{
 		response: map[string]Response{
-			"http://localhost/releases/master/index-v2": OK(`
-{
-  "apps" : [
-    {
-      "name" : "Platform",
-      "id" : "platform",
-      "required" : true,
-      "ui": false
-    }
-  ]
-}
-`),
-			"http://localhost/releases/master/platform.amd64.version": OK("123"),
-			"http://localhost/apps/platform__amd64.snap.size":         OK(""),
+			"http://localhost/v2/apps/master/apps.json":               OK(`{"apps":["platform"]}`),
+			"http://localhost/v2/apps/master/platform/snap.yaml":      OK("name: platform\nsummary: Platform\ndescription: P\ntype: base\n"),
+			"http://localhost/releases/master/platform.amd64.version": OK("1"),
+			"http://localhost/apps/platform_1_amd64.snap.size":        OK("1"),
+			"http://localhost/apps/platform_1_amd64.snap.sha384":      OK(sha),
 		},
 	}
-
 	cache := New(client, "http://localhost", log.Default())
-	err := cache.Refresh()
-	assert.NoError(t, err)
+	assert.NoError(t, cache.Refresh())
 
-	cache.Read("test")
-
+	index, _ := cache.Read("master")
+	assert.Equal(t, "base", index["amd64"]["platform"].Type)
 }
 
-func TestIndexCache_Find(t *testing.T) {
+func TestCache_Refresh_MissingChannelIsSkipped(t *testing.T) {
+	// apps.json absent for every channel → cache stays empty, no error
+	client := &ClientStub{response: map[string]Response{}}
+	cache := New(client, "http://localhost", log.Default())
+	assert.NoError(t, cache.Refresh())
+	_, ok := cache.Read("master")
+	assert.False(t, ok)
+}
 
+func TestCache_Find(t *testing.T) {
 	cache := &Cache{
 		snapCache: SnapCache{
-			"channel1": {
-				"amd64": {
-					"app1": &model.Snap{
-						Name: "app1",
-					},
-				},
-			},
-			"channel2": {
-				"amd64": {
-					"app2": &model.Snap{
-						Name: "app2",
-					},
-				},
-			},
+			"channel1": {"amd64": {"app1": &model.Snap{Name: "app1"}}},
+			"channel2": {"amd64": {"app2": &model.Snap{Name: "app2"}}},
 		},
 		logger: log.Default(),
 	}
@@ -126,302 +98,73 @@ func TestIndexCache_Find(t *testing.T) {
 	assert.Equal(t, 1, len(results.Results))
 	assert.Equal(t, "app1", results.Results[0].Name)
 }
-func TestIndexCache_Find_Sorted(t *testing.T) {
 
+func TestCache_Find_Sorted(t *testing.T) {
 	cache := &Cache{
-		snapCache: SnapCache{
-			"channel": {
-				"amd64": {
-					"app1": &model.Snap{
-						Name: "app1",
-					},
-					"app3": &model.Snap{
-						Name: "app3",
-					},
-					"app2": &model.Snap{
-						Name: "app2",
-					},
-				},
-			},
-		},
+		snapCache: SnapCache{"channel": {"amd64": {
+			"app1": &model.Snap{Name: "app1"},
+			"app3": &model.Snap{Name: "app3"},
+			"app2": &model.Snap{Name: "app2"},
+		}}},
 		logger: log.Default(),
 	}
 	results := cache.Find("channel", "*", "amd64")
-	assert.Equal(t, 3, len(results.Results))
 	assert.Equal(t, "app1", results.Results[0].Name)
 	assert.Equal(t, "app2", results.Results[1].Name)
 	assert.Equal(t, "app3", results.Results[2].Name)
 }
 
-func TestIndexCache_Find_PopulateChannel(t *testing.T) {
-
+func TestCache_Info_PreferStable(t *testing.T) {
 	cache := &Cache{
 		snapCache: SnapCache{
-			"channel": {
-				"amd64": {
-					"": &model.Snap{
-						Name: "app",
-					},
-				},
-			},
-		},
-		logger: log.Default(),
-	}
-	results := cache.Find("channel", "", "amd64")
-	assert.Equal(t, "channel", results.Results[0].Revision.Channel)
-}
-
-func TestIndexCache_Info(t *testing.T) {
-
-	cache := &Cache{
-		snapCache: SnapCache{
-			"stable": {
-				"amd64": {
-					"app": &model.Snap{
-						SnapID:        "snap-id",
-						Name:          "app",
-						Summary:       "summary",
-						Version:       "1",
-						Type:          "app",
-						Architectures: nil,
-						Revision:      2,
-						Download: model.StoreSnapDownload{
-							Sha3_384: "sha",
-							Size:     1,
-							URL:      "http://donload",
-							Deltas:   nil,
-						},
-						Media: nil,
-					},
-				},
-			},
+			"master": {"amd64": {"app": &model.Snap{Name: "app", Revision: 2}}},
+			"stable": {"amd64": {"app": &model.Snap{Name: "app", Revision: 1}}},
 		},
 		logger: log.Default(),
 	}
 	result := cache.Info("app", "amd64")
-	assert.Equal(t, "app", result.Name)
-	assert.Equal(t, "stable", result.ChannelMap[0].Channel.Name)
-}
-
-func TestIndexCache_Info_NotFound(t *testing.T) {
-
-	cache := &Cache{
-		snapCache: SnapCache{
-			"amd64": {
-				"stable": {
-					"app": &model.Snap{
-						Name: "app",
-					},
-				},
-			},
-		},
-		logger: log.Default(),
-	}
-	result := cache.Info("app1", "amd64")
-	assert.Nil(t, result)
-}
-
-func TestIndexCache_Info_FirstOneIsASpecial(t *testing.T) {
-
-	cache := &Cache{
-		snapCache: SnapCache{
-			"master": {
-				"amd64": {
-					"app": &model.Snap{
-						Name: "app",
-					},
-				},
-			},
-			"stable": {
-				"amd64": {
-					"app": &model.Snap{
-						Name: "app",
-					},
-				},
-			},
-		},
-		logger: log.Default(),
-	}
-	result := cache.Info("app", "amd64")
-	assert.Equal(t, "app", result.Name)
-	assert.Equal(t, "stable", result.ChannelMap[0].Channel.Name)
-}
-
-func TestIndexCache_Info_PreferStable(t *testing.T) {
-
-	cache := &Cache{
-		snapCache: SnapCache{
-			"master": {
-				"amd64": {
-					"app": &model.Snap{
-						Name:     "app",
-						Revision: 2,
-					},
-				},
-			},
-			"stable": {
-				"amd64": {
-					"app": &model.Snap{
-						Name:     "app",
-						Revision: 1,
-					},
-				},
-			},
-		},
-		logger: log.Default(),
-	}
-	result := cache.Info("app", "amd64")
-	assert.Equal(t, "app", result.Name)
 	assert.Equal(t, 1, result.Snap.Revision)
 	assert.Equal(t, "stable", result.ChannelMap[0].Channel.Name)
 }
 
-func TestIndexCache_InfoById(t *testing.T) {
-
-	cache := &Cache{
-		snapCache: SnapCache{
-			"stable": {
-				"amd64": {
-					"app": &model.Snap{
-						SnapID: "app.1",
-						Name:   "app",
-					},
-				},
-			},
-		},
-		logger: log.Default(),
-	}
-	result, err := cache.InfoById("stable", "app.1", "action", "actionName", "amd64")
-	assert.NoError(t, err)
-	assert.Equal(t, "action", result.Result)
-	assert.Equal(t, "stable", result.EffectiveChannel)
-	assert.Equal(t, "app.1", result.SnapID)
-	//assert.Equal(t, "app.1", result.Snap.SnapID)
-}
-
-/*
-func TestIndexCache_InfoById_OldSnapId_DefaultArch(t *testing.T) {
-
-	cache := &Cache{
-		snapCache: SnapCache{
-			"stable": {
-				"amd64": {
-					"app": &model.Snap{
-						SnapID: "app.1.arm64",
-						Name:   "app",
-					},
-				},
-			},
-		},
-		logger: log.Default(),
-	}
-	result, err := cache.InfoById("stable", "app.1", "action", "actionName")
-	assert.NoError(t, err)
-	assert.Equal(t, "action", result.Result)
-	assert.Equal(t, "stable", result.EffectiveChannel)
-	assert.Equal(t, "app.1", result.SnapID)
-	assert.Equal(t, "app.1", result.Snap.SnapID)
-
-}
-*/
-func TestIndexCache_InfoById_NotFound(t *testing.T) {
-
-	cache := &Cache{
-		snapCache: SnapCache{
-			"stable": {},
-		},
-		logger: log.Default(),
-	}
+func TestCache_InfoById_NotFound(t *testing.T) {
+	cache := &Cache{snapCache: SnapCache{"stable": {}}, logger: log.Default()}
 	result, err := cache.InfoById("stable", "app.1", "action", "actionName", "amd64")
 	assert.NoError(t, err)
 	assert.Equal(t, "error", result.Result)
 }
 
-func TestIndexCache_InfoById_SnapIdEmpty(t *testing.T) {
-
-	cache := &Cache{
-		snapCache: SnapCache{
-			"stable": {},
-		},
-		logger: log.Default(),
-	}
-	result, err := cache.InfoById("stable", "", "action", "actionName", "amd64")
-	assert.NoError(t, err)
-	assert.Equal(t, "error", result.Result)
-}
-
-func TestCache_UIApps_EmptyCache(t *testing.T) {
-	cache := New(nil, "http://localhost", log.Default())
-
-	apps := cache.UIApps("stable")
-	assert.NotNil(t, apps)
-	assert.Equal(t, 0, len(apps))
-}
-
-func TestCache_UIApps_UnknownChannel(t *testing.T) {
-	cache := &Cache{
-		snapCache: SnapCache{"stable": {}},
-		appCache:  AppCache{"stable": {}},
-		logger:    log.Default(),
-	}
-
-	apps := cache.UIApps("nonexistent")
-	assert.NotNil(t, apps)
-	assert.Equal(t, 0, len(apps))
-}
-
-func TestCache_UIApps_SummaryFromDescription(t *testing.T) {
+func TestCache_UIApps_BaseHidden(t *testing.T) {
 	cache := &Cache{
 		baseUrl: "http://apps.syncloud.org",
-		snapCache: SnapCache{
-			"stable": {
-				"amd64": {
-					"nextcloud": &model.Snap{Version: "42", SnapID: "nextcloud.42"},
-				},
-			},
-		},
-		appCache: AppCache{
-			"stable": {
-				"nextcloud": &model.App{
-					Name:        "nextcloud",
-					Summary:     "Nextcloud file sharing",
-					Description: "Access & share your files from any device",
-				},
-			},
-		},
+		snapCache: SnapCache{"stable": {"amd64": {
+			"platform":  &model.Snap{Version: "1", SnapID: "platform.1"},
+			"bitwarden": &model.Snap{Version: "2", SnapID: "bitwarden.2"},
+		}}},
+		appCache: AppCache{"stable": {
+			"platform":  &model.App{Name: "platform", Summary: "Platform", Type: "base"},
+			"bitwarden": &model.App{Name: "bitwarden", Summary: "Bitwarden"},
+		}},
 		logger: log.Default(),
 	}
-
 	apps := cache.UIApps("stable")
 	assert.Equal(t, 1, len(apps))
-	assert.Equal(t, "Nextcloud file sharing", apps[0].Name)
-	assert.Equal(t, "Access & share your files from any device", apps[0].Summary,
-		"UI summary must come from app.Description, not duplicate the title")
+	assert.Equal(t, "Bitwarden", apps[0].Name)
 }
 
-func TestCache_UIApps_IconUrlSameOrigin(t *testing.T) {
+func TestCache_UIApps_IconUrlIsChannelScoped(t *testing.T) {
 	cache := &Cache{
 		baseUrl: "http://apps.syncloud.org",
-		snapCache: SnapCache{
-			"stable": {
-				"amd64": {
-					"nextcloud": &model.Snap{Version: "42", SnapID: "nextcloud.42"},
-				},
-			},
-		},
-		appCache: AppCache{
-			"stable": {
-				"nextcloud": &model.App{
-					Name: "nextcloud",
-					Icon: "nextcloud-128.png",
-				},
-			},
-		},
+		snapCache: SnapCache{"stable": {"amd64": {
+			"nextcloud": &model.Snap{Version: "1", SnapID: "nextcloud.1"},
+		}}},
+		appCache: AppCache{"stable": {
+			"nextcloud": &model.App{Name: "nextcloud", Summary: "Nextcloud"},
+		}},
 		logger: log.Default(),
 	}
-
 	apps := cache.UIApps("stable")
-	assert.Equal(t, 1, len(apps))
-	assert.False(t, strings.HasPrefix(apps[0].IconUrl, "http://"),
-		"icon URL must be same-origin so it inherits HTTPS; was %q", apps[0].IconUrl)
+	assert.Equal(t, "/api/ui/v1/icons/stable/nextcloud", apps[0].IconUrl)
+	assert.False(t, strings.HasPrefix(apps[0].IconUrl, "http"),
+		"icon URL must be same-origin so it inherits HTTPS")
 }

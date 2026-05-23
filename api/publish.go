@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -29,30 +30,30 @@ type CacheRefresher interface {
 }
 
 type Publish struct {
-	mp      MultipartStore
-	cache   CacheRefresher
-	token   string
-	logger  *zap.Logger
+	mp     MultipartStore
+	cache  CacheRefresher
+	token  string
+	logger *zap.Logger
 }
 
 func NewPublish(mp MultipartStore, cache CacheRefresher, token string, logger *zap.Logger) *Publish {
 	return &Publish{mp: mp, cache: cache, token: token, logger: logger}
 }
 
-func snapKey(channel, app, arch, version string) string {
-	return fmt.Sprintf("v2/apps/%s/%s/%s/%s.snap", channel, app, arch, version)
+func snapKey(app, version, arch string) string {
+	return fmt.Sprintf("apps/%s_%s_%s.snap", app, version, arch)
 }
 
-func sha384Key(channel, app, arch, version string) string {
-	return fmt.Sprintf("v2/apps/%s/%s/%s/%s.sha384", channel, app, arch, version)
+func sha384Key(app, version, arch string) string {
+	return fmt.Sprintf("apps/%s_%s_%s.snap.sha384", app, version, arch)
 }
 
-func sizeKey(channel, app, arch, version string) string {
-	return fmt.Sprintf("v2/apps/%s/%s/%s/%s.size", channel, app, arch, version)
+func sizeKey(app, version, arch string) string {
+	return fmt.Sprintf("apps/%s_%s_%s.snap.size", app, version, arch)
 }
 
 func versionKey(channel, app, arch string) string {
-	return fmt.Sprintf("v2/apps/%s/%s/%s/version", channel, app, arch)
+	return fmt.Sprintf("releases/%s/%s.%s.version", channel, app, arch)
 }
 
 func snapYamlKey(channel, app string) string {
@@ -61,6 +62,10 @@ func snapYamlKey(channel, app string) string {
 
 func iconKey(channel, app string) string {
 	return fmt.Sprintf("v2/apps/%s/%s/icon.png", channel, app)
+}
+
+func appsIndexKey(channel string) string {
+	return fmt.Sprintf("v2/apps/%s/apps.json", channel)
 }
 
 func (p *Publish) Init(c echo.Context) error {
@@ -81,7 +86,7 @@ func (p *Publish) Init(c echo.Context) error {
 	if partSize <= 0 {
 		partSize = release.DefaultPartSize
 	}
-	key := snapKey(req.Channel, req.Name, req.Arch, req.Version)
+	key := snapKey(req.Name, req.Version, req.Arch)
 	uploadId, err := p.mp.Create(key)
 	if err != nil {
 		p.logger.Error("multipart create failed", zap.Error(err))
@@ -148,7 +153,6 @@ func (p *Publish) Finalise(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
 
-	// verify uploaded size matches what the client declared
 	if req.Size > 0 {
 		size, err := p.mp.HeadSize(req.Key)
 		if err != nil {
@@ -160,14 +164,12 @@ func (p *Publish) Finalise(c echo.Context) error {
 		}
 	}
 
-	// snap.yaml drift check + write at shared (channel,app) path
 	if req.SnapYaml != "" {
 		if err := p.writeSnapYaml(req.Channel, req.Name, []byte(req.SnapYaml)); err != nil {
 			return c.String(http.StatusConflict, err.Error())
 		}
 	}
 
-	// icon: optional, idempotent overwrite
 	if req.IconPngB64 != "" {
 		icon, err := base64.StdEncoding.DecodeString(req.IconPngB64)
 		if err != nil {
@@ -178,15 +180,14 @@ func (p *Publish) Finalise(c echo.Context) error {
 		}
 	}
 
-	// sidecars: sha384, size, version
 	if req.Sha384 != "" {
-		if err := p.mp.Put(sha384Key(req.Channel, req.Name, req.Arch, req.Version),
+		if err := p.mp.Put(sha384Key(req.Name, req.Version, req.Arch),
 			[]byte(req.Sha384), "text/plain"); err != nil {
 			return c.String(http.StatusInternalServerError, err.Error())
 		}
 	}
 	if req.Size > 0 {
-		if err := p.mp.Put(sizeKey(req.Channel, req.Name, req.Arch, req.Version),
+		if err := p.mp.Put(sizeKey(req.Name, req.Version, req.Arch),
 			[]byte(fmt.Sprintf("%d", req.Size)), "text/plain"); err != nil {
 			return c.String(http.StatusInternalServerError, err.Error())
 		}
@@ -196,15 +197,16 @@ func (p *Publish) Finalise(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
 
+	if err := p.updateAppsIndex(req.Channel, req.Name); err != nil {
+		p.logger.Warn("apps.json update failed", zap.Error(err))
+	}
+
 	if err := p.cache.Refresh(); err != nil {
 		p.logger.Warn("cache refresh after publish failed", zap.Error(err))
 	}
 	return c.JSON(http.StatusOK, &model.PublishFinaliseResponse{Ok: true})
 }
 
-// writeSnapYaml puts the new snap.yaml at the shared path, rejecting if an
-// existing object diverges on the catalog-relevant fields (name, summary,
-// description, type). Identical content is a no-op overwrite.
 func (p *Publish) writeSnapYaml(channel, app string, newYaml []byte) error {
 	key := snapYamlKey(channel, app)
 	existing, err := p.mp.Get(key)
@@ -224,6 +226,25 @@ func (p *Publish) writeSnapYaml(channel, app string, newYaml []byte) error {
 		}
 	}
 	return p.mp.Put(key, newYaml, "application/x-yaml")
+}
+
+func (p *Publish) updateAppsIndex(channel, app string) error {
+	key := appsIndexKey(channel)
+	var idx model.AppsIndex
+	if existing, err := p.mp.Get(key); err == nil && len(existing) > 0 {
+		_ = json.Unmarshal(existing, &idx)
+	}
+	for _, id := range idx.Apps {
+		if id == app {
+			return nil
+		}
+	}
+	idx.Apps = append(idx.Apps, app)
+	b, err := json.MarshalIndent(idx, "", "  ")
+	if err != nil {
+		return err
+	}
+	return p.mp.Put(key, b, "application/json")
 }
 
 type snapMeta struct {

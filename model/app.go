@@ -9,24 +9,21 @@ type App struct {
 	Name        string `json:"id"`
 	Summary     string `json:"name"`
 	Description string `json:"description,omitempty"`
-	Icon        string `json:"icon,omitempty"`
+	Type        string `json:"type,omitempty"`
 	Enabled     bool   `json:"enabled,omitempty"`
-	Required    bool   `json:"required"`
 }
 
-func (a *App) ToInfo(version string, downloadSize int64, downloadSha384 string, downloadUrl string, arch string) (*Snap, error) {
-	appType := "app"
-	if a.Required {
-		appType = "base"
+func (a *App) ToInfo(version string, downloadSize int64, downloadSha384 string, downloadUrl string, arch string, iconUrl string) (*Snap, error) {
+	appType := a.Type
+	if appType == "" {
+		appType = "app"
 	}
-
 	revision, err := strconv.Atoi(version)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get revision: %s", err)
 	}
 	snapId := NewSnapId(a.Name, version)
-
-	result := &Snap{
+	return &Snap{
 		SnapID:        snapId.Id(),
 		Name:          a.Name,
 		Summary:       a.Summary,
@@ -40,12 +37,7 @@ func (a *App) ToInfo(version string, downloadSize int64, downloadSha384 string, 
 			Size:     downloadSize,
 		},
 		Media: []StoreSnapMedia{
-			{
-				Type: "icon",
-				URL:  a.Icon,
-			},
+			{Type: "icon", URL: iconUrl},
 		},
-	}
-
-	return result, nil
+	}, nil
 }

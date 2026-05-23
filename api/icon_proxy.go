@@ -19,8 +19,8 @@ func NewIconProxy(upstream *url.URL) *IconProxy {
 	rp.Director = func(r *http.Request) {
 		base(r)
 		r.Host = upstream.Host
-		icon := strings.TrimPrefix(r.URL.Path, iconRoutePrefix)
-		r.URL.Path = strings.TrimSuffix(upstream.Path, "/") + "/releases/stable/images/" + icon
+		rest := strings.TrimPrefix(r.URL.Path, iconRoutePrefix)
+		r.URL.Path = strings.TrimSuffix(upstream.Path, "/") + "/v2/apps/" + rest + "/icon.png"
 		r.URL.RawPath = ""
 	}
 	return &IconProxy{proxy: rp}

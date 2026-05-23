@@ -80,11 +80,9 @@ func TestPublishInit_AuthAndPartCount(t *testing.T) {
 	mp := newFakeMP()
 	p, _ := newHandler(t, mp)
 
-	// wrong token rejected
 	rec, _ := postJSON(t, p.Init, model.PublishInitRequest{Token: "wrong"})
 	assert.Equal(t, http.StatusUnauthorized, rec.Code)
 
-	// happy path: size requires 3 parts at 16MB
 	rec, err := postJSON(t, p.Init, model.PublishInitRequest{
 		Token: "secret", Name: "app", Version: "1", Arch: "amd64",
 		Channel: "master", Size: 33 * 1024 * 1024, Sha384: "deadbeef",
@@ -93,7 +91,7 @@ func TestPublishInit_AuthAndPartCount(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rec.Code)
 	var resp model.PublishInitResponse
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
-	assert.Equal(t, "v2/apps/master/app/amd64/1.snap", resp.Key)
+	assert.Equal(t, "apps/app_1_amd64.snap", resp.Key)
 	assert.Equal(t, 3, resp.PartCount)
 	assert.Len(t, resp.PartUrls, 3)
 }
@@ -104,17 +102,19 @@ func TestPublishFinalise_WritesAllSidecars(t *testing.T) {
 
 	rec, err := postJSON(t, p.Finalise, model.PublishFinaliseRequest{
 		Token: "secret", Name: "app", Version: "1", Arch: "amd64", Channel: "master",
-		Key: "v2/apps/master/app/amd64/1.snap", UploadId: "u1",
+		Key: "apps/app_1_amd64.snap", UploadId: "u1",
 		Parts:    []model.PublishPart{{PartNumber: 1, ETag: "etag1"}},
+		Size:     0,
 		Sha384:   "abc",
 		SnapYaml: "name: app\nsummary: App\ndescription: A test\n",
 	})
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.Contains(t, mp.objects, "v2/apps/master/app/snap.yaml")
-	assert.Contains(t, mp.objects, "v2/apps/master/app/amd64/1.sha384")
-	assert.Contains(t, mp.objects, "v2/apps/master/app/amd64/version")
-	assert.Equal(t, []byte("1"), mp.objects["v2/apps/master/app/amd64/version"])
+	assert.Contains(t, mp.objects, "v2/apps/master/apps.json")
+	assert.Contains(t, mp.objects, "apps/app_1_amd64.snap.sha384")
+	assert.Contains(t, mp.objects, "releases/master/app.amd64.version")
+	assert.Equal(t, []byte("1"), mp.objects["releases/master/app.amd64.version"])
 	assert.True(t, cache.refreshed)
 }
 
@@ -125,7 +125,7 @@ func TestPublishFinalise_DriftRejected(t *testing.T) {
 
 	rec, _ := postJSON(t, p.Finalise, model.PublishFinaliseRequest{
 		Token: "secret", Name: "app", Version: "1", Arch: "amd64", Channel: "master",
-		Key: "v2/apps/master/app/amd64/1.snap", UploadId: "u1",
+		Key: "apps/app_1_amd64.snap", UploadId: "u1",
 		Parts:    []model.PublishPart{{PartNumber: 1, ETag: "etag1"}},
 		SnapYaml: "name: app\nsummary: New\ndescription: N\n",
 	})
@@ -141,9 +141,24 @@ func TestPublishFinalise_IdenticalSnapYamlAccepted(t *testing.T) {
 
 	rec, _ := postJSON(t, p.Finalise, model.PublishFinaliseRequest{
 		Token: "secret", Name: "app", Version: "1", Arch: "amd64", Channel: "master",
-		Key: "v2/apps/master/app/amd64/1.snap", UploadId: "u1",
+		Key: "apps/app_1_amd64.snap", UploadId: "u1",
 		Parts:    []model.PublishPart{{PartNumber: 1, ETag: "etag1"}},
 		SnapYaml: y,
 	})
 	assert.Equal(t, http.StatusOK, rec.Code)
+}
+
+func TestPublishFinalise_AppsIndexUpdated(t *testing.T) {
+	mp := newFakeMP()
+	mp.objects["v2/apps/master/apps.json"] = []byte(`{"apps":["existing"]}`)
+	p, _ := newHandler(t, mp)
+
+	_, _ = postJSON(t, p.Finalise, model.PublishFinaliseRequest{
+		Token: "secret", Name: "app", Version: "1", Arch: "amd64", Channel: "master",
+		Key: "apps/app_1_amd64.snap", UploadId: "u1",
+		Parts: []model.PublishPart{{PartNumber: 1, ETag: "etag1"}},
+	})
+	var idx model.AppsIndex
+	require.NoError(t, json.Unmarshal(mp.objects["v2/apps/master/apps.json"], &idx))
+	assert.ElementsMatch(t, []string{"existing", "app"}, idx.Apps)
 }

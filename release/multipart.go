@@ -14,6 +14,8 @@ import (
 )
 
 const (
+	AwsKey          = "AWS_ACCESS_KEY_ID"
+	AwsSecret       = "AWS_SECRET_ACCESS_KEY"
 	PresignedUrlTTL = 24 * time.Hour
 	DefaultPartSize = 16 * 1024 * 1024
 )
@@ -34,10 +36,15 @@ func NewMultipart(bucket string) (*Multipart, error) {
 		return nil, fmt.Errorf("%s env variable is not set", AwsSecret)
 	}
 	region := "us-west-2"
-	sess, err := session.NewSession(&aws.Config{
+	cfg := &aws.Config{
 		Credentials: credentials.NewStaticCredentials(key, secret, ""),
 		Region:      aws.String(region),
-	})
+	}
+	if endpoint, ok := os.LookupEnv("AWS_S3_ENDPOINT"); ok && endpoint != "" {
+		cfg.Endpoint = aws.String(endpoint)
+		cfg.S3ForcePathStyle = aws.Bool(true)
+	}
+	sess, err := session.NewSession(cfg)
 	if err != nil {
 		return nil, err
 	}

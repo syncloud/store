@@ -1,7 +1,5 @@
 package model
 
-import "encoding/json"
-
-type Index struct {
-	Apps []json.RawMessage `json:"apps"`
+type AppsIndex struct {
+	Apps []string `json:"apps"`
 }
