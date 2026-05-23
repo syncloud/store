@@ -45,6 +45,7 @@ type SyncloudStore struct {
 	iconProxy  *IconProxy
 	popularity Popularity
 	metrics    *SnapdMetrics
+	publish    *Publish
 }
 
 func NewSyncloudStore(
@@ -57,6 +58,7 @@ func NewSyncloudStore(
 	iconProxy *IconProxy,
 	popularity Popularity,
 	metrics *SnapdMetrics,
+	publish *Publish,
 	logger *zap.Logger,
 ) *SyncloudStore {
 	return &SyncloudStore{
@@ -70,6 +72,7 @@ func NewSyncloudStore(
 		iconProxy:  iconProxy,
 		popularity: popularity,
 		metrics:    metrics,
+		publish:    publish,
 		logger:     logger,
 	}
 }
@@ -90,6 +93,11 @@ func (s *SyncloudStore) Start() <-chan error {
 	s.echo.GET("/v2/snaps/find", s.Find)
 	s.echo.GET("/v2/snaps/info/:name", s.Info)
 	s.echo.POST("/syncloud/v1/cache/refresh", s.SyncloudCacheRefresh)
+	if s.publish != nil {
+		s.echo.POST("/syncloud/v1/publish/init", s.publish.Init)
+		s.echo.POST("/syncloud/v1/publish/part-url", s.publish.PartUrl)
+		s.echo.POST("/syncloud/v1/publish/finalise", s.publish.Finalise)
+	}
 	s.echo.GET("/api/ui/v1/apps", s.web.Apps)
 	s.echo.GET("/api/ui/v1/version", s.web.Version)
 	s.echo.GET("/api/ui/v1/icons/*", echo.WrapHandler(s.iconProxy))

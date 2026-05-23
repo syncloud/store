@@ -11,6 +11,7 @@ import (
 	"github.com/syncloud/store/api"
 	"github.com/syncloud/store/crypto"
 	"github.com/syncloud/store/log"
+	"github.com/syncloud/store/release"
 	"github.com/syncloud/store/rest"
 	"github.com/syncloud/store/storage"
 	"github.com/syncloud/store/util"
@@ -58,7 +59,13 @@ func start(listenAddress, configPath, metricsAddr string) error {
 	snapdMetrics := api.NewSnapdMetrics()
 	ui := api.NewWeb(webFS, cache, popularity)
 	iconProxy := api.NewIconProxy(upstream)
-	storeServer := api.NewSyncloudStore(listenAddress, cache, client, signer, config.Token, ui, iconProxy, popularity, snapdMetrics, logger)
+	var publish *api.Publish
+	if mp, mpErr := release.NewMultipart("apps.syncloud.org"); mpErr == nil {
+		publish = api.NewPublish(mp, cache, config.Token, logger)
+	} else {
+		logger.Warn("publish API disabled: " + mpErr.Error())
+	}
+	storeServer := api.NewSyncloudStore(listenAddress, cache, client, signer, config.Token, ui, iconProxy, popularity, snapdMetrics, publish, logger)
 	metricsServer := api.NewMetricsServer(metricsAddr, logger, snapdMetrics)
 	internal := api.NewApi(cache)
 

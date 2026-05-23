@@ -2,6 +2,7 @@ local name = "syncloud-store";
 local go = "1.23";
 local playwright = "v1.48.2-jammy";
 local docker_image = "syncloud/store";
+local release_image = "syncloud/release";
 local debian = "bookworm-slim";
 local platform = "26.04.10";
 local version = "${DRONE_BRANCH}-${DRONE_BUILD_NUMBER}";
@@ -124,6 +125,20 @@ local build(arch) = {
                 event: ["push"],
                 branch: ["stable"],
             },
+        },
+        {
+            name: "docker publish (multi-arch)",
+            image: "thegeeklab/drone-docker-buildx:24",
+            privileged: true,
+            settings: {
+                repo: release_image,
+                dockerfile: "Dockerfile.publish",
+                platforms: ["linux/amd64", "linux/arm64", "linux/arm/v7"],
+                username: { from_secret: "DOCKER_USERNAME" },
+                password: { from_secret: "DOCKER_PASSWORD" },
+                tags: [version, "${DRONE_BRANCH}"],
+            },
+            when: { event: ["push", "tag"] },
         },
         {
             name: "deploy test",
