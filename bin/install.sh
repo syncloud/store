@@ -26,6 +26,11 @@ cp ${CURRENT}/config/$ENV/apache.conf /etc/apache2/sites-available/store.conf
 if [ ! -f "$STORE_DIR/secret.yaml" ]; then
   cp ${CURRENT}/config/test/secret.yaml $STORE_DIR/secret.yaml
 fi
+cat > $STORE_DIR/aws.env <<EOF
+AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-test}
+AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-testtest}
+AWS_S3_ENDPOINT=${AWS_S3_ENDPOINT:-http://minio}
+EOF
 chown -R store:store $STORE_DIR
 
 systemctl enable syncloud-store.service
