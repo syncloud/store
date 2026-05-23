@@ -37,6 +37,7 @@ type SyncloudStore struct {
 	client     rest.Client
 	echo       *echo.Echo
 	address    string
+	baseUrl    string
 	apiCache   ApiCache
 	signer     Signer
 	token      string
@@ -50,6 +51,7 @@ type SyncloudStore struct {
 
 func NewSyncloudStore(
 	address string,
+	baseUrl string,
 	apiCache ApiCache,
 	client rest.Client,
 	signer Signer,
@@ -67,6 +69,7 @@ func NewSyncloudStore(
 		signer:     signer,
 		apiCache:   apiCache,
 		address:    address,
+		baseUrl:    baseUrl,
 		token:      token,
 		web:        web,
 		iconProxy:  iconProxy,
@@ -270,7 +273,7 @@ func (s *SyncloudStore) SnapRevision(c echo.Context) error {
 	key := c.Param("key")
 	s.logger.Info("snap revision", zap.String("key", key))
 
-	revision, _, err := s.client.Get(fmt.Sprintf("%s/revisions/%s.revision", Url, key))
+	revision, _, err := s.client.Get(fmt.Sprintf("%s/revisions/%s.revision", s.baseUrl, key))
 	if err != nil {
 		c.Error(err)
 		return nil

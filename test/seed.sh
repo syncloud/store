@@ -21,11 +21,16 @@ for f in ${DIR}/testapp*.snap; do
     name=$(basename "$f")
     size=$(stat -c %s "$f")
     sha=$(openssl dgst -sha3-384 -binary "$f" | base64 | tr '+/' '-_' | tr -d '=')
+    app=$(echo "$name" | sed 's/_.*//')
+    ver=$(echo "$name" | sed 's/[^_]*_\([^_]*\)_.*/\1/')
     mc cp "$f" "local/test/apps/${name}"
     printf '%s' "$sha"  > /tmp/sha
     printf '%s' "$size" > /tmp/size
     mc cp /tmp/sha  "local/test/apps/${name}.sha384"
     mc cp /tmp/size "local/test/apps/${name}.size"
+    printf '{"snap-revision":"%s","snap-id":"%s.%s","snap-size":"%s","snap-sha3-385":"%s"}' \
+        "$ver" "$app" "$ver" "$size" "$sha" > /tmp/rev
+    mc cp /tmp/rev "local/test/revisions/${sha}.revision"
 done
 
 for app in testapp1 testapp2; do

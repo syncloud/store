@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -178,6 +179,16 @@ func (p *Publish) Finalise(c echo.Context) error {
 	if req.Sha384 != "" {
 		if err := p.mp.Put(sha384Key(req.Name, req.Version, req.Arch),
 			[]byte(req.Sha384), "text/plain"); err != nil {
+			return c.String(http.StatusInternalServerError, err.Error())
+		}
+		rev, _ := json.Marshal(map[string]string{
+			"snap-revision": req.Version,
+			"snap-id":       req.Name + "." + req.Version,
+			"snap-size":     fmt.Sprintf("%d", req.Size),
+			"snap-sha3-385": req.Sha384,
+		})
+		if err := p.mp.Put(fmt.Sprintf("revisions/%s.revision", req.Sha384),
+			rev, "application/json"); err != nil {
 			return c.String(http.StatusInternalServerError, err.Error())
 		}
 	}
