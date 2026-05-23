@@ -70,7 +70,16 @@ local build(arch) = {
             commands: [
               "apt update && apt install -y squashfs-tools",
               "./test/build-apps.sh",
-              "./test/publish.sh " + arch
+            ]
+        },
+        {
+            name: "seed minio",
+            image: "debian:" + debian,
+            commands: [
+              "apt update && apt install -y wget openssl ca-certificates",
+              "wget -q https://dl.min.io/client/mc/release/linux-" + (if arch == "arm" then "arm" else arch) + "/mc -O /usr/local/bin/mc",
+              "chmod +x /usr/local/bin/mc",
+              "bash test/seed.sh",
             ]
         },
         {
@@ -147,6 +156,9 @@ local build(arch) = {
                 DEPLOY_HOST: "api.store.test",
                 DEPLOY_USER: "root",
                 DEPLOY_URL: "http://api.store.test",
+                AWS_ACCESS_KEY_ID: "test",
+                AWS_SECRET_ACCESS_KEY: "testtest",
+                AWS_S3_ENDPOINT: "http://minio",
             },
             commands: [
                 "./ci/test-init.sh",
@@ -172,6 +184,24 @@ local build(arch) = {
             },
         },
         {
+            name: "e2e publish image",
+            image: "docker:24-cli",
+            environment: {
+                SYNCLOUD_TOKEN: "test",
+            },
+            volumes: [{ name: "docker-sock", path: "/var/run/docker.sock" }],
+            commands: [
+                "NET=$(docker inspect $(hostname) --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}' | awk '{print $1}')",
+                "docker pull " + release_image + ":" + version,
+                "docker run --rm --network $NET -e SYNCLOUD_TOKEN -v $PWD/test/testapp1_3_amd64.snap:/snap.snap -v $PWD/test/testapp1/meta/snap.yaml:/snap.yaml -v $PWD/test/images/testapp1.png:/icon.png " +
+                  release_image + ":" + version + " snap -f /snap.snap -c stable -s http://api.store.test -y /snap.yaml -i /icon.png",
+                "curl -fsS 'http://api.store.test/api/ui/v1/apps?channel=stable' | grep -q testapp1",
+            ],
+            when: {
+                event: ["push", "tag"],
+            },
+        },
+        {
             name: "deploy uat",
             image: "debian:" + debian,
             environment: {
@@ -179,6 +209,8 @@ local build(arch) = {
                 DEPLOY_USER: { from_secret: "uat_deploy_user" },
                 DEPLOY_KEY: { from_secret: "uat_deploy_key" },
                 DEPLOY_URL: { from_secret: "uat_deploy_url" },
+                AWS_ACCESS_KEY_ID: { from_secret: "aws_access_key_id" },
+                AWS_SECRET_ACCESS_KEY: { from_secret: "aws_secret_access_key" },
             },
             commands: [
                 "./ci/deploy-prepare.sh uat",
@@ -195,6 +227,8 @@ local build(arch) = {
                 DEPLOY_USER: { from_secret: "prod_deploy_user" },
                 DEPLOY_KEY: { from_secret: "prod_deploy_key" },
                 DEPLOY_URL: { from_secret: "prod_deploy_url" },
+                AWS_ACCESS_KEY_ID: { from_secret: "aws_access_key_id" },
+                AWS_SECRET_ACCESS_KEY: { from_secret: "aws_secret_access_key" },
             },
             commands: [
                 "./ci/deploy-prepare.sh prod",
@@ -278,19 +312,13 @@ local build(arch) = {
             ]
         },
         {
-            name: "apps.syncloud.org",
-            image: "syncloud/bootstrap-bookworm-" + arch + ":" + platform,
-            privileged: true,
-            volumes: [
-                {
-                    name: "dbus",
-                    path: "/var/run/dbus"
-                },
-                {
-                    name: "dev",
-                    path: "/dev"
-                }
-            ]
+            name: "minio",
+            image: "minio/minio:RELEASE.2024-12-18T13-15-44Z",
+            command: ["server", "--address", ":80", "/data"],
+            environment: {
+                MINIO_ROOT_USER: "test",
+                MINIO_ROOT_PASSWORD: "testtest",
+            },
         },
         {
             name: "grafana",
@@ -313,6 +341,12 @@ local build(arch) = {
             name: "dev",
             host: {
                 path: "/dev"
+            }
+        },
+        {
+            name: "docker-sock",
+            host: {
+                path: "/var/run/docker.sock"
             }
         },
         {

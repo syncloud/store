@@ -6,7 +6,9 @@ import (
 )
 
 type Config struct {
-	Token string `yaml:"token"`
+	Token   string `yaml:"token"`
+	BaseUrl string `yaml:"base_url"`
+	Bucket  string `yaml:"bucket"`
 }
 
 func LoadConfig(path string) (Config, error) {

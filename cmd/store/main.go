@@ -43,7 +43,15 @@ func start(listenAddress, configPath, metricsAddr string) error {
 	if err != nil {
 		return err
 	}
-	upstream, err := url.Parse(api.Url)
+	baseUrl := config.BaseUrl
+	if baseUrl == "" {
+		baseUrl = api.Url
+	}
+	bucket := config.Bucket
+	if bucket == "" {
+		bucket = "apps.syncloud.org"
+	}
+	upstream, err := url.Parse(baseUrl)
 	if err != nil {
 		return err
 	}
@@ -53,11 +61,11 @@ func start(listenAddress, configPath, metricsAddr string) error {
 	}
 
 	client := rest.New()
-	mp, err := release.NewMultipart("apps.syncloud.org")
+	mp, err := release.NewMultipart(bucket)
 	if err != nil {
 		return err
 	}
-	cache := storage.New(client, mp, api.Url, logger)
+	cache := storage.New(client, mp, baseUrl, logger)
 	signer := crypto.NewSigner(logger)
 	popularity := storage.NewPopularity()
 	snapdMetrics := api.NewSnapdMetrics()

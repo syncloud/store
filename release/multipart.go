@@ -15,6 +15,8 @@ import (
 )
 
 const (
+	AwsKey          = "AWS_ACCESS_KEY_ID"
+	AwsSecret       = "AWS_SECRET_ACCESS_KEY"
 	PresignedUrlTTL = 24 * time.Hour
 	DefaultPartSize = 16 * 1024 * 1024
 )
