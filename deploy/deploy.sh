@@ -46,9 +46,12 @@ docker run -d \
     --name "$CONTAINER" \
     --restart=unless-stopped \
     --user "$STORE_UID:$STORE_GID" \
+    --network host \
     -v "$STORE_DIR:$STORE_DIR" \
     -v /etc/hosts:/etc/hosts:ro \
-    -p 9090:9090 \
+    -e AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-}" \
+    -e AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-}" \
+    -e AWS_S3_ENDPOINT="${AWS_S3_ENDPOINT:-}" \
     "$TAG"
 
 for i in $(seq 1 30); do
