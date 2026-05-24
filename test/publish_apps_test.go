@@ -18,9 +18,6 @@ func TestPublishedApps(t *testing.T) {
 	assert.Contains(t, body, `"snapId":"testapp1.`, "testapp1 missing from apps list: %s", body)
 	assert.Contains(t, body, `"snapId":"testapp2.`, "testapp2 missing from apps list: %s", body)
 
-	// The publisher writes apps/<name>_<version>_<arch>.snap with the version baked
-	// into the key. No other test touches these specific objects, so this is robust
-	// to test ordering / SetVersion mutations elsewhere.
 	for _, key := range []string{
 		"apps/testapp1_3_amd64.snap",
 		"apps/testapp2_2_amd64.snap",
