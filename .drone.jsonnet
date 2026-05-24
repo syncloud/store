@@ -72,12 +72,13 @@ local build(arch) = {
               "./test/build-apps.sh",
             ]
         },
+    ] + (if arch != "arm" then [
         {
             name: "seed minio",
             image: "debian:" + debian,
             commands: [
               "apt update && apt install -y wget openssl ca-certificates",
-              "wget -q https://dl.min.io/client/mc/release/linux-" + (if arch == "arm" then "arm" else arch) + "/mc -O /usr/local/bin/mc",
+              "wget -q https://dl.min.io/client/mc/release/linux-" + arch + "/mc -O /usr/local/bin/mc",
               "chmod +x /usr/local/bin/mc",
               "bash test/seed.sh",
             ]
@@ -97,6 +98,7 @@ local build(arch) = {
               "./test/test.sh"
             ]
         },
+    ] else []) + [
         {
             name: "grafana provision",
             image: "debian:" + debian,
@@ -311,6 +313,7 @@ local build(arch) = {
                 }
             ]
         },
+    ] + (if arch != "arm" then [
         {
             name: "minio",
             image: "minio/minio:RELEASE.2024-12-18T13-15-44Z",
@@ -320,6 +323,7 @@ local build(arch) = {
                 MINIO_ROOT_PASSWORD: "testtest",
             },
         },
+    ] else []) + [
         {
             name: "grafana",
             image: "grafana/grafana:11.3.0",
