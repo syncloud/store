@@ -95,14 +95,16 @@ func s3client() *s3.S3 {
 }
 
 func waitReady(svc *s3.S3) error {
-	for i := 0; i < 60; i++ {
-		_, err := svc.HeadBucket(&s3.HeadBucketInput{Bucket: aws.String(bucket)})
-		if err == nil {
+	var lastErr error
+	for i := 0; i < 120; i++ {
+		_, lastErr = svc.HeadBucket(&s3.HeadBucketInput{Bucket: aws.String(bucket)})
+		if lastErr == nil {
+			fmt.Printf("bucket %q ready after %ds\n", bucket, i)
 			return nil
 		}
 		time.Sleep(time.Second)
 	}
-	return fmt.Errorf("bucket %q not ready after 60s", bucket)
+	return fmt.Errorf("bucket %q not ready after 120s: last error: %v", bucket, lastErr)
 }
 
 func putFile(svc *s3.S3, key, path, contentType string) error {

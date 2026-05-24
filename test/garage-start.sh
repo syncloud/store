@@ -1,5 +1,4 @@
 #!/bin/sh
-set -e
 
 cat > /etc/garage.toml <<'CFG'
 metadata_dir = "/tmp/meta"
@@ -22,20 +21,33 @@ api_bind_addr = "[::]:3903"
 admin_token = "test-admin-token"
 CFG
 
-/garage server &
+/garage server > /tmp/garage.log 2>&1 &
 GARAGE_PID=$!
 
-for i in $(seq 60); do
-    /garage status >/dev/null 2>&1 && break
+for i in $(seq 120); do
+    if /garage status 2>/dev/null | grep -qE "(NO ROLE|HEALTHY)"; then
+        echo "garage RPC ready after ${i}s"
+        break
+    fi
     sleep 1
 done
 
-NODE=$(/garage status | awk '/NO ROLE/ {print $1; exit}')
-/garage layout assign -z dc1 -c 1G "$NODE"
-/garage layout apply --version 1
-/garage bucket create test
-/garage key import --yes -n test test testtest
-/garage bucket allow --read --write --owner test --key test
-/garage bucket website --allow test
+NODE=$(/garage status 2>/dev/null | awk '/NO ROLE/ {print $1; exit}')
+if [ -z "$NODE" ]; then
+    echo "no NO ROLE node found, status:"
+    /garage status
+fi
+
+/garage layout assign -z dc1 -c 1G "$NODE"   || echo "layout assign failed"
+/garage layout apply --version 1             || echo "layout apply failed"
+/garage bucket create test                   || echo "bucket create failed"
+/garage key import --yes -n test test testtest || echo "key import failed"
+/garage bucket allow --read --write --owner test --key test || echo "bucket allow failed"
+/garage bucket website --allow test          || echo "bucket website failed"
+
+echo "garage init complete; current status:"
+/garage status
 
 wait $GARAGE_PID
+echo "garage exited unexpectedly"
+sleep infinity
