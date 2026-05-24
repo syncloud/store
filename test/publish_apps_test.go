@@ -2,7 +2,6 @@ package test
 
 import (
 	"encoding/json"
-	"os"
 	"strings"
 	"testing"
 
@@ -11,10 +10,6 @@ import (
 )
 
 func TestPublishedApps(t *testing.T) {
-	if os.Getenv("VERIFY_PUBLISH") != "1" {
-		t.Skip("only runs when VERIFY_PUBLISH=1 (post publish testapp1/testapp2)")
-	}
-
 	type uiApp struct {
 		SnapID  string `json:"snapId"`
 		Version string `json:"version"`

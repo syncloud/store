@@ -124,16 +124,6 @@ local build(arch) = {
                 when: { event: ["push", "tag"] },
             },
             {
-                name: "test",
-                image: "debian:" + debian,
-                commands: ["./test/test.sh"],
-            },
-            {
-                name: "grafana provision",
-                image: "debian:" + debian,
-                commands: ["./ci/grafana-provision.sh"],
-            },
-            {
                 name: "publish testapp1",
                 image: publisher_image + ":" + version + "-amd64",
                 environment: { SYNCLOUD_TOKEN: "test" },
@@ -158,13 +148,14 @@ local build(arch) = {
                 when: { event: ["push", "tag"] },
             },
             {
-                name: "verify publish",
+                name: "test",
                 image: "debian:" + debian,
-                environment: { VERIFY_PUBLISH: "1" },
-                commands: [
-                    "./test/test -test.run TestPublishedApps -test.failfast -test.v",
-                ],
-                when: { event: ["push", "tag"] },
+                commands: ["./test/test.sh"],
+            },
+            {
+                name: "grafana provision",
+                image: "debian:" + debian,
+                commands: ["./ci/grafana-provision.sh"],
             },
             {
                 name: "docker push store latest",
