@@ -27,7 +27,7 @@ $SCP -r ${DIR}/../config/test root@api.store.test:/tmp/syncloud-store/config/
 wget --progress=dot:giga https://github.com/syncloud/snapd/releases/download/syncloud-5/snapd-640-${SNAP_ARCH}.tar.gz -O snapd2.tar.gz
 $SCP snapd2.tar.gz root@device:/
 $SCP ${DIR}/install-snapd-v2.sh root@device:/
-$SCP ${DIR}/testapp2_1_$SNAP_ARCH.snap root@device:/testapp2_1.snap
+$SCP ${DIR}/testapp2/out/testapp2_1_$SNAP_ARCH.snap root@device:/testapp2_1.snap
 
 code=0
 set +e

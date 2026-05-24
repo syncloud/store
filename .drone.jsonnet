@@ -126,15 +126,38 @@ local build(arch) = {
                 commands: ["./ci/grafana-provision.sh"],
             },
             {
-                name: "e2e publish image",
-                image: "docker:24-cli",
-                environment: {
-                    SYNCLOUD_TOKEN: "test",
-                    PUBLISHER_IMAGE: publisher_image + ":" + version + "-amd64",
-                    ARCH: "amd64",
-                },
-                volumes: [{ name: "docker-sock", path: "/var/run/docker.sock" }],
-                commands: ["./ci/e2e-publish.sh"],
+                name: "publish testapp1",
+                image: publisher_image + ":" + version + "-amd64",
+                environment: { SYNCLOUD_TOKEN: "test" },
+                command: [
+                    "snap",
+                    "-d", "test/testapp1",
+                    "-f", "out/testapp1_3_amd64.snap",
+                    "-c", "stable",
+                    "-s", "http://api.store.test",
+                ],
+                when: { event: ["push", "tag"] },
+            },
+            {
+                name: "publish testapp2",
+                image: publisher_image + ":" + version + "-amd64",
+                environment: { SYNCLOUD_TOKEN: "test" },
+                command: [
+                    "snap",
+                    "-d", "test/testapp2",
+                    "-f", "out/testapp2_2_amd64.snap",
+                    "-c", "stable",
+                    "-s", "http://api.store.test",
+                ],
+                when: { event: ["push", "tag"] },
+            },
+            {
+                name: "verify publish",
+                image: "curlimages/curl:8.10.1",
+                commands: [
+                    "curl -fsS 'http://api.store.test/api/ui/v1/apps?channel=stable' | grep -q testapp1",
+                    "curl -fsS 'http://api.store.test/api/ui/v1/apps?channel=stable' | grep -q testapp2",
+                ],
                 when: { event: ["push", "tag"] },
             },
             {
@@ -205,7 +228,7 @@ local build(arch) = {
                     command_timeout: "2m",
                     target: "/home/artifact/repo/" + name + "/${DRONE_BUILD_NUMBER}-" + arch,
                     source: [
-                        "test/*.snap",
+                        "test/testapp*/out/*.snap",
                         "out/*",
                         "test/artifacts/*",
                         "artifact/*",

@@ -27,14 +27,15 @@ func main() {
 	root.PersistentFlags().StringVarP(&storeUrl, "store-url", "s",
 		"https://api.store.syncloud.org", "store url")
 
-	var snapFile, channel, snapYamlPath, iconPath string
+	var appDir, snapFile, channel, snapYamlPath, iconPath string
 	cmdSnap := &cobra.Command{
 		Use:   "snap",
 		Short: "Upload a snap, snap.yaml and icon for a single arch",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runPublish(storeUrl, snapFile, channel, snapYamlPath, iconPath)
+			return runPublish(storeUrl, appDir, snapFile, channel, snapYamlPath, iconPath)
 		},
 	}
+	cmdSnap.Flags().StringVarP(&appDir, "app-dir", "d", ".", "app source directory; -f/-y/-i are resolved relative to it")
 	cmdSnap.Flags().StringVarP(&snapFile, "file", "f", "", "snap file path")
 	cmdSnap.Flags().StringVarP(&channel, "channel", "c", "", "channel (master | stable | rc | ...)")
 	cmdSnap.Flags().StringVarP(&snapYamlPath, "snap-yaml", "y", "meta/snap.yaml", "path to snap.yaml")
@@ -51,6 +52,13 @@ func main() {
 
 var snapNameRe = regexp.MustCompile(`^(?P<Name>.*)_(?P<Version>.*)_(?P<Arch>.*)\.snap$`)
 
+func resolveAppPath(appDir, path string) string {
+	if filepath.IsAbs(path) {
+		return path
+	}
+	return filepath.Join(appDir, path)
+}
+
 func parseSnapName(path string) (name, version, arch string, err error) {
 	base := filepath.Base(path)
 	m := snapNameRe.FindStringSubmatch(base)
@@ -62,7 +70,10 @@ func parseSnapName(path string) (name, version, arch string, err error) {
 		m[snapNameRe.SubexpIndex("Arch")], nil
 }
 
-func runPublish(storeUrl, snapFile, channel, snapYamlPath, iconPath string) error {
+func runPublish(storeUrl, appDir, snapFile, channel, snapYamlPath, iconPath string) error {
+	snapFile = resolveAppPath(appDir, snapFile)
+	snapYamlPath = resolveAppPath(appDir, snapYamlPath)
+	iconPath = resolveAppPath(appDir, iconPath)
 	name, version, arch, err := parseSnapName(snapFile)
 	if err != nil {
 		return err

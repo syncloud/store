@@ -42,11 +42,11 @@ func main() {
 			must(putFile(svc, fmt.Sprintf("v2/apps/%s/%s/snap.yaml", ch, app),
 				filepath.Join(dir, app, "meta", "snap.yaml"), "application/x-yaml"))
 			must(putFile(svc, fmt.Sprintf("v2/apps/%s/%s/icon.png", ch, app),
-				filepath.Join(dir, "images", app+".png"), "image/png"))
+				filepath.Join(dir, app, "meta", "gui", "icon.png"), "image/png"))
 		}
 	}
 
-	matches, err := filepath.Glob(filepath.Join(dir, "testapp*.snap"))
+	matches, err := filepath.Glob(filepath.Join(dir, "testapp*", "out", "testapp*.snap"))
 	must(err)
 	for _, f := range matches {
 		name := filepath.Base(f)
