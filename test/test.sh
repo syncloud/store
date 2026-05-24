@@ -16,7 +16,7 @@ cd $DIR
 ./wait-for-device.sh device
 ./wait-for-device.sh api.store.test
 for i in $(seq 60); do
-    curl -s -o /dev/null --max-time 2 http://s3/ && break
+    curl -s -o /dev/null --max-time 2 http://apps/ && break
     sleep 1
 done
 
