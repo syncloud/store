@@ -2,7 +2,7 @@ local name = "syncloud-store";
 local go = "1.23";
 local playwright = "v1.48.2-jammy";
 local docker_image = "syncloud/store";
-local release_image = "syncloud/release";
+local publisher_image = "syncloud/store-publisher";
 local debian = "bookworm-slim";
 local platform = "26.04.10";
 local version = "${DRONE_BRANCH}-${DRONE_BUILD_NUMBER}";
@@ -142,8 +142,8 @@ local build(arch) = {
             image: "thegeeklab/drone-docker-buildx:24",
             privileged: true,
             settings: {
-                repo: release_image,
-                dockerfile: "Dockerfile.publish",
+                repo: publisher_image,
+                dockerfile: "Dockerfile.store-publisher",
                 platforms: ["linux/amd64", "linux/arm64", "linux/arm/v7"],
                 username: { from_secret: "DOCKER_USERNAME" },
                 password: { from_secret: "DOCKER_PASSWORD" },
@@ -195,9 +195,9 @@ local build(arch) = {
             commands: [
                 "NET=$(docker inspect $(hostname) --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}\\n{{end}}' | grep -m1 '^drone-')",
                 "echo using network=$NET PWD=$PWD",
-                "docker pull " + release_image + ":" + version,
+                "docker pull " + publisher_image + ":" + version,
                 "docker run --rm --network \"$NET\" --volumes-from $(hostname) -e SYNCLOUD_TOKEN -w $PWD " +
-                  release_image + ":" + version + " snap -f test/testapp1_3_amd64.snap -c stable -s http://api.store.test -y test/testapp1/meta/snap.yaml -i test/images/testapp1.png",
+                  publisher_image + ":" + version + " snap -f test/testapp1_3_amd64.snap -c stable -s http://api.store.test -y test/testapp1/meta/snap.yaml -i test/images/testapp1.png",
                 "docker run --rm --network \"$NET\" curlimages/curl:8.10.1 -fsS 'http://api.store.test/api/ui/v1/apps?channel=stable' | grep -q testapp1",
             ],
             when: {
