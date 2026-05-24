@@ -32,6 +32,11 @@ STORE_GID=$(id -g store)
 mkdir -p "$STORE_DIR"
 chown "$STORE_UID:$STORE_GID" "$STORE_DIR"
 
+SECRET_SRC="$DIR/../config/$ENV/secret.yaml"
+if [ -f "$SECRET_SRC" ] && [ ! -f "$STORE_DIR/secret.yaml" ]; then
+    install -m 0640 -o "$STORE_UID" -g "$STORE_GID" "$SECRET_SRC" "$STORE_DIR/secret.yaml"
+fi
+
 docker pull "$TAG"
 docker rm -f "$CONTAINER" 2>/dev/null || true
 docker run -d \
