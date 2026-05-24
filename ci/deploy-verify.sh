@@ -35,7 +35,7 @@ fail_with_logs() {
 }
 
 for i in $(seq 1 60); do
-    n=$(curl -fsS "${DEPLOY_URL}/api/ui/v1/apps" 2>/dev/null \
+    n=$(curl -fsS "${DEPLOY_URL}/api/ui/v1/apps?channel=stable" 2>/dev/null \
         | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))' 2>/dev/null \
         || echo 0)
     if [ "$n" -gt 0 ]; then
