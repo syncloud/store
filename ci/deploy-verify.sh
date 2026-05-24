@@ -30,7 +30,7 @@ REMOTE="${DEPLOY_USER}@${DEPLOY_HOST}"
 fail_with_logs() {
     echo "$1" >&2
     $SSH $REMOTE 'docker ps -a' 2>&1 || true
-    $SSH $REMOTE 'docker logs syncloud-store 2>&1 | tail -40' || true
+    $SSH $REMOTE 'docker logs syncloud-store 2>&1' || true
     exit 1
 }
 
