@@ -354,7 +354,6 @@ func SetVersion(app, arch, version, channel string) error {
 		Bucket: aws.String(Bucket),
 		Key:    aws.String(fmt.Sprintf("releases/%s/%s.%s.version", channel, app, arch)),
 		Body:   strings.NewReader(version),
-		ACL:    aws.String("public-read"),
 	})
 	return err
 }

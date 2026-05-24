@@ -56,7 +56,6 @@ func (m *Multipart) Create(key string) (string, error) {
 	out, err := m.svc.CreateMultipartUpload(&s3.CreateMultipartUploadInput{
 		Bucket: aws.String(m.bucket),
 		Key:    aws.String(key),
-		ACL:    aws.String("public-read"),
 	})
 	if err != nil {
 		return "", err
@@ -108,7 +107,6 @@ func (m *Multipart) Put(key string, body []byte, contentType string) error {
 	_, err := m.svc.PutObject(&s3.PutObjectInput{
 		Bucket:      aws.String(m.bucket),
 		Key:         aws.String(key),
-		ACL:         aws.String("public-read"),
 		Body:        bytes.NewReader(body),
 		ContentType: aws.String(contentType),
 	})
