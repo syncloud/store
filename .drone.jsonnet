@@ -132,7 +132,6 @@ local build(arch) = {
                 command: [
                     "snap",
                     "-d", "test/testapp1",
-                    "-f", "out/testapp1_3_amd64.snap",
                     "-c", "stable",
                     "-s", "http://api.store.test",
                 ],
@@ -145,7 +144,6 @@ local build(arch) = {
                 command: [
                     "snap",
                     "-d", "test/testapp2",
-                    "-f", "out/testapp2_2_amd64.snap",
                     "-c", "stable",
                     "-s", "http://api.store.test",
                 ],
@@ -228,7 +226,7 @@ local build(arch) = {
                     command_timeout: "2m",
                     target: "/home/artifact/repo/" + name + "/${DRONE_BUILD_NUMBER}-" + arch,
                     source: [
-                        "test/testapp*/out/*.snap",
+                        "test/testapp*/*.snap",
                         "out/*",
                         "test/artifacts/*",
                         "artifact/*",

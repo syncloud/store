@@ -15,6 +15,5 @@ echo "version: $VERSION" >> ${BUILD_DIR}/meta/snap.yaml
 echo "architectures:" >> ${BUILD_DIR}/meta/snap.yaml
 echo "- ${ARCH}" >> ${BUILD_DIR}/meta/snap.yaml
 
-OUT_DIR=$APP_DIR/out
-mkdir -p $OUT_DIR
-mksquashfs ${BUILD_DIR} ${OUT_DIR}/${APP}_${VERSION}_${ARCH}.snap -noappend -comp xz -no-xattrs -all-root
+mksquashfs ${BUILD_DIR} ${APP_DIR}/${APP}_${VERSION}_${ARCH}.snap -noappend -comp xz -no-xattrs -all-root
+echo $VERSION > ${APP_DIR}/version

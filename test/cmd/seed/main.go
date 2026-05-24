@@ -46,7 +46,7 @@ func main() {
 		}
 	}
 
-	matches, err := filepath.Glob(filepath.Join(dir, "testapp*", "out", "testapp*.snap"))
+	matches, err := filepath.Glob(filepath.Join(dir, "testapp*", "testapp*.snap"))
 	must(err)
 	for _, f := range matches {
 		name := filepath.Base(f)

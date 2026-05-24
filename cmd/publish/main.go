@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 
@@ -36,11 +37,10 @@ func main() {
 		},
 	}
 	cmdSnap.Flags().StringVarP(&appDir, "app-dir", "d", ".", "app source directory; -f/-y/-i are resolved relative to it")
-	cmdSnap.Flags().StringVarP(&snapFile, "file", "f", "", "snap file path")
+	cmdSnap.Flags().StringVarP(&snapFile, "file", "f", "", "snap file path (default: <app-dir>/<name>_<version>_<arch>.snap derived from snap.yaml and ./version)")
 	cmdSnap.Flags().StringVarP(&channel, "channel", "c", "", "channel (master | stable | rc | ...)")
 	cmdSnap.Flags().StringVarP(&snapYamlPath, "snap-yaml", "y", "meta/snap.yaml", "path to snap.yaml")
 	cmdSnap.Flags().StringVarP(&iconPath, "icon", "i", "meta/gui/icon.png", "path to icon.png")
-	_ = cmdSnap.MarkFlagRequired("file")
 	_ = cmdSnap.MarkFlagRequired("channel")
 	root.AddCommand(cmdSnap)
 
@@ -59,6 +59,39 @@ func resolveAppPath(appDir, path string) string {
 	return filepath.Join(appDir, path)
 }
 
+func debArch(goArch string) string {
+	if goArch == "arm" {
+		return "armhf"
+	}
+	return goArch
+}
+
+func snapNameFromYaml(data []byte) (string, error) {
+	for _, line := range strings.Split(string(data), "\n") {
+		if strings.HasPrefix(line, "name:") {
+			n := strings.TrimSpace(strings.TrimPrefix(line, "name:"))
+			return strings.Trim(n, `"'`), nil
+		}
+	}
+	return "", fmt.Errorf("snap.yaml missing top-level name field")
+}
+
+func deriveSnapFile(appDir string, snapYaml []byte) (string, error) {
+	name, err := snapNameFromYaml(snapYaml)
+	if err != nil {
+		return "", err
+	}
+	versionRaw, err := os.ReadFile(filepath.Join(appDir, "version"))
+	if err != nil {
+		return "", fmt.Errorf("read version: %w", err)
+	}
+	version := strings.TrimSpace(string(versionRaw))
+	if version == "" {
+		return "", fmt.Errorf("version file is empty")
+	}
+	return filepath.Join(appDir, fmt.Sprintf("%s_%s_%s.snap", name, version, debArch(runtime.GOARCH))), nil
+}
+
 func parseSnapName(path string) (name, version, arch string, err error) {
 	base := filepath.Base(path)
 	m := snapNameRe.FindStringSubmatch(base)
@@ -71,11 +104,25 @@ func parseSnapName(path string) (name, version, arch string, err error) {
 }
 
 func runPublish(storeUrl, appDir, snapFile, channel, snapYamlPath, iconPath string) error {
-	snapFile = resolveAppPath(appDir, snapFile)
 	snapYamlPath = resolveAppPath(appDir, snapYamlPath)
 	iconPath = resolveAppPath(appDir, iconPath)
+	snapYaml, err := os.ReadFile(snapYamlPath)
+	if err != nil {
+		return fmt.Errorf("read snap.yaml: %w", err)
+	}
+	if snapFile == "" {
+		snapFile, err = deriveSnapFile(appDir, snapYaml)
+		if err != nil {
+			return err
+		}
+	} else {
+		snapFile = resolveAppPath(appDir, snapFile)
+	}
 	name, version, arch, err := parseSnapName(snapFile)
 	if err != nil {
+		return err
+	}
+	if err := validateSnapYamlMatches(snapYaml, name); err != nil {
 		return err
 	}
 	st, err := os.Stat(snapFile)
@@ -87,14 +134,6 @@ func runPublish(storeUrl, appDir, snapFile, channel, snapYamlPath, iconPath stri
 	sha384, _, err := crypto.SnapFileSHA3_384(snapFile)
 	if err != nil {
 		return fmt.Errorf("sha3-384: %w", err)
-	}
-
-	snapYaml, err := os.ReadFile(snapYamlPath)
-	if err != nil {
-		return fmt.Errorf("read snap.yaml: %w", err)
-	}
-	if err := validateSnapYamlMatches(snapYaml, name); err != nil {
-		return err
 	}
 
 	var iconB64 string
