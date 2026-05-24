@@ -302,24 +302,13 @@ local publisherManifest = {
     trigger: { event: ["push", "tag"] },
     steps: [
         {
-            name: "manifest version",
+            name: "manifest",
             image: "plugins/manifest:1.4",
             settings: {
                 username: { from_secret: "DOCKER_USERNAME" },
                 password: { from_secret: "DOCKER_PASSWORD" },
                 target: publisher_image + ":${DRONE_BRANCH}-${DRONE_BUILD_NUMBER}",
                 template: publisher_image + ":${DRONE_BRANCH}-${DRONE_BUILD_NUMBER}-ARCH",
-                platforms: ["linux/amd64", "linux/arm64", "linux/arm"],
-            },
-        },
-        {
-            name: "manifest branch",
-            image: "plugins/manifest:1.4",
-            settings: {
-                username: { from_secret: "DOCKER_USERNAME" },
-                password: { from_secret: "DOCKER_PASSWORD" },
-                target: publisher_image + ":${DRONE_BRANCH}",
-                template: publisher_image + ":" + version + "-ARCH",
                 platforms: ["linux/amd64", "linux/arm64", "linux/arm"],
             },
         },
