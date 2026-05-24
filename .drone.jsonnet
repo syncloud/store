@@ -193,7 +193,7 @@ local build(arch) = {
             },
             volumes: [{ name: "docker-sock", path: "/var/run/docker.sock" }],
             commands: [
-                "NET=$(docker inspect $(hostname) --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}\\n{{end}}' | grep -m1 drone)",
+                "NET=$(docker inspect $(hostname) --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}\\n{{end}}' | grep -m1 '^drone-')",
                 "echo using network=$NET PWD=$PWD",
                 "docker pull " + release_image + ":" + version,
                 "docker run --rm --network \"$NET\" --volumes-from $(hostname) -e SYNCLOUD_TOKEN -w $PWD " +
