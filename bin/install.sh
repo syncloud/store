@@ -29,7 +29,7 @@ fi
 cat > $STORE_DIR/aws.env <<EOF
 AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-test}
 AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-testtest}
-AWS_S3_ENDPOINT=${AWS_S3_ENDPOINT:-http://minio}
+AWS_S3_ENDPOINT=${AWS_S3_ENDPOINT:-http://s3}
 EOF
 chown -R store:store $STORE_DIR
 
