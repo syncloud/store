@@ -15,13 +15,16 @@ type IconProxy struct {
 
 func NewIconProxy(upstream *url.URL) *IconProxy {
 	rp := httputil.NewSingleHostReverseProxy(upstream)
-	base := rp.Director
 	rp.Director = func(r *http.Request) {
-		base(r)
-		r.Host = upstream.Host
 		rest := strings.TrimPrefix(r.URL.Path, iconRoutePrefix)
+		r.URL.Scheme = upstream.Scheme
+		r.URL.Host = upstream.Host
 		r.URL.Path = strings.TrimSuffix(upstream.Path, "/") + "/v2/apps/" + rest + "/icon.png"
 		r.URL.RawPath = ""
+		r.Host = upstream.Host
+		if _, ok := r.Header["User-Agent"]; !ok {
+			r.Header.Set("User-Agent", "")
+		}
 	}
 	return &IconProxy{proxy: rp}
 }
