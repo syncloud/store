@@ -227,6 +227,15 @@ local build(arch) = {
         ],
     services: if arch == "amd64" then [
         {
+            name: "device",
+            image: "syncloud/bootstrap-bookworm-amd64:" + platform,
+            privileged: true,
+            volumes: [
+                { name: "dbus", path: "/var/run/dbus" },
+                { name: "dev", path: "/dev" },
+            ],
+        },
+        {
             name: "api.store.test",
             image: "syncloud/bootstrap-bookworm-amd64:" + platform,
             privileged: true,
