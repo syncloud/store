@@ -20,7 +20,7 @@ import (
 const (
 	S3Endpoint = "http://s3"
 	MinioAccess   = "GK31c4cef60f8f78b1bf12cd71"
-	MinioSecret   = "testtest"
+	MinioSecret   = "b8a31bf6c5d4e7a9f2b3c1d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8"
 	Bucket        = "test"
 )
 
