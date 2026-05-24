@@ -3,7 +3,7 @@
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
 for i in $(seq 60); do
-    mc alias set local http://minio test testtest 2>/dev/null && break
+    mc alias set local http://s3 test testtest 2>/dev/null && break
     sleep 1
 done
 

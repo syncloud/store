@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	MinioEndpoint = "http://minio"
+	S3Endpoint = "http://s3"
 	MinioAccess   = "test"
 	MinioSecret   = "testtest"
 	Bucket        = "test"
@@ -333,24 +333,24 @@ func Ssh(host string, command string) (string, error) {
 	return result, err
 }
 
-var minioSvc *s3.S3
+var s3svc *s3.S3
 
-func minio() *s3.S3 {
-	if minioSvc != nil {
-		return minioSvc
+func s3client() *s3.S3 {
+	if s3svc != nil {
+		return s3svc
 	}
 	sess := session.Must(session.NewSession(&aws.Config{
-		Endpoint:         aws.String(MinioEndpoint),
+		Endpoint:         aws.String(S3Endpoint),
 		Region:           aws.String("us-east-1"),
 		Credentials:      credentials.NewStaticCredentials(MinioAccess, MinioSecret, ""),
 		S3ForcePathStyle: aws.Bool(true),
 	}))
-	minioSvc = s3.New(sess)
-	return minioSvc
+	s3svc = s3.New(sess)
+	return s3svc
 }
 
 func SetVersion(app, arch, version, channel string) error {
-	_, err := minio().PutObject(&s3.PutObjectInput{
+	_, err := s3client().PutObject(&s3.PutObjectInput{
 		Bucket: aws.String(Bucket),
 		Key:    aws.String(fmt.Sprintf("releases/%s/%s.%s.version", channel, app, arch)),
 		Body:   strings.NewReader(version),

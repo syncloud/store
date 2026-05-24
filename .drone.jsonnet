@@ -40,6 +40,13 @@ local build(arch) = {
                 "-search.latencyOffset=0s",
             ],
         },
+        {
+            name: "s3",
+            image: "dxflrs/garage:v1.0.1",
+            detach: true,
+            entrypoint: ["sh"],
+            command: ["test/garage-start.sh"],
+        },
     ] + (if arch == "amd64" then [
         {
             name: "web build",
@@ -73,7 +80,7 @@ local build(arch) = {
             ]
         },
         {
-            name: "seed minio",
+            name: "seed s3",
             image: "debian:" + debian,
             commands: [
               "apt update && apt install -y wget openssl ca-certificates",
@@ -158,7 +165,7 @@ local build(arch) = {
                 DEPLOY_URL: "http://api.store.test",
                 AWS_ACCESS_KEY_ID: "test",
                 AWS_SECRET_ACCESS_KEY: "testtest",
-                AWS_S3_ENDPOINT: "http://minio",
+                AWS_S3_ENDPOINT: "http://s3",
             },
             commands: [
                 "./ci/test-init.sh",
@@ -311,48 +318,6 @@ local build(arch) = {
                     path: "/dev"
                 }
             ]
-        },
-        {
-            name: "minio",
-            image: "dxflrs/garage:v1.0.1",
-            entrypoint: ["sh", "-c"],
-            command: [|||
-                set -e
-                cat > /etc/garage.toml <<'CFG'
-                metadata_dir = "/tmp/meta"
-                data_dir = "/tmp/data"
-                db_engine = "lmdb"
-                replication_mode = "none"
-                rpc_bind_addr = "[::]:3901"
-                rpc_public_addr = "127.0.0.1:3901"
-                rpc_secret = "1799ff75e85715cd0bd91e09f2a9d70b1799ff75e85715cd0bd91e09f2a9d70b"
-                [s3_api]
-                s3_region = "garage"
-                api_bind_addr = "[::]:80"
-                root_domain = ".s3.garage"
-                [s3_web]
-                bind_addr = "[::]:3902"
-                root_domain = ".web.garage"
-                index = "index.html"
-                [admin]
-                api_bind_addr = "[::]:3903"
-                admin_token = "test-admin-token"
-                CFG
-                /garage server &
-                GARAGE_PID=$!
-                for i in $(seq 60); do
-                    /garage status >/dev/null 2>&1 && break
-                    sleep 1
-                done
-                NODE=$(/garage status | awk '/NO ROLE/ {print $1; exit}')
-                /garage layout assign -z dc1 -c 1G "$NODE"
-                /garage layout apply --version 1
-                /garage bucket create test
-                /garage key import --yes -n test test testtest
-                /garage bucket allow --read --write --owner test --key test
-                /garage bucket website --allow test
-                wait $GARAGE_PID
-            |||],
         },
         {
             name: "grafana",
