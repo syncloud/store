@@ -17,4 +17,5 @@ $SSH $REMOTE \
         AWS_ACCESS_KEY_ID='${AWS_ACCESS_KEY_ID:-}' \
         AWS_SECRET_ACCESS_KEY='${AWS_SECRET_ACCESS_KEY:-}' \
         AWS_S3_ENDPOINT='${AWS_S3_ENDPOINT:-}' \
+        AWS_REGION='${AWS_REGION:-}' \
         bash /tmp/syncloud-store/deploy/deploy.sh $TAG $ENV"

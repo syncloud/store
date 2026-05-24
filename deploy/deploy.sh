@@ -52,6 +52,7 @@ docker run -d \
     -e AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-}" \
     -e AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-}" \
     -e AWS_S3_ENDPOINT="${AWS_S3_ENDPOINT:-}" \
+    -e AWS_REGION="${AWS_REGION:-us-west-2}" \
     "$TAG"
 
 for i in $(seq 1 30); do
