@@ -27,7 +27,7 @@ if [ ! -f "$STORE_DIR/secret.yaml" ]; then
   cp ${CURRENT}/config/test/secret.yaml $STORE_DIR/secret.yaml
 fi
 cat > $STORE_DIR/aws.env <<EOF
-AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-test}
+AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-GK31c4cef60f8f78b1bf12cd71}
 AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-testtest}
 AWS_S3_ENDPOINT=${AWS_S3_ENDPOINT:-http://s3}
 EOF

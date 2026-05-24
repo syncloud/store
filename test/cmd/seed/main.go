@@ -20,7 +20,7 @@ import (
 const (
 	endpoint = "http://s3"
 	bucket   = "test"
-	key      = "test"
+	key      = "GK31c4cef60f8f78b1bf12cd71"
 	secret   = "testtest"
 )
 

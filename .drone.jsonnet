@@ -166,7 +166,7 @@ local build(arch) = {
                 DEPLOY_HOST: "api.store.test",
                 DEPLOY_USER: "root",
                 DEPLOY_URL: "http://api.store.test",
-                AWS_ACCESS_KEY_ID: "test",
+                AWS_ACCESS_KEY_ID: "GK31c4cef60f8f78b1bf12cd71",
                 AWS_SECRET_ACCESS_KEY: "testtest",
                 AWS_S3_ENDPOINT: "http://s3",
             },
@@ -351,7 +351,7 @@ local build(arch) = {
                 "garage layout assign -z dc1 -c 1G \"$NODE\"; " +
                 "garage layout apply --version 1; " +
                 "garage bucket create test; " +
-                "garage key import --yes -n test test testtest; " +
+                "garage key import --yes -n test GK31c4cef60f8f78b1bf12cd71 testtest; " +
                 "garage bucket allow --read --write --owner test --key test; " +
                 "garage bucket website --allow test; " +
                 "echo garage init complete; " +
