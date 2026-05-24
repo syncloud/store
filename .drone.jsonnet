@@ -194,8 +194,8 @@ local build(arch) = {
                     DEPLOY_KEY: { from_secret: "uat_deploy_key" },
                     DEPLOY_URL: { from_secret: "uat_deploy_url" },
                     SYNCLOUD_TOKEN: { from_secret: "uat_token" },
-                    AWS_ACCESS_KEY_ID: { from_secret: "aws_access_key_id" },
-                    AWS_SECRET_ACCESS_KEY: { from_secret: "aws_secret_access_key" },
+                    AWS_ACCESS_KEY_ID: { from_secret: "AWS_ACCESS_KEY_ID" },
+                    AWS_SECRET_ACCESS_KEY: { from_secret: "AWS_SECRET_ACCESS_KEY" },
                 },
                 commands: [
                     "./ci/deploy-prepare.sh uat",
@@ -213,8 +213,8 @@ local build(arch) = {
                     DEPLOY_KEY: { from_secret: "prod_deploy_key" },
                     DEPLOY_URL: { from_secret: "prod_deploy_url" },
                     SYNCLOUD_TOKEN: { from_secret: "prod_token" },
-                    AWS_ACCESS_KEY_ID: { from_secret: "aws_access_key_id" },
-                    AWS_SECRET_ACCESS_KEY: { from_secret: "aws_secret_access_key" },
+                    AWS_ACCESS_KEY_ID: { from_secret: "AWS_ACCESS_KEY_ID" },
+                    AWS_SECRET_ACCESS_KEY: { from_secret: "AWS_SECRET_ACCESS_KEY" },
                 },
                 commands: [
                     "./ci/deploy-prepare.sh prod",
