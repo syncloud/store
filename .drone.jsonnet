@@ -75,7 +75,7 @@ local build(arch) = {
             },
             {
                 name: "docker push publisher",
-                image: "plugins/docker:20.18",
+                image: "plugins/docker:20.13",
                 settings: {
                     repo: publisher_image,
                     dockerfile: "Dockerfile.store-publisher",
@@ -97,7 +97,7 @@ local build(arch) = {
             },
             {
                 name: "docker",
-                image: "plugins/docker:20.18",
+                image: "plugins/docker:20.13",
                 settings: {
                     repo: docker_image,
                     username: { from_secret: "DOCKER_USERNAME" },
@@ -162,7 +162,7 @@ local build(arch) = {
             },
             {
                 name: "docker latest",
-                image: "plugins/docker:20.18",
+                image: "plugins/docker:20.13",
                 settings: {
                     repo: docker_image,
                     username: { from_secret: "DOCKER_USERNAME" },
