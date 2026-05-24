@@ -113,6 +113,7 @@ local build(arch) = {
                     DEPLOY_HOST: "api.store.test",
                     DEPLOY_USER: "root",
                     DEPLOY_URL: "http://api.store.test",
+                    SYNCLOUD_TOKEN: "test",
                 },
                 commands: [
                     "./ci/test-init.sh",

@@ -34,21 +34,41 @@ fail_with_logs() {
     exit 1
 }
 
-apps_body=""
-for i in $(seq 1 150); do
-    apps_body=$(curl -fsS "${DEPLOY_URL}/api/ui/v1/apps?channel=stable" 2>/dev/null || echo "")
-    n=$(echo "$apps_body" | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))' 2>/dev/null || echo 0)
-    if [ "$n" -gt 0 ]; then
-        echo "apps OK ($n apps)"
-        break
-    fi
+# Wait for the store to come up
+for i in $(seq 1 60); do
+    ver_code=$(curl -k -s -o /dev/null -w "%{http_code}" "${DEPLOY_URL}/api/ui/v1/version" || echo 000)
+    if [ "$ver_code" = "200" ]; then break; fi
     sleep 2
 done
+[ "$ver_code" = "200" ] || fail_with_logs "/api/ui/v1/version did not return 200: $ver_code"
+echo "version endpoint OK ($ver_code)"
+
+# Force a cache refresh — this validates both the token and AWS S3
+# credentials end-to-end. 401 = token wrong; 500 = S3 ListObjects
+# failed (creds wrong or endpoint unreachable); 200 = both work.
+set +x
+refresh_body=$(curl -k -s -w "\n%{http_code}" -X POST "${DEPLOY_URL}/syncloud/v1/cache/refresh" \
+    -H "Content-Type: application/json" \
+    --data "{\"token\":\"${SYNCLOUD_TOKEN}\"}" \
+    --max-time 300)
+set -x
+refresh_code=$(echo "$refresh_body" | tail -n1)
+if [ "$refresh_code" != "200" ]; then
+    echo "cache refresh response:" >&2
+    echo "$refresh_body" | head -n-1 >&2
+    fail_with_logs "/syncloud/v1/cache/refresh returned $refresh_code (token or aws creds wrong?)"
+fi
+echo "cache refresh OK ($refresh_code) — token and aws creds validated"
+
+# Cache is now populated; the apps + find checks should be immediate.
+apps_body=$(curl -fsS "${DEPLOY_URL}/api/ui/v1/apps?channel=stable" 2>/dev/null || echo "")
+n=$(echo "$apps_body" | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))' 2>/dev/null || echo 0)
 if [ "${n:-0}" -eq 0 ]; then
     echo "last apps response body:" >&2
     echo "$apps_body" >&2
     fail_with_logs "store did not populate index"
 fi
+echo "apps OK ($n apps)"
 
 find_results=$(curl -fsS "${DEPLOY_URL}/v2/snaps/find?architecture=amd64&channel=stable" \
     | python3 -c 'import json,sys; d=json.load(sys.stdin); print(len(d.get("results",[])))' || echo 0)
@@ -58,7 +78,3 @@ echo "snaps/find OK ($find_results results)"
 web_code=$(curl -k -s -o /dev/null -w "%{http_code}" "${DEPLOY_URL}/")
 [ "$web_code" = "200" ] || fail_with_logs "web UI / did not return 200: $web_code"
 echo "web UI OK ($web_code)"
-
-ver_code=$(curl -k -s -o /dev/null -w "%{http_code}" "${DEPLOY_URL}/api/ui/v1/version")
-[ "$ver_code" = "200" ] || fail_with_logs "/api/ui/v1/version did not return 200: $ver_code"
-echo "version endpoint OK ($ver_code)"
