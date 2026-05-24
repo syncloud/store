@@ -3,7 +3,6 @@ package test
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"os/exec"
 	"strings"
 	"testing"
@@ -24,25 +23,6 @@ const (
 	MinioSecret   = "b8a31bf6c5d4e7a9f2b3c1d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8"
 	Bucket        = "apps"
 )
-
-func TestPrepareStore(t *testing.T) {
-	output, err := Ssh("api.store.test", "apt update")
-	assert.NoError(t, err, output)
-	output, err = Ssh("api.store.test", "apt install -y apache2 docker.io")
-	assert.NoError(t, err, output)
-
-	deployCmd := fmt.Sprintf(
-		"AWS_ACCESS_KEY_ID=%s AWS_SECRET_ACCESS_KEY=%s AWS_S3_ENDPOINT=%s AWS_REGION=%s "+
-			"bash /tmp/syncloud-store/deploy/deploy.sh %s test",
-		os.Getenv("AWS_ACCESS_KEY_ID"),
-		os.Getenv("AWS_SECRET_ACCESS_KEY"),
-		os.Getenv("AWS_S3_ENDPOINT"),
-		os.Getenv("AWS_REGION"),
-		os.Getenv("DOCKER_IMAGE"),
-	)
-	output, err = Ssh("api.store.test", deployCmd)
-	assert.NoError(t, err, output)
-}
 
 func TestUnknown(t *testing.T) {
 	output, err := InstallSnapd("/install-snapd-v2.sh /snapd2.tar.gz")

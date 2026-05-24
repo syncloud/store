@@ -107,17 +107,28 @@ local build(arch) = {
                 when: { event: ["push", "tag"] },
             },
             {
-                name: "test",
+                name: "deploy test",
                 image: "debian:" + debian,
                 environment: {
                     DEPLOY_HOST: "api.store.test",
                     DEPLOY_USER: "root",
-                    DOCKER_IMAGE: image_tag,
+                    DEPLOY_URL: "http://api.store.test",
                     AWS_ACCESS_KEY_ID: "GK31c4cef60f8f78b1bf12cd71",
                     AWS_SECRET_ACCESS_KEY: "b8a31bf6c5d4e7a9f2b3c1d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8",
                     AWS_S3_ENDPOINT: "http://apps",
                     AWS_REGION: "garage",
                 },
+                commands: [
+                    "./ci/test-init.sh",
+                    "./ci/deploy-prepare.sh test",
+                    "./ci/deploy-run.sh test " + image_tag,
+                    "./ci/deploy-verify.sh test",
+                ],
+                when: { event: ["push", "tag"] },
+            },
+            {
+                name: "test",
+                image: "debian:" + debian,
                 commands: ["./test/test.sh"],
             },
             {

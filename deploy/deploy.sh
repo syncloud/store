@@ -18,9 +18,9 @@ CONTAINER=syncloud-store
 STORE_DIR=/var/www/store
 APACHE_SITE=/etc/apache2/sites-available/store.conf
 
-if ! command -v docker >/dev/null 2>&1; then
+if ! command -v docker >/dev/null 2>&1 || ! command -v apache2 >/dev/null 2>&1; then
     apt-get update
-    apt-get install -y docker.io
+    apt-get install -y docker.io apache2
 fi
 
 if ! id -u store >/dev/null 2>&1; then

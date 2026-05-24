@@ -3,7 +3,7 @@
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
 apt update
-apt install -y sshpass curl wget openssh-client
+apt install -y sshpass curl wget
 
 SCP="sshpass -p syncloud scp -o StrictHostKeyChecking=no"
 SSH="sshpass -p syncloud ssh -o StrictHostKeyChecking=no"
@@ -14,15 +14,6 @@ mkdir -p $LOG_DIR
 
 cd $DIR
 ./wait-for-device.sh device
-./wait-for-device.sh api.store.test
-for i in $(seq 60); do
-    curl -s -o /dev/null --max-time 2 http://apps/ && break
-    sleep 1
-done
-
-$SSH root@api.store.test "rm -rf /tmp/syncloud-store && mkdir -p /tmp/syncloud-store/config"
-$SCP -r ${DIR}/../deploy root@api.store.test:/tmp/syncloud-store/
-$SCP -r ${DIR}/../config/test root@api.store.test:/tmp/syncloud-store/config/
 
 wget --progress=dot:giga https://github.com/syncloud/snapd/releases/download/syncloud-5/snapd-640-${SNAP_ARCH}.tar.gz -O snapd2.tar.gz
 $SCP snapd2.tar.gz root@device:/
@@ -34,12 +25,6 @@ set +e
 ${DIR}/test -test.failfast
 code=$(($code+$?))
 set -e
-
-if [ $code -eq 0 ]; then
-    DEPLOY_URL="http://api.store.test" DEPLOY_HOST=api.store.test DEPLOY_USER=root \
-        SSH_PASSWORD=syncloud ${DIR}/../ci/deploy-verify.sh test
-    code=$?
-fi
 
 $SSH root@device snap changes > $LOG_DIR/snap.changes.log 2>&1 || true
 $SSH root@device journalctl > $LOG_DIR/journalctl.device.log 2>&1 || true
