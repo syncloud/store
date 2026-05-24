@@ -80,20 +80,17 @@ local build(arch) = {
             ]
         },
         {
-            name: "seed s3",
-            image: "debian:" + debian,
-            commands: [
-              "apt update && apt install -y wget openssl ca-certificates",
-              "wget -q https://dl.min.io/client/mc/release/linux-" + arch + "/mc -O /usr/local/bin/mc",
-              "chmod +x /usr/local/bin/mc",
-              "bash test/seed.sh",
-            ]
-        },
-        {
             name: "build test",
             image: "golang:" + go,
             commands: [
               "./test/build-tests.sh",
+            ]
+        },
+        {
+            name: "seed s3",
+            image: "debian:" + debian,
+            commands: [
+              "./test/seed",
             ]
         },
         {
