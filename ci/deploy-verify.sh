@@ -34,17 +34,21 @@ fail_with_logs() {
     exit 1
 }
 
+apps_body=""
 for i in $(seq 1 60); do
-    n=$(curl -fsS "${DEPLOY_URL}/api/ui/v1/apps?channel=stable" 2>/dev/null \
-        | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))' 2>/dev/null \
-        || echo 0)
+    apps_body=$(curl -fsS "${DEPLOY_URL}/api/ui/v1/apps?channel=stable" 2>/dev/null || echo "")
+    n=$(echo "$apps_body" | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))' 2>/dev/null || echo 0)
     if [ "$n" -gt 0 ]; then
         echo "apps OK ($n apps)"
         break
     fi
     sleep 2
 done
-[ "${n:-0}" -gt 0 ] || fail_with_logs "store did not populate index"
+if [ "${n:-0}" -eq 0 ]; then
+    echo "last apps response body:" >&2
+    echo "$apps_body" >&2
+    fail_with_logs "store did not populate index"
+fi
 
 find_results=$(curl -fsS "${DEPLOY_URL}/v2/snaps/find?architecture=amd64&channel=stable" \
     | python3 -c 'import json,sys; d=json.load(sys.stdin); print(len(d.get("results",[])))' || echo 0)
