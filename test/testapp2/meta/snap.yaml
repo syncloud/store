@@ -3,7 +3,7 @@ apps:
     command: bin/test.sh
 
 confinement: strict
-description: Test app 2
+description: Test App 2
 grade: stable
 name: testapp2
-summary: Test app 2
+summary: Test App 2
