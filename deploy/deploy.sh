@@ -16,19 +16,11 @@ if [ ! -f "$APACHE_SRC" ]; then
 fi
 CONTAINER=syncloud-store
 STORE_DIR=/var/www/store
-SERVICE=syncloud-store.service
 APACHE_SITE=/etc/apache2/sites-available/store.conf
 
 if ! command -v docker >/dev/null 2>&1; then
     apt-get update
     apt-get install -y docker.io
-fi
-
-if systemctl is-active --quiet "$SERVICE"; then
-    systemctl stop "$SERVICE"
-fi
-if systemctl is-enabled --quiet "$SERVICE" 2>/dev/null; then
-    systemctl disable "$SERVICE"
 fi
 
 if ! id -u store >/dev/null 2>&1; then
