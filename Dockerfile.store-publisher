@@ -1,12 +1,3 @@
-FROM golang:1.23-bookworm AS builder
-WORKDIR /src
-COPY go.mod go.sum ./
-RUN go mod download
-COPY . .
-ARG TARGETOS TARGETARCH
-RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
-    go build -trimpath -ldflags '-s -w' -o /out/publish ./cmd/publish
-
 FROM gcr.io/distroless/static-debian12
-COPY --from=builder /out/publish /usr/local/bin/publish
+COPY build/bin/publish /usr/local/bin/publish
 ENTRYPOINT ["/usr/local/bin/publish"]

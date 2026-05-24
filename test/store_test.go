@@ -3,6 +3,7 @@ package test
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 	"testing"
@@ -27,10 +28,19 @@ const (
 func TestPrepareStore(t *testing.T) {
 	output, err := Ssh("api.store.test", "apt update")
 	assert.NoError(t, err, output)
-	output, err = Ssh("api.store.test", "apt install -y apache2")
+	output, err = Ssh("api.store.test", "apt install -y apache2 docker.io")
 	assert.NoError(t, err, output)
 
-	output, err = Ssh("api.store.test", "/install.sh /store.tar.gz 1 test")
+	deployCmd := fmt.Sprintf(
+		"AWS_ACCESS_KEY_ID=%s AWS_SECRET_ACCESS_KEY=%s AWS_S3_ENDPOINT=%s AWS_REGION=%s "+
+			"bash /tmp/syncloud-store/deploy/deploy.sh %s test",
+		os.Getenv("AWS_ACCESS_KEY_ID"),
+		os.Getenv("AWS_SECRET_ACCESS_KEY"),
+		os.Getenv("AWS_S3_ENDPOINT"),
+		os.Getenv("AWS_REGION"),
+		os.Getenv("DOCKER_IMAGE"),
+	)
+	output, err = Ssh("api.store.test", deployCmd)
 	assert.NoError(t, err, output)
 }
 
