@@ -72,7 +72,6 @@ local build(arch) = {
               "./test/build-apps.sh",
             ]
         },
-    ] + (if arch != "arm" then [
         {
             name: "seed minio",
             image: "debian:" + debian,
@@ -98,7 +97,6 @@ local build(arch) = {
               "./test/test.sh"
             ]
         },
-    ] else []) + [
         {
             name: "grafana provision",
             image: "debian:" + debian,
@@ -314,17 +312,48 @@ local build(arch) = {
                 }
             ]
         },
-    ] + (if arch != "arm" then [
         {
             name: "minio",
-            image: "minio/minio:RELEASE.2024-12-18T13-15-44Z",
-            command: ["server", "--address", ":80", "/data"],
-            environment: {
-                MINIO_ROOT_USER: "test",
-                MINIO_ROOT_PASSWORD: "testtest",
-            },
+            image: "dxflrs/garage:v1.0.1",
+            entrypoint: ["sh", "-c"],
+            command: [|||
+                set -e
+                cat > /etc/garage.toml <<'CFG'
+                metadata_dir = "/tmp/meta"
+                data_dir = "/tmp/data"
+                db_engine = "lmdb"
+                replication_mode = "none"
+                rpc_bind_addr = "[::]:3901"
+                rpc_public_addr = "127.0.0.1:3901"
+                rpc_secret = "1799ff75e85715cd0bd91e09f2a9d70b1799ff75e85715cd0bd91e09f2a9d70b"
+                [s3_api]
+                s3_region = "garage"
+                api_bind_addr = "[::]:80"
+                root_domain = ".s3.garage"
+                [s3_web]
+                bind_addr = "[::]:3902"
+                root_domain = ".web.garage"
+                index = "index.html"
+                [admin]
+                api_bind_addr = "[::]:3903"
+                admin_token = "test-admin-token"
+                CFG
+                /garage server &
+                GARAGE_PID=$!
+                for i in $(seq 60); do
+                    /garage status >/dev/null 2>&1 && break
+                    sleep 1
+                done
+                NODE=$(/garage status | awk '/NO ROLE/ {print $1; exit}')
+                /garage layout assign -z dc1 -c 1G "$NODE"
+                /garage layout apply --version 1
+                /garage bucket create test
+                /garage key import --yes -n test test testtest
+                /garage bucket allow --read --write --owner test --key test
+                /garage bucket website --allow test
+                wait $GARAGE_PID
+            |||],
         },
-    ] else []) + [
         {
             name: "grafana",
             image: "grafana/grafana:11.3.0",
