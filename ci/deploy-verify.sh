@@ -7,7 +7,7 @@ if [ "$#" -ne 1 ]; then
 fi
 ENV=$1
 
-if ! command -v curl >/dev/null; then
+if ! command -v curl >/dev/null || ! command -v python3 >/dev/null; then
     apt-get update
     apt-get install -y curl python3
 fi
