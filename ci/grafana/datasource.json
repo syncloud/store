@@ -1,8 +1,8 @@
 {
-  "uid": "vm",
-  "name": "vm",
+  "uid": "victoria-metrics",
+  "name": "victoria-metrics",
   "type": "prometheus",
   "access": "proxy",
-  "url": "http://vm:8428",
+  "url": "http://victoria-metrics:8428",
   "isDefault": true
 }

@@ -29,7 +29,7 @@
       "type": "table",
       "title": "Actions by app",
       "gridPos": { "x": 0, "y": 0, "w": 24, "h": 12 },
-      "datasource": { "type": "prometheus", "uid": "vm" },
+      "datasource": { "type": "prometheus", "uid": "victoria-metrics" },
       "targets": [
         { "expr": "sum by (snap, action) (increase(store_snapd_request_total{env=\"$env\",snap!=\"\"}[$__range]))", "refId": "A", "format": "table", "instant": true }
       ],
@@ -63,7 +63,7 @@
       "type": "timeseries",
       "title": "Snapd request rate (per minute, by action)",
       "gridPos": { "x": 0, "y": 12, "w": 24, "h": 10 },
-      "datasource": { "type": "prometheus", "uid": "vm" },
+      "datasource": { "type": "prometheus", "uid": "victoria-metrics" },
       "targets": [
         { "expr": "sum by (action) (rate(store_snapd_request_total{env=\"$env\"}[1m])) * 60", "refId": "A", "legendFormat": "{{action}}" }
       ],
@@ -81,7 +81,7 @@
       "type": "bargauge",
       "title": "Refresh requests per arch (last 24h)",
       "gridPos": { "x": 0, "y": 22, "w": 12, "h": 4 },
-      "datasource": { "type": "prometheus", "uid": "vm" },
+      "datasource": { "type": "prometheus", "uid": "victoria-metrics" },
       "targets": [
         { "expr": "sum by (arch) (increase(store_snapd_request_total{action=\"refresh\",env=\"$env\"}[24h]))", "refId": "A", "legendFormat": "{{arch}}", "instant": true }
       ],
@@ -99,7 +99,7 @@
       "type": "bargauge",
       "title": "Requests per status (last 24h)",
       "gridPos": { "x": 12, "y": 22, "w": 12, "h": 4 },
-      "datasource": { "type": "prometheus", "uid": "vm" },
+      "datasource": { "type": "prometheus", "uid": "victoria-metrics" },
       "targets": [
         { "expr": "sum by (status) (increase(store_snapd_request_total{env=\"$env\"}[24h]))", "refId": "A", "legendFormat": "{{status}}", "instant": true }
       ],

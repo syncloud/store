@@ -23,7 +23,7 @@ local build(arch) = {
             },
         ] + (if arch == "amd64" then [
             {
-                name: "vm",
+                name: "victoria-metrics",
                 image: "victoriametrics/victoria-metrics:v1.110.0",
                 detach: true,
                 command: [
@@ -96,7 +96,7 @@ local build(arch) = {
                 commands: ["./ci/seed.sh"],
             },
             {
-                name: "docker",
+                name: "docker push store",
                 image: "plugins/docker:20.13",
                 settings: {
                     repo: docker_image,
@@ -167,7 +167,7 @@ local build(arch) = {
                 when: { event: ["push", "tag"] },
             },
             {
-                name: "docker latest",
+                name: "docker push store latest",
                 image: "plugins/docker:20.13",
                 settings: {
                     repo: docker_image,
