@@ -193,9 +193,10 @@ local build(arch) = {
             },
             volumes: [{ name: "docker-sock", path: "/var/run/docker.sock" }],
             commands: [
-                "NET=$(docker inspect $(hostname) --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}' | awk '{print $1}')",
+                "NET=$(docker inspect $(hostname) --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}\\n{{end}}' | grep -m1 drone)",
+                "echo using network=$NET",
                 "docker pull " + release_image + ":" + version,
-                "docker run --rm --network $NET -e SYNCLOUD_TOKEN -v $PWD/test/testapp1_3_amd64.snap:/snap.snap -v $PWD/test/testapp1/meta/snap.yaml:/snap.yaml -v $PWD/test/images/testapp1.png:/icon.png " +
+                "docker run --rm --network \"$NET\" -e SYNCLOUD_TOKEN -v $PWD/test/testapp1_3_amd64.snap:/snap.snap -v $PWD/test/testapp1/meta/snap.yaml:/snap.yaml -v $PWD/test/images/testapp1.png:/icon.png " +
                   release_image + ":" + version + " snap -f /snap.snap -c stable -s http://api.store.test -y /snap.yaml -i /icon.png",
                 "curl -fsS 'http://api.store.test/api/ui/v1/apps?channel=stable' | grep -q testapp1",
             ],
