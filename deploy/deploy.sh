@@ -33,13 +33,11 @@ mkdir -p "$STORE_DIR"
 chown "$STORE_UID:$STORE_GID" "$STORE_DIR"
 
 SECRET_SRC="$DIR/../config/$ENV/secret.yaml"
-if [ -f "$SECRET_SRC" ] && [ ! -f "$STORE_DIR/secret.yaml" ]; then
-    install -m 0640 -o "$STORE_UID" -g "$STORE_GID" "$SECRET_SRC" "$STORE_DIR/secret.yaml"
-fi
-if [ ! -f "$STORE_DIR/secret.yaml" ]; then
-    echo "missing $STORE_DIR/secret.yaml (pre-provision it on the target with AWS creds)" >&2
+if [ ! -f "$SECRET_SRC" ]; then
+    echo "missing $SECRET_SRC in deploy package" >&2
     exit 1
 fi
+install -m 0640 -o "$STORE_UID" -g "$STORE_GID" "$SECRET_SRC" "$STORE_DIR/secret.yaml"
 
 docker pull "$TAG"
 docker rm -f "$CONTAINER" 2>/dev/null || true

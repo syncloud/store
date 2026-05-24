@@ -24,6 +24,17 @@ SSH="ssh -i $KEYFILE -o StrictHostKeyChecking=no"
 SCP="scp -i $KEYFILE -o StrictHostKeyChecking=no -r"
 REMOTE="${DEPLOY_USER}@${DEPLOY_HOST}"
 
-$SSH $REMOTE "sudo -n rm -rf /tmp/syncloud-store && mkdir -p /tmp/syncloud-store/config"
+STAGE=$(mktemp -d)
+trap 'rm -rf "$STAGE"' EXIT
+cp -r "config/${ENV}/." "$STAGE/"
+set +x
+sed -i \
+    -e "s|@token@|${SYNCLOUD_TOKEN:-}|g" \
+    -e "s|@aws_access_key_id@|${AWS_ACCESS_KEY_ID:-}|g" \
+    -e "s|@aws_secret_access_key@|${AWS_SECRET_ACCESS_KEY:-}|g" \
+    "$STAGE/secret.yaml"
+set -x
+
+$SSH $REMOTE "sudo -n rm -rf /tmp/syncloud-store && mkdir -p /tmp/syncloud-store/config/${ENV}"
 $SCP deploy "${REMOTE}:/tmp/syncloud-store/"
-$SCP "config/${ENV}" "${REMOTE}:/tmp/syncloud-store/config/"
+$SCP "$STAGE/." "${REMOTE}:/tmp/syncloud-store/config/${ENV}/"
