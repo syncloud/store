@@ -36,6 +36,10 @@ SECRET_SRC="$DIR/../config/$ENV/secret.yaml"
 if [ -f "$SECRET_SRC" ] && [ ! -f "$STORE_DIR/secret.yaml" ]; then
     install -m 0640 -o "$STORE_UID" -g "$STORE_GID" "$SECRET_SRC" "$STORE_DIR/secret.yaml"
 fi
+if [ ! -f "$STORE_DIR/secret.yaml" ]; then
+    echo "missing $STORE_DIR/secret.yaml (pre-provision it on the target with AWS creds)" >&2
+    exit 1
+fi
 
 docker pull "$TAG"
 docker rm -f "$CONTAINER" 2>/dev/null || true
@@ -46,10 +50,6 @@ docker run -d \
     --network host \
     -v "$STORE_DIR:$STORE_DIR" \
     -v /etc/hosts:/etc/hosts:ro \
-    -e AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-}" \
-    -e AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-}" \
-    -e AWS_S3_ENDPOINT="${AWS_S3_ENDPOINT:-}" \
-    -e AWS_REGION="${AWS_REGION:-us-west-2}" \
     "$TAG"
 
 for i in $(seq 1 30); do

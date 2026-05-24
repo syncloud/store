@@ -61,7 +61,12 @@ func start(listenAddress, configPath, metricsAddr string) error {
 	}
 
 	client := rest.New()
-	mp, err := release.NewMultipart(bucket)
+	mp, err := release.NewMultipart(bucket, release.AwsConfig{
+		AccessKeyId:     config.AwsAccessKeyId,
+		SecretAccessKey: config.AwsSecretAccessKey,
+		Endpoint:        config.AwsS3Endpoint,
+		Region:          config.AwsRegion,
+	})
 	if err != nil {
 		return err
 	}

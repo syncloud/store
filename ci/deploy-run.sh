@@ -12,10 +12,4 @@ KEYFILE=/tmp/_deploy_key
 SSH="ssh -i $KEYFILE -o StrictHostKeyChecking=no"
 REMOTE="${DEPLOY_USER}@${DEPLOY_HOST}"
 
-$SSH $REMOTE \
-    "sudo -n env \
-        AWS_ACCESS_KEY_ID='${AWS_ACCESS_KEY_ID:-}' \
-        AWS_SECRET_ACCESS_KEY='${AWS_SECRET_ACCESS_KEY:-}' \
-        AWS_S3_ENDPOINT='${AWS_S3_ENDPOINT:-}' \
-        AWS_REGION='${AWS_REGION:-}' \
-        bash /tmp/syncloud-store/deploy/deploy.sh $TAG $ENV"
+$SSH $REMOTE "sudo -n bash /tmp/syncloud-store/deploy/deploy.sh $TAG $ENV"

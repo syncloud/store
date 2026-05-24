@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 	"time"
 
@@ -15,8 +14,6 @@ import (
 )
 
 const (
-	AwsKey          = "AWS_ACCESS_KEY_ID"
-	AwsSecret       = "AWS_SECRET_ACCESS_KEY"
 	PresignedUrlTTL = 24 * time.Hour
 	DefaultPartSize = 16 * 1024 * 1024
 )
@@ -27,25 +24,30 @@ type Multipart struct {
 	svc    *s3.S3
 }
 
-func NewMultipart(bucket string) (*Multipart, error) {
-	key, ok := os.LookupEnv(AwsKey)
-	if !ok {
-		return nil, fmt.Errorf("%s env variable is not set", AwsKey)
+type AwsConfig struct {
+	AccessKeyId     string
+	SecretAccessKey string
+	Endpoint        string
+	Region          string
+}
+
+func NewMultipart(bucket string, aws_ AwsConfig) (*Multipart, error) {
+	if aws_.AccessKeyId == "" {
+		return nil, fmt.Errorf("aws_access_key_id is not set in secret.yaml")
 	}
-	secret, ok := os.LookupEnv(AwsSecret)
-	if !ok {
-		return nil, fmt.Errorf("%s env variable is not set", AwsSecret)
+	if aws_.SecretAccessKey == "" {
+		return nil, fmt.Errorf("aws_secret_access_key is not set in secret.yaml")
 	}
-	region := os.Getenv("AWS_REGION")
+	region := aws_.Region
 	if region == "" {
 		region = "us-west-2"
 	}
 	cfg := &aws.Config{
-		Credentials: credentials.NewStaticCredentials(key, secret, ""),
+		Credentials: credentials.NewStaticCredentials(aws_.AccessKeyId, aws_.SecretAccessKey, ""),
 		Region:      aws.String(region),
 	}
-	if endpoint, ok := os.LookupEnv("AWS_S3_ENDPOINT"); ok && endpoint != "" {
-		cfg.Endpoint = aws.String(endpoint)
+	if aws_.Endpoint != "" {
+		cfg.Endpoint = aws.String(aws_.Endpoint)
 		cfg.S3ForcePathStyle = aws.Bool(true)
 	}
 	sess, err := session.NewSession(cfg)
