@@ -34,19 +34,21 @@ type Popularity interface {
 }
 
 type SyncloudStore struct {
-	client     rest.Client
-	echo       *echo.Echo
-	address    string
-	baseUrl    string
-	apiCache   ApiCache
-	signer     Signer
-	token      string
-	logger     *zap.Logger
-	web        *Web
-	iconProxy  *IconProxy
-	popularity Popularity
-	metrics    *SnapdMetrics
-	publish    *Publish
+	client       rest.Client
+	echo         *echo.Echo
+	address      string
+	baseUrl      string
+	apiCache     ApiCache
+	signer       Signer
+	token        string
+	logger       *zap.Logger
+	web          *Web
+	iconProxy    *IconProxy
+	popularity   Popularity
+	metrics      *SnapdMetrics
+	snapBinary   *SnapBinaryPublisher
+	snapYaml     *SnapYamlPublisher
+	icon         *IconPublisher
 }
 
 func NewSyncloudStore(
@@ -60,7 +62,9 @@ func NewSyncloudStore(
 	iconProxy *IconProxy,
 	popularity Popularity,
 	metrics *SnapdMetrics,
-	publish *Publish,
+	snapBinary *SnapBinaryPublisher,
+	snapYaml *SnapYamlPublisher,
+	icon *IconPublisher,
 	logger *zap.Logger,
 ) *SyncloudStore {
 	return &SyncloudStore{
@@ -75,7 +79,9 @@ func NewSyncloudStore(
 		iconProxy:  iconProxy,
 		popularity: popularity,
 		metrics:    metrics,
-		publish:    publish,
+		snapBinary: snapBinary,
+		snapYaml:   snapYaml,
+		icon:       icon,
 		logger:     logger,
 	}
 }
@@ -96,9 +102,11 @@ func (s *SyncloudStore) Start() <-chan error {
 	s.echo.GET("/v2/snaps/find", s.Find)
 	s.echo.GET("/v2/snaps/info/:name", s.Info)
 	s.echo.POST("/syncloud/v1/cache/refresh", s.SyncloudCacheRefresh)
-	s.echo.POST("/syncloud/v1/publish/init", s.publish.Init)
-	s.echo.POST("/syncloud/v1/publish/part-url", s.publish.PartUrl)
-	s.echo.POST("/syncloud/v1/publish/finalise", s.publish.Finalise)
+	s.echo.POST("/syncloud/v1/publish/snap/init", s.snapBinary.Init)
+	s.echo.POST("/syncloud/v1/publish/snap/part-url", s.snapBinary.PartUrl)
+	s.echo.POST("/syncloud/v1/publish/snap/finalise", s.snapBinary.Finalise)
+	s.echo.POST("/syncloud/v1/publish/snap-yaml", s.snapYaml.Publish)
+	s.echo.POST("/syncloud/v1/publish/icon", s.icon.Publish)
 	s.echo.GET("/api/ui/v1/apps", s.web.Apps)
 	s.echo.GET("/api/ui/v1/version", s.web.Version)
 	s.echo.GET("/api/ui/v1/icons/*", echo.WrapHandler(s.iconProxy))

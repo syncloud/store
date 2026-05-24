@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -30,40 +31,46 @@ func newFakeMP() *fakeMP { return &fakeMP{objects: map[string][]byte{}} }
 func (f *fakeMP) Create(_ string) (string, error)                { return "upload-1", nil }
 func (f *fakeMP) PresignPart(k, u string, n int) (string, error) { return "https://s3.example/?p=" + u + "&n=" + itoa(n), nil }
 func (f *fakeMP) Complete(_, _ string, parts []*s3.CompletedPart) error {
-	f.mu.Lock(); defer f.mu.Unlock()
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	f.parts = append(f.parts, parts)
 	return nil
 }
-func (f *fakeMP) Abort(_, _ string) error             { return nil }
-func (f *fakeMP) HeadSize(k string) (int64, error)    { return int64(len(f.objects[k])), nil }
+func (f *fakeMP) Abort(_, _ string) error          { return nil }
+func (f *fakeMP) HeadSize(k string) (int64, error) { return int64(len(f.objects[k])), nil }
 func (f *fakeMP) Put(k string, b []byte, _ string) error {
-	f.mu.Lock(); defer f.mu.Unlock()
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	f.objects[k] = b
 	return nil
 }
 func (f *fakeMP) Get(k string) ([]byte, error) {
-	if f.getErr != nil { return nil, f.getErr }
+	if f.getErr != nil {
+		return nil, f.getErr
+	}
 	b, ok := f.objects[k]
-	if !ok { return nil, errors.New("nosuchkey") }
+	if !ok {
+		return nil, errors.New("nosuchkey")
+	}
 	return b, nil
 }
 
 func itoa(i int) string {
 	const d = "0123456789"
-	if i == 0 { return "0" }
+	if i == 0 {
+		return "0"
+	}
 	s := ""
-	for i > 0 { s = string(d[i%10]) + s; i /= 10 }
+	for i > 0 {
+		s = string(d[i%10]) + s
+		i /= 10
+	}
 	return s
 }
 
 type fakeCache struct{ refreshed bool }
-func (f *fakeCache) Refresh() error { f.refreshed = true; return nil }
 
-func newHandler(t *testing.T, mp MultipartStore) (*Publish, *fakeCache) {
-	c := &fakeCache{}
-	p := NewPublish(mp, c, "secret", zap.NewNop())
-	return p, c
-}
+func (f *fakeCache) Refresh() error { f.refreshed = true; return nil }
 
 func postJSON(t *testing.T, h echo.HandlerFunc, body interface{}) (*httptest.ResponseRecorder, error) {
 	b, _ := json.Marshal(body)
@@ -76,9 +83,9 @@ func postJSON(t *testing.T, h echo.HandlerFunc, body interface{}) (*httptest.Res
 	return rec, err
 }
 
-func TestPublishInit_AuthAndPartCount(t *testing.T) {
+func TestSnapBinaryInit_AuthAndPartCount(t *testing.T) {
 	mp := newFakeMP()
-	p, _ := newHandler(t, mp)
+	p := NewSnapBinaryPublisher(mp, &fakeCache{}, "secret", zap.NewNop())
 
 	rec, _ := postJSON(t, p.Init, model.PublishInitRequest{Token: "wrong"})
 	assert.Equal(t, http.StatusUnauthorized, rec.Code)
@@ -96,54 +103,80 @@ func TestPublishInit_AuthAndPartCount(t *testing.T) {
 	assert.Len(t, resp.PartUrls, 3)
 }
 
-func TestPublishFinalise_WritesAllSidecars(t *testing.T) {
+func TestSnapBinaryFinalise_WritesSidecars(t *testing.T) {
 	mp := newFakeMP()
-	p, cache := newHandler(t, mp)
+	cache := &fakeCache{}
+	p := NewSnapBinaryPublisher(mp, cache, "secret", zap.NewNop())
 
 	rec, err := postJSON(t, p.Finalise, model.PublishFinaliseRequest{
 		Token: "secret", Name: "app", Version: "1", Arch: "amd64", Channel: "master",
 		Key: "apps/app_1_amd64.snap", UploadId: "u1",
-		Parts:    []model.PublishPart{{PartNumber: 1, ETag: "etag1"}},
-		Size:     0,
-		Sha384:   "abc",
-		SnapYaml: "name: app\nsummary: App\ndescription: A test\n",
+		Parts:  []model.PublishPart{{PartNumber: 1, ETag: "etag1"}},
+		Size:   0,
+		Sha384: "abc",
 	})
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, rec.Code)
-	assert.Contains(t, mp.objects, "v2/apps/master/app/snap.yaml")
 	assert.Contains(t, mp.objects, "apps/app_1_amd64.snap.sha384")
 	assert.Contains(t, mp.objects, "releases/master/app.amd64.version")
 	assert.Equal(t, []byte("1"), mp.objects["releases/master/app.amd64.version"])
 	assert.True(t, cache.refreshed)
 }
 
-func TestPublishFinalise_DriftRejected(t *testing.T) {
+func TestSnapYamlPublisher_FirstWrite(t *testing.T) {
+	mp := newFakeMP()
+	p := NewSnapYamlPublisher(mp, "secret", zap.NewNop())
+
+	rec, err := postJSON(t, p.Publish, model.PublishSnapYamlRequest{
+		Token: "secret", Name: "app", Channel: "master",
+		SnapYaml: "name: app\nsummary: A\ndescription: B\n",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Contains(t, mp.objects, "v2/apps/master/app/snap.yaml")
+}
+
+func TestSnapYamlPublisher_DriftRejected(t *testing.T) {
 	mp := newFakeMP()
 	mp.objects["v2/apps/master/app/snap.yaml"] = []byte("name: app\nsummary: Old\ndescription: O\n")
-	p, _ := newHandler(t, mp)
+	p := NewSnapYamlPublisher(mp, "secret", zap.NewNop())
 
-	rec, _ := postJSON(t, p.Finalise, model.PublishFinaliseRequest{
-		Token: "secret", Name: "app", Version: "1", Arch: "amd64", Channel: "master",
-		Key: "apps/app_1_amd64.snap", UploadId: "u1",
-		Parts:    []model.PublishPart{{PartNumber: 1, ETag: "etag1"}},
+	rec, _ := postJSON(t, p.Publish, model.PublishSnapYamlRequest{
+		Token: "secret", Name: "app", Channel: "master",
 		SnapYaml: "name: app\nsummary: New\ndescription: N\n",
 	})
 	assert.Equal(t, http.StatusConflict, rec.Code)
 	assert.Contains(t, rec.Body.String(), "metadata drift")
 }
 
-func TestPublishFinalise_IdenticalSnapYamlAccepted(t *testing.T) {
+func TestSnapYamlPublisher_IdenticalAccepted(t *testing.T) {
 	mp := newFakeMP()
-	y := "name: app\nsummary: App\ndescription: D\n"
+	y := "name: app\nsummary: A\ndescription: D\n"
 	mp.objects["v2/apps/master/app/snap.yaml"] = []byte(y)
-	p, _ := newHandler(t, mp)
+	p := NewSnapYamlPublisher(mp, "secret", zap.NewNop())
 
-	rec, _ := postJSON(t, p.Finalise, model.PublishFinaliseRequest{
-		Token: "secret", Name: "app", Version: "1", Arch: "amd64", Channel: "master",
-		Key: "apps/app_1_amd64.snap", UploadId: "u1",
-		Parts:    []model.PublishPart{{PartNumber: 1, ETag: "etag1"}},
-		SnapYaml: y,
+	rec, _ := postJSON(t, p.Publish, model.PublishSnapYamlRequest{
+		Token: "secret", Name: "app", Channel: "master", SnapYaml: y,
 	})
 	assert.Equal(t, http.StatusOK, rec.Code)
 }
 
+func TestIconPublisher_WritesObject(t *testing.T) {
+	mp := newFakeMP()
+	p := NewIconPublisher(mp, "secret", zap.NewNop())
+
+	icon := []byte{0x89, 0x50, 0x4e, 0x47}
+	rec, err := postJSON(t, p.Publish, model.PublishIconRequest{
+		Token: "secret", Name: "app", Channel: "master",
+		IconPngB64: base64.StdEncoding.EncodeToString(icon),
+	})
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, icon, mp.objects["v2/apps/master/app/icon.png"])
+}
+
+func TestIconPublisher_BadAuth(t *testing.T) {
+	p := NewIconPublisher(newFakeMP(), "secret", zap.NewNop())
+	rec, _ := postJSON(t, p.Publish, model.PublishIconRequest{Token: "wrong"})
+	assert.Equal(t, http.StatusUnauthorized, rec.Code)
+}

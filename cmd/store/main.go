@@ -71,8 +71,10 @@ func start(listenAddress, configPath, metricsAddr string) error {
 	snapdMetrics := api.NewSnapdMetrics()
 	ui := api.NewWeb(webFS, cache, popularity)
 	iconProxy := api.NewIconProxy(upstream)
-	publish := api.NewPublish(mp, cache, config.Token, logger)
-	storeServer := api.NewSyncloudStore(listenAddress, baseUrl, cache, client, signer, config.Token, ui, iconProxy, popularity, snapdMetrics, publish, logger)
+	snapBinary := api.NewSnapBinaryPublisher(mp, cache, config.Token, logger)
+	snapYaml := api.NewSnapYamlPublisher(mp, config.Token, logger)
+	icon := api.NewIconPublisher(mp, config.Token, logger)
+	storeServer := api.NewSyncloudStore(listenAddress, baseUrl, cache, client, signer, config.Token, ui, iconProxy, popularity, snapdMetrics, snapBinary, snapYaml, icon, logger)
 	metricsServer := api.NewMetricsServer(metricsAddr, logger, snapdMetrics)
 	internal := api.NewApi(cache)
 

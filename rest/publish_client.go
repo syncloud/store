@@ -50,30 +50,44 @@ func (c *PublishClient) postJSON(path string, in, out interface{}) error {
 	return nil
 }
 
-func (c *PublishClient) Init(name, version, arch, channel string, size int64, sha384 string, partSize int64) (*model.PublishInitResponse, error) {
+func (c *PublishClient) SnapInit(name, version, arch, channel string, size int64, sha384 string, partSize int64) (*model.PublishInitResponse, error) {
 	req := model.PublishInitRequest{
 		Token: c.token, Name: name, Version: version, Arch: arch, Channel: channel,
 		Size: size, Sha384: sha384, PartSize: partSize,
 	}
 	var resp model.PublishInitResponse
-	if err := c.postJSON("/syncloud/v1/publish/init", req, &resp); err != nil {
+	if err := c.postJSON("/syncloud/v1/publish/snap/init", req, &resp); err != nil {
 		return nil, err
 	}
 	return &resp, nil
 }
 
-func (c *PublishClient) PartUrl(key, uploadId string, partNumber int) (string, error) {
+func (c *PublishClient) SnapPartUrl(key, uploadId string, partNumber int) (string, error) {
 	req := model.PublishPartUrlRequest{
 		Token: c.token, Key: key, UploadId: uploadId, PartNumber: partNumber,
 	}
 	var resp model.PublishPartUrlResponse
-	if err := c.postJSON("/syncloud/v1/publish/part-url", req, &resp); err != nil {
+	if err := c.postJSON("/syncloud/v1/publish/snap/part-url", req, &resp); err != nil {
 		return "", err
 	}
 	return resp.Url, nil
 }
 
-func (c *PublishClient) Finalise(req model.PublishFinaliseRequest) error {
+func (c *PublishClient) SnapFinalise(req model.PublishFinaliseRequest) error {
 	req.Token = c.token
-	return c.postJSON("/syncloud/v1/publish/finalise", req, nil)
+	return c.postJSON("/syncloud/v1/publish/snap/finalise", req, nil)
+}
+
+func (c *PublishClient) SnapYaml(name, channel, snapYaml string) error {
+	req := model.PublishSnapYamlRequest{
+		Token: c.token, Name: name, Channel: channel, SnapYaml: snapYaml,
+	}
+	return c.postJSON("/syncloud/v1/publish/snap-yaml", req, nil)
+}
+
+func (c *PublishClient) Icon(name, channel, iconPngB64 string) error {
+	req := model.PublishIconRequest{
+		Token: c.token, Name: name, Channel: channel, IconPngB64: iconPngB64,
+	}
+	return c.postJSON("/syncloud/v1/publish/icon", req, nil)
 }
