@@ -108,6 +108,33 @@ local build(arch) = {
               "./ci/grafana-provision.sh",
             ],
         },
+        {
+            name: "docker push publisher",
+            image: "plugins/docker:20.18",
+            settings: {
+                repo: publisher_image,
+                dockerfile: "Dockerfile.store-publisher",
+                username: { from_secret: "DOCKER_USERNAME" },
+                password: { from_secret: "DOCKER_PASSWORD" },
+                tags: [version + "-" + arch],
+            },
+            when: { event: ["push", "tag"] },
+        },
+        {
+            name: "e2e publish image",
+            image: "docker:24-cli",
+            environment: { SYNCLOUD_TOKEN: "test" },
+            volumes: [{ name: "docker-sock", path: "/var/run/docker.sock" }],
+            commands: [
+                "NET=$(docker inspect $(hostname) --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}\\n{{end}}' | grep -m1 '^drone-')",
+                "echo using network=$NET PWD=$PWD",
+                "docker pull " + publisher_image + ":" + version + "-" + arch,
+                "docker run --rm --network \"$NET\" --volumes-from $(hostname) -e SYNCLOUD_TOKEN -w $PWD " +
+                  publisher_image + ":" + version + "-" + arch + " snap -f test/testapp1_3_" + arch + ".snap -c stable -s http://api.store.test -y test/testapp1/meta/snap.yaml -i test/images/testapp1.png",
+                "docker run --rm --network \"$NET\" curlimages/curl:8.10.1 -fsS 'http://api.store.test/api/ui/v1/apps?channel=stable' | grep -q testapp1",
+            ],
+            when: { event: ["push", "tag"] },
+        },
     ] + (if arch == "amd64" then [
         {
             name: "docker",
@@ -140,20 +167,6 @@ local build(arch) = {
             },
         },
         {
-            name: "docker publish (multi-arch)",
-            image: "thegeeklab/drone-docker-buildx:24",
-            privileged: true,
-            settings: {
-                repo: publisher_image,
-                dockerfile: "Dockerfile.store-publisher",
-                platforms: ["linux/amd64", "linux/arm64", "linux/arm/v7"],
-                username: { from_secret: "DOCKER_USERNAME" },
-                password: { from_secret: "DOCKER_PASSWORD" },
-                tags: [version, "${DRONE_BRANCH}"],
-            },
-            when: { event: ["push", "tag"] },
-        },
-        {
             name: "deploy test",
             image: "debian:" + debian,
             environment: {
@@ -182,25 +195,6 @@ local build(arch) = {
             },
             commands: [
                 "bash web/e2e/run.sh",
-            ],
-            when: {
-                event: ["push", "tag"],
-            },
-        },
-        {
-            name: "e2e publish image",
-            image: "docker:24-cli",
-            environment: {
-                SYNCLOUD_TOKEN: "test",
-            },
-            volumes: [{ name: "docker-sock", path: "/var/run/docker.sock" }],
-            commands: [
-                "NET=$(docker inspect $(hostname) --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}\\n{{end}}' | grep -m1 '^drone-')",
-                "echo using network=$NET PWD=$PWD",
-                "docker pull " + publisher_image + ":" + version,
-                "docker run --rm --network \"$NET\" --volumes-from $(hostname) -e SYNCLOUD_TOKEN -w $PWD " +
-                  publisher_image + ":" + version + " snap -f test/testapp1_3_amd64.snap -c stable -s http://api.store.test -y test/testapp1/meta/snap.yaml -i test/images/testapp1.png",
-                "docker run --rm --network \"$NET\" curlimages/curl:8.10.1 -fsS 'http://api.store.test/api/ui/v1/apps?channel=stable' | grep -q testapp1",
             ],
             when: {
                 event: ["push", "tag"],
@@ -353,8 +347,40 @@ local build(arch) = {
 };
 
 
+local publisherManifest = {
+    kind: "pipeline",
+    name: "publisher manifest",
+    depends_on: ["amd64", "arm64", "arm"],
+    trigger: { event: ["push", "tag"] },
+    steps: [
+        {
+            name: "manifest version",
+            image: "plugins/manifest:1.4",
+            settings: {
+                username: { from_secret: "DOCKER_USERNAME" },
+                password: { from_secret: "DOCKER_PASSWORD" },
+                target: publisher_image + ":${DRONE_BRANCH}-${DRONE_BUILD_NUMBER}",
+                template: publisher_image + ":${DRONE_BRANCH}-${DRONE_BUILD_NUMBER}-ARCH",
+                platforms: ["linux/amd64", "linux/arm64", "linux/arm"],
+            },
+        },
+        {
+            name: "manifest branch",
+            image: "plugins/manifest:1.4",
+            settings: {
+                username: { from_secret: "DOCKER_USERNAME" },
+                password: { from_secret: "DOCKER_PASSWORD" },
+                target: publisher_image + ":${DRONE_BRANCH}",
+                template: publisher_image + ":" + version + "-ARCH",
+                platforms: ["linux/amd64", "linux/arm64", "linux/arm"],
+            },
+        },
+    ],
+};
+
 [
     build("amd64"),
     build("arm64"),
     build("arm"),
+    publisherManifest,
 ]
