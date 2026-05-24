@@ -34,7 +34,7 @@ local build(arch) = {
                 ],
             },
             {
-                name: "apps",
+                name: "apps.s3",
                 image: "dxflrs/garage:v1.0.1",
                 detach: true,
                 environment: {
@@ -110,9 +110,9 @@ local build(arch) = {
                 name: "deploy test",
                 image: "debian:" + debian,
                 environment: {
-                    DEPLOY_HOST: "api.store.test",
+                    DEPLOY_HOST: "api.store",
                     DEPLOY_USER: "root",
-                    DEPLOY_URL: "http://api.store.test",
+                    DEPLOY_URL: "http://api.store",
                     SYNCLOUD_TOKEN: "test",
                 },
                 commands: [
@@ -141,7 +141,7 @@ local build(arch) = {
                     "snap",
                     "-d", "test/testapp1",
                     "-c", "stable",
-                    "-s", "http://api.store.test",
+                    "-s", "http://api.store",
                 ],
                 when: { event: ["push", "tag"] },
             },
@@ -153,16 +153,16 @@ local build(arch) = {
                     "snap",
                     "-d", "test/testapp2",
                     "-c", "stable",
-                    "-s", "http://api.store.test",
+                    "-s", "http://api.store",
                 ],
                 when: { event: ["push", "tag"] },
             },
             {
                 name: "verify publish",
-                image: "curlimages/curl:8.10.1",
+                image: "debian:" + debian,
+                environment: { VERIFY_PUBLISH: "1" },
                 commands: [
-                    "curl -fsS 'http://api.store.test/api/ui/v1/apps?channel=stable' | grep -q testapp1",
-                    "curl -fsS 'http://api.store.test/api/ui/v1/apps?channel=stable' | grep -q testapp2",
+                    "./test/test -test.run TestPublishedApps -test.failfast -test.v",
                 ],
                 when: { event: ["push", "tag"] },
             },
@@ -181,7 +181,7 @@ local build(arch) = {
                 name: "web e2e",
                 image: "mcr.microsoft.com/playwright:" + playwright,
                 environment: {
-                    PLAYWRIGHT_BASE_URL: "http://api.store.test",
+                    PLAYWRIGHT_BASE_URL: "http://api.store",
                 },
                 commands: ["bash web/e2e/run.sh"],
                 when: { event: ["push", "tag"] },
@@ -267,7 +267,7 @@ local build(arch) = {
             ],
         },
         {
-            name: "api.store.test",
+            name: "api.store",
             image: "syncloud/bootstrap-bookworm-amd64:" + platform,
             privileged: true,
             volumes: [

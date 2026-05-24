@@ -18,10 +18,10 @@ import (
 )
 
 const (
-	S3Endpoint = "http://apps"
+	S3Endpoint = "http://apps.s3"
 	MinioAccess   = "GK31c4cef60f8f78b1bf12cd71"
 	MinioSecret   = "b8a31bf6c5d4e7a9f2b3c1d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8"
-	Bucket        = "apps"
+	Bucket        = "apps.s3"
 )
 
 func TestUnknown(t *testing.T) {
@@ -200,7 +200,7 @@ func TestPopularityRanking(t *testing.T) {
 			SetHeader("Syncloud-Architecture", arch).
 			SetHeader("Syncloud-Device-Id", deviceId).
 			SetBody(body).
-			Post("http://api.store.test/v2/snaps/refresh")
+			Post("http://api.store/v2/snaps/refresh")
 		assert.NoError(t, err)
 		assert.Equal(t, 200, resp.StatusCode(), string(resp.Body()))
 	}
@@ -211,7 +211,7 @@ func TestPopularityRanking(t *testing.T) {
 		Popularity int    `json:"popularity"`
 	}
 	read := func() (map[string]int, []string) {
-		resp, err := client.R().Get("http://api.store.test/api/ui/v1/apps?channel=stable")
+		resp, err := client.R().Get("http://api.store/api/ui/v1/apps?channel=stable")
 		assert.NoError(t, err)
 		assert.Equal(t, 200, resp.StatusCode(), string(resp.Body()))
 		var apps []uiApp
@@ -263,7 +263,7 @@ func TestRest_SnapsInfo(t *testing.T) {
 	assert.NoError(t, RefreshCache())
 
 	client := resty.New()
-	resp, err := client.R().Get(fmt.Sprintf("http://api.store.test/v2/snaps/info/testapp1?architecture=%s&fields=architectures", arch))
+	resp, err := client.R().Get(fmt.Sprintf("http://api.store/v2/snaps/info/testapp1?architecture=%s&fields=architectures", arch))
 	assert.NoError(t, err, output)
 	assert.Equal(t, 200, resp.StatusCode())
 	assert.Contains(t, string(resp.Body()), `"snap-id":"testapp1.1"`)
@@ -353,7 +353,7 @@ func RefreshCache() error {
 	resp, err := client.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(`{"token":"test"}`).
-		Post("http://api.store.test/syncloud/v1/cache/refresh")
+		Post("http://api.store/syncloud/v1/cache/refresh")
 	if err != nil {
 		return err
 	}

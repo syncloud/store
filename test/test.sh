@@ -28,9 +28,9 @@ set -e
 
 $SSH root@device snap changes > $LOG_DIR/snap.changes.log 2>&1 || true
 $SSH root@device journalctl > $LOG_DIR/journalctl.device.log 2>&1 || true
-$SSH api.store.test journalctl > $LOG_DIR/journalctl.store.log 2>&1 || true
-$SSH api.store.test 'docker logs syncloud-store 2>&1' > $LOG_DIR/docker.store.log 2>&1 || true
-$SSH api.store.test ls -la /var/www/store > $LOG_DIR/var.www.store.log 2>&1 || true
+$SSH api.store journalctl > $LOG_DIR/journalctl.store.log 2>&1 || true
+$SSH api.store 'docker logs syncloud-store 2>&1' > $LOG_DIR/docker.store.log 2>&1 || true
+$SSH api.store ls -la /var/www/store > $LOG_DIR/var.www.store.log 2>&1 || true
 chmod -R a+r $ARTIFACTS_DIR || true
 
 exit $code
