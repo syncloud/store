@@ -40,6 +40,14 @@ local build(arch) = {
                 "-search.latencyOffset=0s",
             ],
         },
+        {
+            name: "s3",
+            image: "dxflrs/garage:v1.0.1",
+            detach: true,
+            environment: {
+                GARAGE_CONFIG_FILE: "/drone/src/ci/garage.toml",
+            },
+        },
     ] + (if arch == "amd64" then [
         {
             name: "web build",
@@ -78,6 +86,31 @@ local build(arch) = {
             commands: [
               "./test/build-tests.sh",
             ]
+        },
+        {
+            name: "s3 init",
+            image: "alpine:3.20",
+            environment: {
+                GARAGE_RPC_HOST: "s3:3901",
+                GARAGE_RPC_SECRET: "1799ff75e85715cd0bd91e09f2a9d70b1799ff75e85715cd0bd91e09f2a9d70b",
+                GARAGE_TRIPLE:
+                    if arch == "amd64" then "x86_64-unknown-linux-musl"
+                    else if arch == "arm64" then "aarch64-unknown-linux-musl"
+                    else "armv6l-unknown-linux-musleabihf",
+            },
+            commands: [
+                "wget -q -O /usr/local/bin/garage https://garagehq.deuxfleurs.fr/_releases/v1.0.1/$GARAGE_TRIPLE/garage",
+                "chmod +x /usr/local/bin/garage",
+                "for i in $(seq 120); do garage status 2>/dev/null | grep -qE 'NO ROLE|HEALTHY' && break; sleep 1; done",
+                "NODE=$(garage status 2>/dev/null | awk '/NO ROLE/ {print $1; exit}')",
+                "garage layout assign -z dc1 -c 1G \"$NODE\"",
+                "garage layout apply --version 1",
+                "garage bucket create test",
+                "garage key import --yes -n test GK31c4cef60f8f78b1bf12cd71 testtest",
+                "garage bucket allow --read --write --owner test --key test",
+                "garage bucket website --allow test",
+                "garage status",
+            ],
         },
         {
             name: "seed s3",
@@ -311,53 +344,6 @@ local build(arch) = {
                 GF_AUTH_ANONYMOUS_ORG_ROLE: "Viewer",
                 GF_SECURITY_ADMIN_PASSWORD: "admin",
             },
-        },
-        {
-            name: "s3",
-            image: "alpine:3.20",
-            environment: {
-                GARAGE_TRIPLE:
-                    if arch == "amd64" then "x86_64-unknown-linux-musl"
-                    else if arch == "arm64" then "aarch64-unknown-linux-musl"
-                    else "armv6l-unknown-linux-musleabihf",
-            },
-            entrypoint: ["sh", "-c"],
-            command: [
-                "set -e; " +
-                "wget -q -O /usr/local/bin/garage https://garagehq.deuxfleurs.fr/_releases/v1.0.1/$GARAGE_TRIPLE/garage; " +
-                "chmod +x /usr/local/bin/garage; " +
-                "printf '%s\\n' " +
-                  "'metadata_dir = \"/tmp/meta\"' " +
-                  "'data_dir = \"/tmp/data\"' " +
-                  "'db_engine = \"lmdb\"' " +
-                  "'replication_mode = \"none\"' " +
-                  "'rpc_bind_addr = \"[::]:3901\"' " +
-                  "'rpc_public_addr = \"127.0.0.1:3901\"' " +
-                  "'rpc_secret = \"1799ff75e85715cd0bd91e09f2a9d70b1799ff75e85715cd0bd91e09f2a9d70b\"' " +
-                  "'[s3_api]' " +
-                  "'s3_region = \"garage\"' " +
-                  "'api_bind_addr = \"[::]:80\"' " +
-                  "'root_domain = \".s3.garage\"' " +
-                  "'[s3_web]' " +
-                  "'bind_addr = \"[::]:3902\"' " +
-                  "'root_domain = \".web.garage\"' " +
-                  "'index = \"index.html\"' " +
-                  "'[admin]' " +
-                  "'api_bind_addr = \"[::]:3903\"' " +
-                  "'admin_token = \"test-admin-token\"' > /etc/garage.toml; " +
-                "garage server > /tmp/garage.log 2>&1 & GARAGE_PID=$!; " +
-                "for i in $(seq 120); do garage status 2>/dev/null | grep -qE 'NO ROLE|HEALTHY' && break; sleep 1; done; " +
-                "NODE=$(garage status 2>/dev/null | awk '/NO ROLE/ {print $1; exit}'); " +
-                "garage layout assign -z dc1 -c 1G \"$NODE\"; " +
-                "garage layout apply --version 1; " +
-                "garage bucket create test; " +
-                "garage key import --yes -n test GK31c4cef60f8f78b1bf12cd71 testtest; " +
-                "garage bucket allow --read --write --owner test --key test; " +
-                "garage bucket website --allow test; " +
-                "echo garage init complete; " +
-                "garage status; " +
-                "wait $GARAGE_PID",
-            ],
         },
     ],
     volumes: [
