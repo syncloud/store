@@ -36,7 +36,10 @@ func NewMultipart(bucket string) (*Multipart, error) {
 	if !ok {
 		return nil, fmt.Errorf("%s env variable is not set", AwsSecret)
 	}
-	region := "us-west-2"
+	region := os.Getenv("AWS_REGION")
+	if region == "" {
+		region = "us-west-2"
+	}
 	cfg := &aws.Config{
 		Credentials: credentials.NewStaticCredentials(key, secret, ""),
 		Region:      aws.String(region),
