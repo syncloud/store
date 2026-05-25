@@ -7,7 +7,6 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/syncloud/store/model"
 	"go.uber.org/zap"
-	"gopkg.in/yaml.v2"
 )
 
 type SnapYamlPublisher struct {
@@ -45,8 +44,8 @@ func (p *SnapYamlPublisher) write(channel, app string, newYaml []byte) error {
 	key := snapYamlKey(channel, app)
 	existing, err := p.mp.Get(key)
 	if err == nil && len(existing) > 0 {
-		ex, errA := parseSnapMeta(existing)
-		nx, errB := parseSnapMeta(newYaml)
+		ex, errA := model.ParseSnapMeta(existing)
+		nx, errB := model.ParseSnapMeta(newYaml)
 		if errA == nil && errB == nil {
 			if ex.Name != nx.Name || ex.Summary != nx.Summary ||
 				ex.Description != nx.Description || ex.Type != nx.Type {
@@ -60,17 +59,4 @@ func (p *SnapYamlPublisher) write(channel, app string, newYaml []byte) error {
 		}
 	}
 	return p.mp.Put(key, newYaml, "application/x-yaml")
-}
-
-type snapMeta struct {
-	Name        string `yaml:"name"`
-	Summary     string `yaml:"summary"`
-	Description string `yaml:"description"`
-	Type        string `yaml:"type"`
-}
-
-func parseSnapMeta(b []byte) (snapMeta, error) {
-	var m snapMeta
-	err := yaml.Unmarshal(b, &m)
-	return m, err
 }

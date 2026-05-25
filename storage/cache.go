@@ -11,7 +11,6 @@ import (
 	"github.com/syncloud/store/rest"
 	"go.uber.org/zap"
 	"golang.org/x/exp/slices"
-	"gopkg.in/yaml.v2"
 )
 
 type AppLister interface {
@@ -233,13 +232,6 @@ func (i *Cache) loadChannel(channel string) (SnapByArch, AppByName, error) {
 	return snaps, apps, nil
 }
 
-type snapYamlMeta struct {
-	Name        string `yaml:"name"`
-	Summary     string `yaml:"summary"`
-	Description string `yaml:"description"`
-	Type        string `yaml:"type"`
-}
-
 func (i *Cache) fetchAppMetadata(channel, appId string) (*model.App, error) {
 	url := fmt.Sprintf("%s/v2/apps/%s/%s/snap.yaml", i.baseUrl, channel, appId)
 	resp, code, err := i.client.Get(url)
@@ -252,8 +244,8 @@ func (i *Cache) fetchAppMetadata(channel, appId string) (*model.App, error) {
 	if code != 200 {
 		return nil, fmt.Errorf("snap.yaml %s -> %d", url, code)
 	}
-	var m snapYamlMeta
-	if err := yaml.Unmarshal([]byte(resp), &m); err != nil {
+	m, err := model.ParseSnapMeta([]byte(resp))
+	if err != nil {
 		return nil, err
 	}
 	name := m.Name
