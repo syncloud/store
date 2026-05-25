@@ -3,11 +3,9 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/labstack/echo/v4"
 	"github.com/syncloud/store/model"
 	"github.com/syncloud/store/release"
 	"go.uber.org/zap"
@@ -53,19 +51,15 @@ func versionKey(channel, app, arch string) string {
 	return fmt.Sprintf("releases/%s/%s.%s.version", channel, app, arch)
 }
 
-func (p *SnapBinaryPublisher) Init(c echo.Context) error {
-	var req model.PublishInitRequest
-	if err := c.Bind(&req); err != nil {
-		return c.String(http.StatusBadRequest, err.Error())
-	}
+func (p *SnapBinaryPublisher) Init(req model.PublishInitRequest) (*model.PublishInitResponse, error) {
 	if req.Token != p.token {
-		return c.String(http.StatusUnauthorized, "unauthorized")
+		return nil, unauthorized()
 	}
 	if req.Name == "" || req.Version == "" || req.Arch == "" || req.Channel == "" {
-		return c.String(http.StatusBadRequest, "name, version, arch, channel are required")
+		return nil, badRequest("name, version, arch, channel are required")
 	}
 	if req.Size <= 0 {
-		return c.String(http.StatusBadRequest, "size must be > 0")
+		return nil, badRequest("size must be > 0")
 	}
 	partSize := req.PartSize
 	if partSize <= 0 {
@@ -75,7 +69,7 @@ func (p *SnapBinaryPublisher) Init(c echo.Context) error {
 	uploadId, err := p.mp.Create(key)
 	if err != nil {
 		p.logger.Error("multipart create failed", zap.Error(err))
-		return c.String(http.StatusInternalServerError, err.Error())
+		return nil, err
 	}
 	partCount := int((req.Size + partSize - 1) / partSize)
 	urls := make([]string, 0, partCount)
@@ -83,47 +77,39 @@ func (p *SnapBinaryPublisher) Init(c echo.Context) error {
 		u, err := p.mp.PresignPart(key, uploadId, i)
 		if err != nil {
 			_ = p.mp.Abort(key, uploadId)
-			return c.String(http.StatusInternalServerError, err.Error())
+			return nil, err
 		}
 		urls = append(urls, u)
 	}
-	return c.JSON(http.StatusOK, &model.PublishInitResponse{
+	return &model.PublishInitResponse{
 		UploadId:         uploadId,
 		Key:              key,
 		PartCount:        partCount,
 		PartUrls:         urls,
 		ExpiresInSeconds: int64(release.PresignedUrlTTL.Seconds()),
-	})
+	}, nil
 }
 
-func (p *SnapBinaryPublisher) PartUrl(c echo.Context) error {
-	var req model.PublishPartUrlRequest
-	if err := c.Bind(&req); err != nil {
-		return c.String(http.StatusBadRequest, err.Error())
-	}
+func (p *SnapBinaryPublisher) PartUrl(req model.PublishPartUrlRequest) (*model.PublishPartUrlResponse, error) {
 	if req.Token != p.token {
-		return c.String(http.StatusUnauthorized, "unauthorized")
+		return nil, unauthorized()
 	}
 	if req.Key == "" || req.UploadId == "" || req.PartNumber <= 0 {
-		return c.String(http.StatusBadRequest, "key, upload_id, part_number are required")
+		return nil, badRequest("key, upload_id, part_number are required")
 	}
 	u, err := p.mp.PresignPart(req.Key, req.UploadId, req.PartNumber)
 	if err != nil {
-		return c.String(http.StatusInternalServerError, err.Error())
+		return nil, err
 	}
-	return c.JSON(http.StatusOK, &model.PublishPartUrlResponse{Url: u})
+	return &model.PublishPartUrlResponse{Url: u}, nil
 }
 
-func (p *SnapBinaryPublisher) Finalise(c echo.Context) error {
-	var req model.PublishFinaliseRequest
-	if err := c.Bind(&req); err != nil {
-		return c.String(http.StatusBadRequest, err.Error())
-	}
+func (p *SnapBinaryPublisher) Finalise(req model.PublishFinaliseRequest) (*model.PublishFinaliseResponse, error) {
 	if req.Token != p.token {
-		return c.String(http.StatusUnauthorized, "unauthorized")
+		return nil, unauthorized()
 	}
 	if req.Key == "" || req.UploadId == "" || len(req.Parts) == 0 {
-		return c.String(http.StatusBadRequest, "key, upload_id, parts are required")
+		return nil, badRequest("key, upload_id, parts are required")
 	}
 
 	parts := make([]*s3.CompletedPart, 0, len(req.Parts))
@@ -135,24 +121,23 @@ func (p *SnapBinaryPublisher) Finalise(c echo.Context) error {
 	}
 	if err := p.mp.Complete(req.Key, req.UploadId, parts); err != nil {
 		p.logger.Error("multipart complete failed", zap.Error(err))
-		return c.String(http.StatusInternalServerError, err.Error())
+		return nil, err
 	}
 
 	if req.Size > 0 {
 		size, err := p.mp.HeadSize(req.Key)
 		if err != nil {
-			return c.String(http.StatusInternalServerError, err.Error())
+			return nil, err
 		}
 		if size != req.Size {
-			return c.String(http.StatusConflict,
-				fmt.Sprintf("uploaded size %d does not match declared %d", size, req.Size))
+			return nil, conflict(fmt.Sprintf("uploaded size %d does not match declared %d", size, req.Size))
 		}
 	}
 
 	if req.Sha384 != "" {
 		if err := p.mp.Put(sha384Key(req.Name, req.Version, req.Arch),
 			[]byte(req.Sha384), "text/plain"); err != nil {
-			return c.String(http.StatusInternalServerError, err.Error())
+			return nil, err
 		}
 		rev, _ := json.Marshal(model.SnapRevision{
 			Revision: req.Version,
@@ -162,22 +147,22 @@ func (p *SnapBinaryPublisher) Finalise(c echo.Context) error {
 		})
 		if err := p.mp.Put(fmt.Sprintf("revisions/%s.revision", req.Sha384),
 			rev, "application/json"); err != nil {
-			return c.String(http.StatusInternalServerError, err.Error())
+			return nil, err
 		}
 	}
 	if req.Size > 0 {
 		if err := p.mp.Put(sizeKey(req.Name, req.Version, req.Arch),
 			[]byte(fmt.Sprintf("%d", req.Size)), "text/plain"); err != nil {
-			return c.String(http.StatusInternalServerError, err.Error())
+			return nil, err
 		}
 	}
 	if err := p.mp.Put(versionKey(req.Channel, req.Name, req.Arch),
 		[]byte(req.Version), "text/plain"); err != nil {
-		return c.String(http.StatusInternalServerError, err.Error())
+		return nil, err
 	}
 
 	if err := p.cache.Refresh(); err != nil {
 		p.logger.Warn("cache refresh after publish failed", zap.Error(err))
 	}
-	return c.JSON(http.StatusOK, &model.PublishFinaliseResponse{Ok: true})
+	return &model.PublishFinaliseResponse{Ok: true}, nil
 }

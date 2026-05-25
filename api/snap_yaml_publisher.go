@@ -2,9 +2,7 @@ package api
 
 import (
 	"fmt"
-	"net/http"
 
-	"github.com/labstack/echo/v4"
 	"github.com/syncloud/store/model"
 	"github.com/syncloud/store/release"
 	"go.uber.org/zap"
@@ -24,19 +22,15 @@ func snapYamlKey(channel, app string) string {
 	return fmt.Sprintf("v2/apps/%s/%s/snap.yaml", channel, app)
 }
 
-func (p *SnapYamlPublisher) Publish(c echo.Context) error {
-	var req model.PublishSnapYamlRequest
-	if err := c.Bind(&req); err != nil {
-		return c.String(http.StatusBadRequest, err.Error())
-	}
+func (p *SnapYamlPublisher) Publish(req model.PublishSnapYamlRequest) (*model.PublishSnapYamlResponse, error) {
 	if req.Token != p.token {
-		return c.String(http.StatusUnauthorized, "unauthorized")
+		return nil, unauthorized()
 	}
 	if req.Name == "" || req.Channel == "" || req.SnapYaml == "" {
-		return c.String(http.StatusBadRequest, "name, channel, snap_yaml are required")
+		return nil, badRequest("name, channel, snap_yaml are required")
 	}
 	if err := p.store.Put(snapYamlKey(req.Channel, req.Name), []byte(req.SnapYaml), "application/x-yaml"); err != nil {
-		return c.String(http.StatusInternalServerError, err.Error())
+		return nil, err
 	}
-	return c.JSON(http.StatusOK, &model.PublishSnapYamlResponse{Ok: true})
+	return &model.PublishSnapYamlResponse{Ok: true}, nil
 }

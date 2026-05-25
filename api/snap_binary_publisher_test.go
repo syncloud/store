@@ -1,15 +1,11 @@
 package api
 
 import (
-	"encoding/json"
+	"errors"
 	"fmt"
-	"net/http"
-	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/syncloud/store/model"
@@ -36,29 +32,21 @@ type fakeRefresher struct{ refreshed bool }
 
 func (f *fakeRefresher) Refresh() error { f.refreshed = true; return nil }
 
-func binaryPost(t *testing.T, h echo.HandlerFunc, body interface{}) (*httptest.ResponseRecorder, error) {
-	b, _ := json.Marshal(body)
-	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(string(b)))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-	return rec, h(echo.New().NewContext(req, rec))
+func TestSnapBinaryInit_BadToken(t *testing.T) {
+	p := NewSnapBinaryPublisher(&fakeBinaryStore{objects: map[string][]byte{}}, &fakeRefresher{}, "secret", zap.NewNop())
+	_, err := p.Init(model.PublishInitRequest{Token: "wrong"})
+	var ae *apiError
+	require.True(t, errors.As(err, &ae))
+	assert.Equal(t, 401, ae.Status)
 }
 
-func TestSnapBinaryInit_AuthAndPartCount(t *testing.T) {
-	store := &fakeBinaryStore{objects: map[string][]byte{}}
-	p := NewSnapBinaryPublisher(store, &fakeRefresher{}, "secret", zap.NewNop())
-
-	rec, _ := binaryPost(t, p.Init, model.PublishInitRequest{Token: "wrong"})
-	assert.Equal(t, http.StatusUnauthorized, rec.Code)
-
-	rec, err := binaryPost(t, p.Init, model.PublishInitRequest{
+func TestSnapBinaryInit_PartCount(t *testing.T) {
+	p := NewSnapBinaryPublisher(&fakeBinaryStore{objects: map[string][]byte{}}, &fakeRefresher{}, "secret", zap.NewNop())
+	resp, err := p.Init(model.PublishInitRequest{
 		Token: "secret", Name: "app", Version: "1", Arch: "amd64",
 		Channel: "master", Size: 33 * 1024 * 1024, Sha384: "deadbeef",
 	})
 	require.NoError(t, err)
-	assert.Equal(t, http.StatusOK, rec.Code)
-	var resp model.PublishInitResponse
-	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
 	assert.Equal(t, "apps/app_1_amd64.snap", resp.Key)
 	assert.Equal(t, 3, resp.PartCount)
 	assert.Len(t, resp.PartUrls, 3)
@@ -69,7 +57,7 @@ func TestSnapBinaryFinalise_WritesSidecars(t *testing.T) {
 	cache := &fakeRefresher{}
 	p := NewSnapBinaryPublisher(store, cache, "secret", zap.NewNop())
 
-	rec, err := binaryPost(t, p.Finalise, model.PublishFinaliseRequest{
+	resp, err := p.Finalise(model.PublishFinaliseRequest{
 		Token: "secret", Name: "app", Version: "1", Arch: "amd64", Channel: "master",
 		Key: "apps/app_1_amd64.snap", UploadId: "u1",
 		Parts:  []model.PublishPart{{PartNumber: 1, ETag: "etag1"}},
@@ -77,7 +65,7 @@ func TestSnapBinaryFinalise_WritesSidecars(t *testing.T) {
 		Sha384: "abc",
 	})
 	require.NoError(t, err)
-	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.True(t, resp.Ok)
 	assert.Contains(t, store.objects, "apps/app_1_amd64.snap.sha384")
 	assert.Contains(t, store.objects, "releases/master/app.amd64.version")
 	assert.Equal(t, []byte("1"), store.objects["releases/master/app.amd64.version"])
