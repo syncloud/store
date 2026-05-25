@@ -11,9 +11,18 @@ import (
 	"go.uber.org/zap"
 )
 
+type fakeIconStore struct {
+	objects map[string][]byte
+}
+
+func (f *fakeIconStore) Put(key string, body []byte, _ string) error {
+	f.objects[key] = body
+	return nil
+}
+
 func TestIconPublisher_WritesObject(t *testing.T) {
-	mp := newFakeMP()
-	p := NewIconPublisher(mp, "secret", zap.NewNop())
+	store := &fakeIconStore{objects: map[string][]byte{}}
+	p := NewIconPublisher(store, "secret", zap.NewNop())
 
 	icon := []byte{0x89, 0x50, 0x4e, 0x47}
 	rec, err := postJSON(t, p.Publish, model.PublishIconRequest{
@@ -22,11 +31,12 @@ func TestIconPublisher_WritesObject(t *testing.T) {
 	})
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, rec.Code)
-	assert.Equal(t, icon, mp.objects["v2/apps/master/app/icon.png"])
+	assert.Equal(t, icon, store.objects["v2/apps/master/app/icon.png"])
 }
 
 func TestIconPublisher_BadAuth(t *testing.T) {
-	p := NewIconPublisher(newFakeMP(), "secret", zap.NewNop())
+	store := &fakeIconStore{objects: map[string][]byte{}}
+	p := NewIconPublisher(store, "secret", zap.NewNop())
 	rec, _ := postJSON(t, p.Publish, model.PublishIconRequest{Token: "wrong"})
 	assert.Equal(t, http.StatusUnauthorized, rec.Code)
 }
