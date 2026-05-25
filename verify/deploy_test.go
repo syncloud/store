@@ -33,7 +33,7 @@ func TestMain(m *testing.M) {
 	if keyFile == "" {
 		keyFile = "/tmp/_deploy_key"
 	}
-	httpClient = &http.Client{Timeout: 5 * time.Minute}
+	httpClient = &http.Client{Timeout: 10 * time.Second}
 	os.Exit(m.Run())
 }
 
@@ -92,19 +92,23 @@ func dumpOnFail(t *testing.T) {
 func TestVersion(t *testing.T) {
 	dumpOnFail(t)
 	url := deployUrl + "/api/ui/v1/version"
-	var code int
-	for i := 0; i < 60; i++ {
-		resp, err := httpClient.Get(url)
-		if err == nil {
-			code = resp.StatusCode
-			_ = resp.Body.Close()
-			if code == http.StatusOK {
-				return
-			}
+	for i := 1; i <= 30; i++ {
+		if i > 1 {
+			time.Sleep(10 * time.Second)
 		}
-		time.Sleep(2 * time.Second)
+		resp, err := httpClient.Get(url)
+		if err != nil {
+			t.Logf("attempt %d/30: %v", i, err)
+			continue
+		}
+		body, _ := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		t.Logf("attempt %d/30: %d %s", i, resp.StatusCode, strings.TrimSpace(string(body)))
+		if resp.StatusCode == http.StatusOK {
+			return
+		}
 	}
-	t.Fatalf("%s never returned 200 (last code %d)", url, code)
+	t.Fatalf("%s never returned 200", url)
 }
 
 func TestCacheRefresh(t *testing.T) {
