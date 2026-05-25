@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -14,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/syncloud/store/model"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -69,9 +71,14 @@ func main() {
 		must(put(svc, "apps/"+name+".sha384", []byte(sha), "text/plain"))
 		must(put(svc, "apps/"+name+".size", []byte(size), "text/plain"))
 
-		rev := fmt.Sprintf(`{"snap-revision":"%s","snap-id":"%s.%s","snap-size":"%s","snap-sha3-385":"%s"}`,
-			ver, app, ver, size, sha)
-		must(put(svc, "revisions/"+sha+".revision", []byte(rev), "application/json"))
+		rev, err := json.Marshal(model.SnapRevision{
+			Revision: ver,
+			Id:       app + "." + ver,
+			Size:     size,
+			Sha384:   sha,
+		})
+		must(err)
+		must(put(svc, "revisions/"+sha+".revision", rev, "application/json"))
 	}
 
 	for _, app := range apps {
