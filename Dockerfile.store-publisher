@@ -1,0 +1,3 @@
+FROM gcr.io/distroless/static-debian12
+COPY build/bin/store-publisher /usr/local/bin/store-publisher
+ENTRYPOINT ["/usr/local/bin/store-publisher"]

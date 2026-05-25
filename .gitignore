@@ -2,3 +2,7 @@ build
 out
 .idea
 .claude
+/store-publisher
+/store
+/cli
+/deploy-verify

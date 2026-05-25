@@ -3,7 +3,7 @@ apps:
     command: bin/test.sh
 
 confinement: strict
-description: Test app 1
+description: First test application for the integration suite
 grade: stable
 name: testapp1
-summary: Test app 1
+summary: Test App 1

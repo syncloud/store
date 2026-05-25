@@ -16,7 +16,7 @@ test.describe('app card content', () => {
 
     const icon = card.getByTestId('app-icon')
     await expect(icon).toBeVisible()
-    await expect(icon).toHaveAttribute('src', '/api/ui/v1/icons/testapp1.png')
+    await expect(icon).toHaveAttribute('src', '/api/ui/v1/icons/stable/testapp1')
     const naturalWidth = await icon.evaluate((el: HTMLImageElement) => el.naturalWidth)
     expect(naturalWidth).toBeGreaterThan(0)
 
@@ -32,7 +32,7 @@ test.describe('app card content', () => {
     await expect(card.getByTestId('app-summary')).toHaveText('Second test application for the integration suite')
 
     const icon = card.getByTestId('app-icon')
-    await expect(icon).toHaveAttribute('src', '/api/ui/v1/icons/testapp2.png')
+    await expect(icon).toHaveAttribute('src', '/api/ui/v1/icons/stable/testapp2')
     const naturalWidth = await icon.evaluate((el: HTMLImageElement) => el.naturalWidth)
     expect(naturalWidth).toBeGreaterThan(0)
   })

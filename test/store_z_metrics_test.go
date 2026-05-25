@@ -26,7 +26,7 @@ func TestPopularityMetrics(t *testing.T) {
 	for i := 0; i < 30; i++ {
 		resp, err := client.R().
 			SetQueryParam("query", query).
-			Get("http://vm:8428/api/v1/query")
+			Get("http://victoria-metrics:8428/api/v1/query")
 		assert.NoError(t, err)
 		assert.Equal(t, 200, resp.StatusCode(), string(resp.Body()))
 

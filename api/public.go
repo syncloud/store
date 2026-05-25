@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -34,21 +35,26 @@ type Popularity interface {
 }
 
 type SyncloudStore struct {
-	client     rest.Client
-	echo       *echo.Echo
-	address    string
-	apiCache   ApiCache
-	signer     Signer
-	token      string
-	logger     *zap.Logger
-	web        *Web
-	iconProxy  *IconProxy
-	popularity Popularity
-	metrics    *SnapdMetrics
+	client       rest.Client
+	echo         *echo.Echo
+	address      string
+	baseUrl      string
+	apiCache     ApiCache
+	signer       Signer
+	token        string
+	logger       *zap.Logger
+	web          *Web
+	iconProxy    *IconProxy
+	popularity   Popularity
+	metrics      *SnapdMetrics
+	snapBinary   *SnapBinaryPublisher
+	snapYaml     *SnapYamlPublisher
+	icon         *IconPublisher
 }
 
 func NewSyncloudStore(
 	address string,
+	baseUrl string,
 	apiCache ApiCache,
 	client rest.Client,
 	signer Signer,
@@ -57,6 +63,9 @@ func NewSyncloudStore(
 	iconProxy *IconProxy,
 	popularity Popularity,
 	metrics *SnapdMetrics,
+	snapBinary *SnapBinaryPublisher,
+	snapYaml *SnapYamlPublisher,
+	icon *IconPublisher,
 	logger *zap.Logger,
 ) *SyncloudStore {
 	return &SyncloudStore{
@@ -65,11 +74,15 @@ func NewSyncloudStore(
 		signer:     signer,
 		apiCache:   apiCache,
 		address:    address,
+		baseUrl:    baseUrl,
 		token:      token,
 		web:        web,
 		iconProxy:  iconProxy,
 		popularity: popularity,
 		metrics:    metrics,
+		snapBinary: snapBinary,
+		snapYaml:   snapYaml,
+		icon:       icon,
 		logger:     logger,
 	}
 }
@@ -90,6 +103,46 @@ func (s *SyncloudStore) Start() <-chan error {
 	s.echo.GET("/v2/snaps/find", s.Find)
 	s.echo.GET("/v2/snaps/info/:name", s.Info)
 	s.echo.POST("/syncloud/v1/cache/refresh", s.SyncloudCacheRefresh)
+	s.echo.POST("/syncloud/v1/publish/snap/init", func(c echo.Context) error {
+		var req model.PublishInitRequest
+		if err := c.Bind(&req); err != nil {
+			return c.String(http.StatusBadRequest, err.Error())
+		}
+		resp, err := s.snapBinary.Init(req)
+		return reply(c, resp, err)
+	})
+	s.echo.POST("/syncloud/v1/publish/snap/part-url", func(c echo.Context) error {
+		var req model.PublishPartUrlRequest
+		if err := c.Bind(&req); err != nil {
+			return c.String(http.StatusBadRequest, err.Error())
+		}
+		resp, err := s.snapBinary.PartUrl(req)
+		return reply(c, resp, err)
+	})
+	s.echo.POST("/syncloud/v1/publish/snap/finalise", func(c echo.Context) error {
+		var req model.PublishFinaliseRequest
+		if err := c.Bind(&req); err != nil {
+			return c.String(http.StatusBadRequest, err.Error())
+		}
+		resp, err := s.snapBinary.Finalise(req)
+		return reply(c, resp, err)
+	})
+	s.echo.POST("/syncloud/v1/publish/snap-yaml", func(c echo.Context) error {
+		var req model.PublishSnapYamlRequest
+		if err := c.Bind(&req); err != nil {
+			return c.String(http.StatusBadRequest, err.Error())
+		}
+		resp, err := s.snapYaml.Publish(req)
+		return reply(c, resp, err)
+	})
+	s.echo.POST("/syncloud/v1/publish/icon", func(c echo.Context) error {
+		var req model.PublishIconRequest
+		if err := c.Bind(&req); err != nil {
+			return c.String(http.StatusBadRequest, err.Error())
+		}
+		resp, err := s.icon.Publish(req)
+		return reply(c, resp, err)
+	})
 	s.echo.GET("/api/ui/v1/apps", s.web.Apps)
 	s.echo.GET("/api/ui/v1/version", s.web.Version)
 	s.echo.GET("/api/ui/v1/icons/*", echo.WrapHandler(s.iconProxy))
@@ -120,6 +173,17 @@ func (s *SyncloudStore) Start() <-chan error {
 
 func (s *SyncloudStore) IsUnixSocket() bool {
 	return strings.HasPrefix(s.address, "/")
+}
+
+func reply(c echo.Context, resp interface{}, err error) error {
+	if err == nil {
+		return c.JSON(http.StatusOK, resp)
+	}
+	var ae *apiError
+	if errors.As(err, &ae) {
+		return c.String(ae.Status, ae.Msg)
+	}
+	return c.String(http.StatusInternalServerError, err.Error())
 }
 
 func (s *SyncloudStore) Sections(c echo.Context) error {
@@ -262,7 +326,7 @@ func (s *SyncloudStore) SnapRevision(c echo.Context) error {
 	key := c.Param("key")
 	s.logger.Info("snap revision", zap.String("key", key))
 
-	revision, _, err := s.client.Get(fmt.Sprintf("%s/revisions/%s.revision", Url, key))
+	revision, _, err := s.client.Get(fmt.Sprintf("%s/revisions/%s.revision", s.baseUrl, key))
 	if err != nil {
 		c.Error(err)
 		return nil
@@ -290,5 +354,9 @@ func (s *SyncloudStore) SyncloudCacheRefresh(c echo.Context) error {
 		return c.String(http.StatusUnauthorized, "unauthorized")
 	}
 
-	return s.apiCache.Refresh()
+	if err := s.apiCache.Refresh(); err != nil {
+		s.logger.Error("cache refresh failed", zap.Error(err))
+		return c.String(http.StatusInternalServerError, "cache refresh failed")
+	}
+	return c.NoContent(http.StatusOK)
 }

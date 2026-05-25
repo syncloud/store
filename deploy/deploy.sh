@@ -16,19 +16,11 @@ if [ ! -f "$APACHE_SRC" ]; then
 fi
 CONTAINER=syncloud-store
 STORE_DIR=/var/www/store
-SERVICE=syncloud-store.service
 APACHE_SITE=/etc/apache2/sites-available/store.conf
 
-if ! command -v docker >/dev/null 2>&1; then
+if ! command -v docker >/dev/null 2>&1 || ! command -v apache2 >/dev/null 2>&1; then
     apt-get update
-    apt-get install -y docker.io
-fi
-
-if systemctl is-active --quiet "$SERVICE"; then
-    systemctl stop "$SERVICE"
-fi
-if systemctl is-enabled --quiet "$SERVICE" 2>/dev/null; then
-    systemctl disable "$SERVICE"
+    apt-get install -y docker.io apache2
 fi
 
 if ! id -u store >/dev/null 2>&1; then
@@ -40,15 +32,22 @@ STORE_GID=$(id -g store)
 mkdir -p "$STORE_DIR"
 chown "$STORE_UID:$STORE_GID" "$STORE_DIR"
 
+SECRET_SRC="$DIR/../config/$ENV/secret.yaml"
+if [ ! -f "$SECRET_SRC" ]; then
+    echo "missing $SECRET_SRC in deploy package" >&2
+    exit 1
+fi
+install -m 0640 -o "$STORE_UID" -g "$STORE_GID" "$SECRET_SRC" "$STORE_DIR/secret.yaml"
+
 docker pull "$TAG"
 docker rm -f "$CONTAINER" 2>/dev/null || true
 docker run -d \
     --name "$CONTAINER" \
     --restart=unless-stopped \
     --user "$STORE_UID:$STORE_GID" \
+    --network host \
     -v "$STORE_DIR:$STORE_DIR" \
     -v /etc/hosts:/etc/hosts:ro \
-    -p 9090:9090 \
     "$TAG"
 
 for i in $(seq 1 30); do

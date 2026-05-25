@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io/fs"
 	"net/url"
 	"os"
@@ -11,6 +12,7 @@ import (
 	"github.com/syncloud/store/api"
 	"github.com/syncloud/store/crypto"
 	"github.com/syncloud/store/log"
+	"github.com/syncloud/store/release"
 	"github.com/syncloud/store/rest"
 	"github.com/syncloud/store/storage"
 	"github.com/syncloud/store/util"
@@ -42,7 +44,13 @@ func start(listenAddress, configPath, metricsAddr string) error {
 	if err != nil {
 		return err
 	}
-	upstream, err := url.Parse(api.Url)
+	if config.BaseUrl == "" {
+		return fmt.Errorf("base_url is required in %s", configPath)
+	}
+	if config.Bucket == "" {
+		return fmt.Errorf("bucket is required in %s", configPath)
+	}
+	upstream, err := url.Parse(config.BaseUrl)
 	if err != nil {
 		return err
 	}
@@ -52,13 +60,25 @@ func start(listenAddress, configPath, metricsAddr string) error {
 	}
 
 	client := rest.New()
-	cache := storage.New(client, api.Url, logger)
+	mp, err := release.NewMultipart(config.Bucket, release.AwsConfig{
+		AccessKeyId:     config.AwsAccessKeyId,
+		SecretAccessKey: config.AwsSecretAccessKey,
+		Endpoint:        config.AwsS3Endpoint,
+		Region:          config.AwsRegion,
+	})
+	if err != nil {
+		return err
+	}
+	cache := storage.New(client, mp, config.BaseUrl, logger)
 	signer := crypto.NewSigner(logger)
 	popularity := storage.NewPopularity()
 	snapdMetrics := api.NewSnapdMetrics()
 	ui := api.NewWeb(webFS, cache, popularity)
 	iconProxy := api.NewIconProxy(upstream)
-	storeServer := api.NewSyncloudStore(listenAddress, cache, client, signer, config.Token, ui, iconProxy, popularity, snapdMetrics, logger)
+	snapBinary := api.NewSnapBinaryPublisher(mp, cache, config.Token, logger)
+	snapYaml := api.NewSnapYamlPublisher(mp, config.Token, logger)
+	icon := api.NewIconPublisher(mp, config.Token, logger)
+	storeServer := api.NewSyncloudStore(listenAddress, config.BaseUrl, cache, client, signer, config.Token, ui, iconProxy, popularity, snapdMetrics, snapBinary, snapYaml, icon, logger)
 	metricsServer := api.NewMetricsServer(metricsAddr, logger, snapdMetrics)
 	internal := api.NewApi(cache)
 

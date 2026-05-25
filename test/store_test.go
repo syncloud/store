@@ -3,48 +3,26 @@ package test
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/go-resty/resty/v2"
-	"github.com/stretchr/testify/assert"
-	"github.com/uthng/gossh"
 	"os/exec"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/go-resty/resty/v2"
+	"github.com/stretchr/testify/assert"
+	"github.com/uthng/gossh"
 )
 
 const (
-	StoreDir = "/var/www/html"
+	S3Endpoint = "http://apps.s3"
+	MinioAccess   = "GK31c4cef60f8f78b1bf12cd71"
+	MinioSecret   = "b8a31bf6c5d4e7a9f2b3c1d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8"
+	Bucket        = "apps.s3"
 )
-
-func TestPrepareStore(t *testing.T) {
-	arch, err := snapArch()
-	assert.NoError(t, err)
-
-	output, err := Ssh("api.store.test", "apt update")
-	assert.NoError(t, err, output)
-	output, err = Ssh("api.store.test", "apt install -y apache2")
-	assert.NoError(t, err, output)
-
-	output, err = Ssh("api.store.test", "/install.sh /store.tar.gz 1 test")
-	assert.NoError(t, err, output)
-
-	output, err = Publish("testapp1", 1)
-	assert.NoError(t, err, output)
-	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release promote -n testapp1 -a %s -t %s --store-url http://api.store.test", arch, StoreDir))
-	assert.NoError(t, err, output)
-
-	output, err = Publish("testapp2", 1)
-	assert.NoError(t, err, output)
-
-	output, err = Publish("testapp2", 2)
-	assert.NoError(t, err, output)
-
-	output, err = Publish("testapp1", 2)
-	assert.NoError(t, err, output)
-	output, err = Publish("testapp1", 3)
-	assert.NoError(t, err, output)
-
-}
 
 func TestUnknown(t *testing.T) {
 	output, err := InstallSnapd("/install-snapd-v2.sh /snapd2.tar.gz")
@@ -59,8 +37,10 @@ func TestInstallWarning(t *testing.T) {
 	assert.NoError(t, err)
 	output, err := InstallSnapd("/install-snapd-v2.sh /snapd2.tar.gz")
 	assert.NoError(t, err, output)
-	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp1 -a %s -v 1 -c stable -t %s --store-url http://api.store.test", arch, StoreDir))
-	assert.NoError(t, err, output)
+
+	assert.NoError(t, SetVersion("testapp1", arch, "1", "stable"))
+	assert.NoError(t, RefreshCache())
+
 	output, err = Ssh("device", "snap install testapp1")
 	assert.NoError(t, err, output)
 	assert.NotContains(t, output, "Warning")
@@ -75,8 +55,8 @@ func TestMasterChannel(t *testing.T) {
 	output, err := InstallSnapd("/install-snapd-v2.sh /snapd2.tar.gz")
 	assert.NoError(t, err, output)
 
-	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp1 -a %s -v 1 -c master -t %s --store-url http://api.store.test", arch, StoreDir))
-	assert.NoError(t, err, output)
+	assert.NoError(t, SetVersion("testapp1", arch, "1", "master"))
+	assert.NoError(t, RefreshCache())
 
 	output, err = Ssh("device", "snap install testapp1 --channel=master")
 	assert.NoError(t, err, output)
@@ -87,7 +67,6 @@ func TestMasterChannel(t *testing.T) {
 
 	output, err = Ssh("device", "snap remove testapp1")
 	assert.NoError(t, err, output)
-
 }
 
 func TestCommand(t *testing.T) {
@@ -97,8 +76,8 @@ func TestCommand(t *testing.T) {
 	output, err := InstallSnapd("/install-snapd-v2.sh /snapd2.tar.gz")
 	assert.NoError(t, err, output)
 
-	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp1 -a %s -v 1 -c stable -t %s --store-url http://api.store.test", arch, StoreDir))
-	assert.NoError(t, err, output)
+	assert.NoError(t, SetVersion("testapp1", arch, "1", "stable"))
+	assert.NoError(t, RefreshCache())
 
 	output, err = Ssh("device", "snap install testapp1")
 	assert.NoError(t, err, output)
@@ -109,7 +88,6 @@ func TestCommand(t *testing.T) {
 
 	output, err = Ssh("device", "snap remove testapp1")
 	assert.NoError(t, err, output)
-
 }
 
 func TestRefresh(t *testing.T) {
@@ -119,19 +97,20 @@ func TestRefresh(t *testing.T) {
 	output, err := InstallSnapd("/install-snapd-v2.sh /snapd2.tar.gz")
 	assert.NoError(t, err, output)
 
-	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp1 -a %s -v 1 -c stable -t %s --store-url http://api.store.test", arch, StoreDir))
-	assert.NoError(t, err, output)
+	assert.NoError(t, SetVersion("testapp1", arch, "1", "stable"))
+	assert.NoError(t, RefreshCache())
 
 	output, err = Ssh("device", "snap install testapp1")
 	assert.NoError(t, err, output)
-	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp1 -a %s -v 2 -c stable -t %s --store-url http://api.store.test", arch, StoreDir))
-	assert.NoError(t, err, output)
+
+	assert.NoError(t, SetVersion("testapp1", arch, "2", "stable"))
+	assert.NoError(t, RefreshCache())
+
 	output, err = Ssh("device", "snap refresh testapp1")
 	assert.NoError(t, err, output)
 
 	output, err = Ssh("device", "snap remove testapp1")
 	assert.NoError(t, err, output)
-
 }
 
 func TestRefreshList(t *testing.T) {
@@ -141,10 +120,9 @@ func TestRefreshList(t *testing.T) {
 	output, err := InstallSnapd("/install-snapd-v2.sh /snapd2.tar.gz")
 	assert.NoError(t, err, output)
 
-	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp1 -a %s -v 1 -c stable -t %s --store-url http://api.store.test", arch, StoreDir))
-	assert.NoError(t, err, output)
-	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp2 -a %s -v 1 -c stable -t %s --store-url http://api.store.test", arch, StoreDir))
-	assert.NoError(t, err, output)
+	assert.NoError(t, SetVersion("testapp1", arch, "1", "stable"))
+	assert.NoError(t, SetVersion("testapp2", arch, "1", "stable"))
+	assert.NoError(t, RefreshCache())
 
 	output, err = Ssh("device", "snap install testapp1")
 	assert.NoError(t, err, output)
@@ -159,10 +137,9 @@ func TestRefreshList(t *testing.T) {
 	assert.NoError(t, err, output)
 	assert.Contains(t, output, "testapp2  1        1    latest/stable  syncloud")
 
-	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp1 -a %s -v 2 -c stable -t %s --store-url http://api.store.test", arch, StoreDir))
-	assert.NoError(t, err, output)
-	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp2 -a %s -v 2 -c stable -t %s --store-url http://api.store.test", arch, StoreDir))
-	assert.NoError(t, err, output)
+	assert.NoError(t, SetVersion("testapp1", arch, "2", "stable"))
+	assert.NoError(t, SetVersion("testapp2", arch, "2", "stable"))
+	assert.NoError(t, RefreshCache())
 
 	output, err = Ssh("device", "snap refresh --list")
 	assert.NoError(t, err, output)
@@ -178,15 +155,11 @@ func TestRefreshList(t *testing.T) {
 	assert.NoError(t, err, output)
 	assert.Contains(t, output, "testapp2  2        2    latest/stable  syncloud")
 
-	output, err = Ssh("device", "snap refresh --list")
-	assert.NoError(t, err, output)
-
 	output, err = Ssh("device", "snap remove testapp1")
 	assert.NoError(t, err, output)
 
 	output, err = Ssh("device", "snap remove testapp2")
 	assert.NoError(t, err, output)
-
 }
 
 func TestFind(t *testing.T) {
@@ -196,11 +169,9 @@ func TestFind(t *testing.T) {
 	output, err := InstallSnapd("/install-snapd-v2.sh /snapd2.tar.gz")
 	assert.NoError(t, err, output)
 
-	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp1 -a %s -v 1 -c stable -t %s --store-url http://api.store.test", arch, StoreDir))
-	assert.NoError(t, err, output)
-
-	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp2 -a %s -v 1 -c stable -t %s --store-url http://api.store.test", arch, StoreDir))
-	assert.NoError(t, err, output)
+	assert.NoError(t, SetVersion("testapp1", arch, "1", "stable"))
+	assert.NoError(t, SetVersion("testapp2", arch, "1", "stable"))
+	assert.NoError(t, RefreshCache())
 
 	output, err = Ssh("device", "snap find testapp1")
 	assert.NoError(t, err, output)
@@ -210,17 +181,15 @@ func TestFind(t *testing.T) {
 
 	output, err = Ssh("device", "snap remove testapp1")
 	assert.NoError(t, err, output)
-
 }
 
 func TestPopularityRanking(t *testing.T) {
 	arch, err := snapArch()
 	assert.NoError(t, err)
 
-	output, err := Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp1 -a %s -v 1 -c stable -t %s --store-url http://api.store.test", arch, StoreDir))
-	assert.NoError(t, err, output)
-	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp2 -a %s -v 1 -c stable -t %s --store-url http://api.store.test", arch, StoreDir))
-	assert.NoError(t, err, output)
+	assert.NoError(t, SetVersion("testapp1", arch, "1", "stable"))
+	assert.NoError(t, SetVersion("testapp2", arch, "1", "stable"))
+	assert.NoError(t, RefreshCache())
 
 	client := resty.New()
 
@@ -231,7 +200,7 @@ func TestPopularityRanking(t *testing.T) {
 			SetHeader("Syncloud-Architecture", arch).
 			SetHeader("Syncloud-Device-Id", deviceId).
 			SetBody(body).
-			Post("http://api.store.test/v2/snaps/refresh")
+			Post("http://api.store/v2/snaps/refresh")
 		assert.NoError(t, err)
 		assert.Equal(t, 200, resp.StatusCode(), string(resp.Body()))
 	}
@@ -242,7 +211,7 @@ func TestPopularityRanking(t *testing.T) {
 		Popularity int    `json:"popularity"`
 	}
 	read := func() (map[string]int, []string) {
-		resp, err := client.R().Get("http://api.store.test/api/ui/v1/apps?channel=stable")
+		resp, err := client.R().Get("http://api.store/api/ui/v1/apps?channel=stable")
 		assert.NoError(t, err)
 		assert.Equal(t, 200, resp.StatusCode(), string(resp.Body()))
 		var apps []uiApp
@@ -290,15 +259,14 @@ func TestRest_SnapsInfo(t *testing.T) {
 	output, err := InstallSnapd("/install-snapd-v2.sh /snapd2.tar.gz")
 	assert.NoError(t, err, output)
 
-	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release set-version -n testapp1 -a %s -v 1 -c stable -t %s --store-url http://api.store.test", arch, StoreDir))
-	assert.NoError(t, err, output)
+	assert.NoError(t, SetVersion("testapp1", arch, "1", "stable"))
+	assert.NoError(t, RefreshCache())
 
 	client := resty.New()
-	resp, err := client.R().Get(fmt.Sprintf("http://api.store.test/v2/snaps/info/testapp1?architecture=%s&fields=architectures", arch))
+	resp, err := client.R().Get(fmt.Sprintf("http://api.store/v2/snaps/info/testapp1?architecture=%s&fields=architectures", arch))
 	assert.NoError(t, err, output)
 	assert.Equal(t, 200, resp.StatusCode())
 	assert.Contains(t, string(resp.Body()), `"snap-id":"testapp1.1"`)
-
 }
 
 func snapArch() (string, error) {
@@ -338,18 +306,6 @@ func SshWaitFor(host string, command string, predicate func(string) bool) (strin
 	return "", fmt.Errorf("waited %d retries for %q on %s", retries, command, host)
 }
 
-func Publish(name string, version int) (string, error) {
-	output, err := Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release publish -f /%s_%d_amd64.snap -b stable -t %s --store-url http://api.store.test", name, version, StoreDir))
-	if err != nil {
-		return output, err
-	}
-	output, err = Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release publish -f /%s_%d_arm64.snap -b stable -t %s --store-url http://api.store.test", name, version, StoreDir))
-	if err != nil {
-		return output, err
-	}
-	return Ssh("apps.syncloud.org", fmt.Sprintf("/syncloud-release publish -f /%s_%d_armhf.snap -b stable -t %s --store-url http://api.store.test", name, version, StoreDir))
-}
-
 func Ssh(host string, command string) (string, error) {
 	config, err := gossh.NewClientConfigWithUserPass("root", "syncloud", host, 22, false)
 	if err != nil {
@@ -365,4 +321,44 @@ func Ssh(host string, command string) (string, error) {
 	result := string(output)
 	fmt.Printf("output: \n%s\n", result)
 	return result, err
+}
+
+var s3svc *s3.S3
+
+func s3client() *s3.S3 {
+	if s3svc != nil {
+		return s3svc
+	}
+	sess := session.Must(session.NewSession(&aws.Config{
+		Endpoint:         aws.String(S3Endpoint),
+		Region:           aws.String("garage"),
+		Credentials:      credentials.NewStaticCredentials(MinioAccess, MinioSecret, ""),
+		S3ForcePathStyle: aws.Bool(true),
+	}))
+	s3svc = s3.New(sess)
+	return s3svc
+}
+
+func SetVersion(app, arch, version, channel string) error {
+	_, err := s3client().PutObject(&s3.PutObjectInput{
+		Bucket: aws.String(Bucket),
+		Key:    aws.String(fmt.Sprintf("releases/%s/%s.%s.version", channel, app, arch)),
+		Body:   strings.NewReader(version),
+	})
+	return err
+}
+
+func RefreshCache() error {
+	client := resty.New()
+	resp, err := client.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(`{"token":"test"}`).
+		Post("http://api.store/syncloud/v1/cache/refresh")
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode() != 200 {
+		return fmt.Errorf("refresh failed: %d %s", resp.StatusCode(), resp.String())
+	}
+	return nil
 }

@@ -11,18 +11,19 @@ cd $DIR
 
 GIT_SHA=${DRONE_COMMIT_SHA:-unknown}
 BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-LDFLAGS="-linkmode external -extldflags -static \
-    -X github.com/syncloud/store/internal/version.GitSha=${GIT_SHA} \
+LDFLAGS="-X github.com/syncloud/store/internal/version.GitSha=${GIT_SHA} \
     -X github.com/syncloud/store/internal/version.BuildNumber=${VERSION} \
     -X github.com/syncloud/store/internal/version.BuildTime=${BUILD_TIME}"
 
+export CGO_ENABLED=0
 go build -ldflags "${LDFLAGS}" -o ${BUILD_DIR}/bin/store ./cmd/store
 go build -ldflags "${LDFLAGS}" -o ${BUILD_DIR}/bin/cli ./cmd/cli
+go build -ldflags "${LDFLAGS}" -o ${BUILD_DIR}/bin/store-publisher ./cmd/publish
+(cd verify && go test -c -o ${BUILD_DIR}/bin/deploy-verify .)
 cp -r ${DIR}/config ${BUILD_DIR}
 mkdir ${BUILD_DIR}/www
 
 OUT_DIR=${DIR}/out
 rm -rf ${OUT_DIR}
 mkdir $OUT_DIR
-go build -ldflags '-linkmode external -extldflags -static' -o $OUT_DIR/syncloud-release-$GO_ARCH ./cmd/release
 tar cpzf $OUT_DIR/store-${VERSION}-${ARCH}.tar.gz -C $BUILD_DIR .
