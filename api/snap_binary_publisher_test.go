@@ -4,9 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/syncloud/store/model"
@@ -33,14 +36,22 @@ type fakeRefresher struct{ refreshed bool }
 
 func (f *fakeRefresher) Refresh() error { f.refreshed = true; return nil }
 
+func binaryPost(t *testing.T, h echo.HandlerFunc, body interface{}) (*httptest.ResponseRecorder, error) {
+	b, _ := json.Marshal(body)
+	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(string(b)))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	return rec, h(echo.New().NewContext(req, rec))
+}
+
 func TestSnapBinaryInit_AuthAndPartCount(t *testing.T) {
 	store := &fakeBinaryStore{objects: map[string][]byte{}}
 	p := NewSnapBinaryPublisher(store, &fakeRefresher{}, "secret", zap.NewNop())
 
-	rec, _ := postJSON(t, p.Init, model.PublishInitRequest{Token: "wrong"})
+	rec, _ := binaryPost(t, p.Init, model.PublishInitRequest{Token: "wrong"})
 	assert.Equal(t, http.StatusUnauthorized, rec.Code)
 
-	rec, err := postJSON(t, p.Init, model.PublishInitRequest{
+	rec, err := binaryPost(t, p.Init, model.PublishInitRequest{
 		Token: "secret", Name: "app", Version: "1", Arch: "amd64",
 		Channel: "master", Size: 33 * 1024 * 1024, Sha384: "deadbeef",
 	})
@@ -58,7 +69,7 @@ func TestSnapBinaryFinalise_WritesSidecars(t *testing.T) {
 	cache := &fakeRefresher{}
 	p := NewSnapBinaryPublisher(store, cache, "secret", zap.NewNop())
 
-	rec, err := postJSON(t, p.Finalise, model.PublishFinaliseRequest{
+	rec, err := binaryPost(t, p.Finalise, model.PublishFinaliseRequest{
 		Token: "secret", Name: "app", Version: "1", Arch: "amd64", Channel: "master",
 		Key: "apps/app_1_amd64.snap", UploadId: "u1",
 		Parts:  []model.PublishPart{{PartNumber: 1, ETag: "etag1"}},
