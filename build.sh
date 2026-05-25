@@ -19,7 +19,7 @@ export CGO_ENABLED=0
 go build -ldflags "${LDFLAGS}" -o ${BUILD_DIR}/bin/store ./cmd/store
 go build -ldflags "${LDFLAGS}" -o ${BUILD_DIR}/bin/cli ./cmd/cli
 go build -ldflags "${LDFLAGS}" -o ${BUILD_DIR}/bin/store-publisher ./cmd/publish
-go test -c -o ${BUILD_DIR}/bin/deploy-verify ./verify
+go test -c -tags integration -o ${BUILD_DIR}/bin/deploy-verify ./verify
 cp -r ${DIR}/config ${BUILD_DIR}
 mkdir ${BUILD_DIR}/www
 
