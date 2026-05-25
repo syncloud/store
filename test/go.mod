@@ -6,7 +6,6 @@ require (
 	github.com/aws/aws-sdk-go v1.42.30
 	github.com/go-resty/resty/v2 v2.7.0
 	github.com/stretchr/testify v1.11.1
-	github.com/syncloud/store v0.0.0
 	github.com/uthng/gossh v0.2.0
 	golang.org/x/crypto v0.41.0
 )
@@ -25,5 +24,3 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace github.com/syncloud/store => ../
