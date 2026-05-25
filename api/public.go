@@ -354,5 +354,9 @@ func (s *SyncloudStore) SyncloudCacheRefresh(c echo.Context) error {
 		return c.String(http.StatusUnauthorized, "unauthorized")
 	}
 
-	return s.apiCache.Refresh()
+	if err := s.apiCache.Refresh(); err != nil {
+		s.logger.Error("cache refresh failed", zap.Error(err))
+		return c.String(http.StatusInternalServerError, "cache refresh failed")
+	}
+	return c.NoContent(http.StatusOK)
 }
