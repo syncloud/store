@@ -136,29 +136,17 @@ func TestSnapYamlPublisher_FirstWrite(t *testing.T) {
 	assert.Contains(t, mp.objects, "v2/apps/master/app/snap.yaml")
 }
 
-func TestSnapYamlPublisher_DriftRejected(t *testing.T) {
+func TestSnapYamlPublisher_OverwritesExisting(t *testing.T) {
 	mp := newFakeMP()
 	mp.objects["v2/apps/master/app/snap.yaml"] = []byte("name: app\nsummary: Old\ndescription: O\n")
 	p := NewSnapYamlPublisher(mp, "secret", zap.NewNop())
 
+	newYaml := "name: app\nsummary: New\ndescription: N\n"
 	rec, _ := postJSON(t, p.Publish, model.PublishSnapYamlRequest{
-		Token: "secret", Name: "app", Channel: "master",
-		SnapYaml: "name: app\nsummary: New\ndescription: N\n",
-	})
-	assert.Equal(t, http.StatusConflict, rec.Code)
-	assert.Contains(t, rec.Body.String(), "metadata drift")
-}
-
-func TestSnapYamlPublisher_IdenticalAccepted(t *testing.T) {
-	mp := newFakeMP()
-	y := "name: app\nsummary: A\ndescription: D\n"
-	mp.objects["v2/apps/master/app/snap.yaml"] = []byte(y)
-	p := NewSnapYamlPublisher(mp, "secret", zap.NewNop())
-
-	rec, _ := postJSON(t, p.Publish, model.PublishSnapYamlRequest{
-		Token: "secret", Name: "app", Channel: "master", SnapYaml: y,
+		Token: "secret", Name: "app", Channel: "master", SnapYaml: newYaml,
 	})
 	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, []byte(newYaml), mp.objects["v2/apps/master/app/snap.yaml"])
 }
 
 func TestIconPublisher_WritesObject(t *testing.T) {

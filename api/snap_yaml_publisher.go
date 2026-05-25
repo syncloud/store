@@ -34,29 +34,8 @@ func (p *SnapYamlPublisher) Publish(c echo.Context) error {
 	if req.Name == "" || req.Channel == "" || req.SnapYaml == "" {
 		return c.String(http.StatusBadRequest, "name, channel, snap_yaml are required")
 	}
-	if err := p.write(req.Channel, req.Name, []byte(req.SnapYaml)); err != nil {
-		return c.String(http.StatusConflict, err.Error())
+	if err := p.mp.Put(snapYamlKey(req.Channel, req.Name), []byte(req.SnapYaml), "application/x-yaml"); err != nil {
+		return c.String(http.StatusInternalServerError, err.Error())
 	}
 	return c.JSON(http.StatusOK, &model.PublishSnapYamlResponse{Ok: true})
-}
-
-func (p *SnapYamlPublisher) write(channel, app string, newYaml []byte) error {
-	key := snapYamlKey(channel, app)
-	existing, err := p.mp.Get(key)
-	if err == nil && len(existing) > 0 {
-		ex, errA := model.ParseSnapMeta(existing)
-		nx, errB := model.ParseSnapMeta(newYaml)
-		if errA == nil && errB == nil {
-			if ex.Name != nx.Name || ex.Summary != nx.Summary ||
-				ex.Description != nx.Description || ex.Type != nx.Type {
-				return fmt.Errorf("snap.yaml metadata drift for %s/%s: "+
-					"existing=(name=%q summary=%q description=%q type=%q) "+
-					"new=(name=%q summary=%q description=%q type=%q)",
-					channel, app,
-					ex.Name, ex.Summary, ex.Description, ex.Type,
-					nx.Name, nx.Summary, nx.Description, nx.Type)
-			}
-		}
-	}
-	return p.mp.Put(key, newYaml, "application/x-yaml")
 }
