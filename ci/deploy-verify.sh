@@ -7,19 +7,13 @@ if [ "$#" -ne 1 ]; then
 fi
 ENV=$1
 
-if ! command -v curl >/dev/null || ! command -v python3 >/dev/null; then
-    apt-get update
-    apt-get install -y curl python3
-fi
+apt-get update
+apt-get install -y curl python3 sshpass openssh-client
 
 KEYFILE=/tmp/_deploy_key
 if [ -f "$KEYFILE" ]; then
     SSH="ssh -i $KEYFILE -o StrictHostKeyChecking=no"
 elif [ -n "${SSH_PASSWORD:-}" ]; then
-    if ! command -v sshpass >/dev/null; then
-        apt-get update
-        apt-get install -y sshpass openssh-client
-    fi
     SSH="sshpass -p $SSH_PASSWORD ssh -o StrictHostKeyChecking=no"
 else
     echo "no ssh credentials available (neither $KEYFILE nor SSH_PASSWORD)" >&2
@@ -34,7 +28,6 @@ fail_with_logs() {
     exit 1
 }
 
-# Wait for the store to come up
 for i in $(seq 1 60); do
     ver_code=$(curl -k -s -o /dev/null -w "%{http_code}" "${DEPLOY_URL}/api/ui/v1/version" || echo 000)
     if [ "$ver_code" = "200" ]; then break; fi
@@ -43,9 +36,6 @@ done
 [ "$ver_code" = "200" ] || fail_with_logs "/api/ui/v1/version did not return 200: $ver_code"
 echo "version endpoint OK ($ver_code)"
 
-# Force a cache refresh — this validates both the token and AWS S3
-# credentials end-to-end. 401 = token wrong; 500 = S3 ListObjects
-# failed (creds wrong or endpoint unreachable); 200 = both work.
 set +x
 refresh_body=$(curl -k -s -w "\n%{http_code}" -X POST "${DEPLOY_URL}/syncloud/v1/cache/refresh" \
     -H "Content-Type: application/json" \
@@ -60,7 +50,6 @@ if [ "$refresh_code" != "200" ]; then
 fi
 echo "cache refresh OK ($refresh_code) — token and aws creds validated"
 
-# Cache is now populated; the apps + find checks should be immediate.
 apps_body=$(curl -fsS "${DEPLOY_URL}/api/ui/v1/apps?channel=stable" 2>/dev/null || echo "")
 n=$(echo "$apps_body" | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))' 2>/dev/null || echo 0)
 if [ "${n:-0}" -eq 0 ]; then
