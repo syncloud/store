@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/base64"
+	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -17,6 +18,10 @@ type IconPublisher struct {
 
 func NewIconPublisher(mp MultipartStore, token string, logger *zap.Logger) *IconPublisher {
 	return &IconPublisher{mp: mp, token: token, logger: logger}
+}
+
+func iconKey(channel, app string) string {
+	return fmt.Sprintf("v2/apps/%s/%s/icon.png", channel, app)
 }
 
 func (p *IconPublisher) Publish(c echo.Context) error {

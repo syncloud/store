@@ -13,6 +13,20 @@ import (
 	"go.uber.org/zap"
 )
 
+type MultipartStore interface {
+	Create(key string) (string, error)
+	PresignPart(key, uploadId string, partNumber int) (string, error)
+	Complete(key, uploadId string, parts []*s3.CompletedPart) error
+	Abort(key, uploadId string) error
+	HeadSize(key string) (int64, error)
+	Put(key string, body []byte, contentType string) error
+	Get(key string) ([]byte, error)
+}
+
+type CacheRefresher interface {
+	Refresh() error
+}
+
 type SnapBinaryPublisher struct {
 	mp     MultipartStore
 	cache  CacheRefresher
@@ -22,6 +36,22 @@ type SnapBinaryPublisher struct {
 
 func NewSnapBinaryPublisher(mp MultipartStore, cache CacheRefresher, token string, logger *zap.Logger) *SnapBinaryPublisher {
 	return &SnapBinaryPublisher{mp: mp, cache: cache, token: token, logger: logger}
+}
+
+func snapKey(app, version, arch string) string {
+	return fmt.Sprintf("apps/%s_%s_%s.snap", app, version, arch)
+}
+
+func sha384Key(app, version, arch string) string {
+	return fmt.Sprintf("apps/%s_%s_%s.snap.sha384", app, version, arch)
+}
+
+func sizeKey(app, version, arch string) string {
+	return fmt.Sprintf("apps/%s_%s_%s.snap.size", app, version, arch)
+}
+
+func versionKey(channel, app, arch string) string {
+	return fmt.Sprintf("releases/%s/%s.%s.version", channel, app, arch)
 }
 
 func (p *SnapBinaryPublisher) Init(c echo.Context) error {

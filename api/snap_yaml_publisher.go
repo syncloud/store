@@ -20,6 +20,10 @@ func NewSnapYamlPublisher(mp MultipartStore, token string, logger *zap.Logger) *
 	return &SnapYamlPublisher{mp: mp, token: token, logger: logger}
 }
 
+func snapYamlKey(channel, app string) string {
+	return fmt.Sprintf("v2/apps/%s/%s/snap.yaml", channel, app)
+}
+
 func (p *SnapYamlPublisher) Publish(c echo.Context) error {
 	var req model.PublishSnapYamlRequest
 	if err := c.Bind(&req); err != nil {
