@@ -9,7 +9,7 @@ ENV=$1
 
 if ! command -v ssh >/dev/null; then
     apt-get update
-    apt-get install -y openssh-client
+    apt-get install -y openssh-client ca-certificates
 fi
 
 KEYFILE=/tmp/_deploy_key
