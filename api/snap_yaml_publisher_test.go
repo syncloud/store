@@ -10,9 +10,18 @@ import (
 	"go.uber.org/zap"
 )
 
+type fakeYamlStore struct {
+	objects map[string][]byte
+}
+
+func (f *fakeYamlStore) Put(key string, body []byte, _ string) error {
+	f.objects[key] = body
+	return nil
+}
+
 func TestSnapYamlPublisher_FirstWrite(t *testing.T) {
-	mp := newFakeMP()
-	p := NewSnapYamlPublisher(mp, "secret", zap.NewNop())
+	store := &fakeYamlStore{objects: map[string][]byte{}}
+	p := NewSnapYamlPublisher(store, "secret", zap.NewNop())
 
 	rec, err := postJSON(t, p.Publish, model.PublishSnapYamlRequest{
 		Token: "secret", Name: "app", Channel: "master",
@@ -20,18 +29,18 @@ func TestSnapYamlPublisher_FirstWrite(t *testing.T) {
 	})
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, rec.Code)
-	assert.Contains(t, mp.objects, "v2/apps/master/app/snap.yaml")
+	assert.Contains(t, store.objects, "v2/apps/master/app/snap.yaml")
 }
 
 func TestSnapYamlPublisher_OverwritesExisting(t *testing.T) {
-	mp := newFakeMP()
-	mp.objects["v2/apps/master/app/snap.yaml"] = []byte("name: app\nsummary: Old\ndescription: O\n")
-	p := NewSnapYamlPublisher(mp, "secret", zap.NewNop())
+	store := &fakeYamlStore{objects: map[string][]byte{}}
+	store.objects["v2/apps/master/app/snap.yaml"] = []byte("name: app\nsummary: Old\ndescription: O\n")
+	p := NewSnapYamlPublisher(store, "secret", zap.NewNop())
 
 	newYaml := "name: app\nsummary: New\ndescription: N\n"
 	rec, _ := postJSON(t, p.Publish, model.PublishSnapYamlRequest{
 		Token: "secret", Name: "app", Channel: "master", SnapYaml: newYaml,
 	})
 	assert.Equal(t, http.StatusOK, rec.Code)
-	assert.Equal(t, []byte(newYaml), mp.objects["v2/apps/master/app/snap.yaml"])
+	assert.Equal(t, []byte(newYaml), store.objects["v2/apps/master/app/snap.yaml"])
 }
