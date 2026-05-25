@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -18,7 +17,6 @@ type fakeMP struct {
 	objects  map[string][]byte
 	uploadId string
 	parts    [][]*s3.CompletedPart
-	getErr   error
 }
 
 func newFakeMP() *fakeMP { return &fakeMP{objects: map[string][]byte{}} }
@@ -40,16 +38,6 @@ func (f *fakeMP) Put(k string, b []byte, _ string) error {
 	defer f.mu.Unlock()
 	f.objects[k] = b
 	return nil
-}
-func (f *fakeMP) Get(k string) ([]byte, error) {
-	if f.getErr != nil {
-		return nil, f.getErr
-	}
-	b, ok := f.objects[k]
-	if !ok {
-		return nil, errors.New("nosuchkey")
-	}
-	return b, nil
 }
 
 func itoa(i int) string {

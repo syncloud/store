@@ -3,7 +3,6 @@ package release
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"strings"
 	"time"
 
@@ -148,14 +147,3 @@ func (m *Multipart) ListAppIds(channel string) ([]string, error) {
 	return ids, nil
 }
 
-func (m *Multipart) Get(key string) ([]byte, error) {
-	out, err := m.svc.GetObject(&s3.GetObjectInput{
-		Bucket: aws.String(m.bucket),
-		Key:    aws.String(key),
-	})
-	if err != nil {
-		return nil, err
-	}
-	defer out.Body.Close()
-	return io.ReadAll(out.Body)
-}

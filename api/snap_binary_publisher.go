@@ -20,7 +20,6 @@ type MultipartStore interface {
 	Abort(key, uploadId string) error
 	HeadSize(key string) (int64, error)
 	Put(key string, body []byte, contentType string) error
-	Get(key string) ([]byte, error)
 }
 
 type CacheRefresher interface {

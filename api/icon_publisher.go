@@ -11,13 +11,13 @@ import (
 )
 
 type IconPublisher struct {
-	mp     MultipartStore
+	store  ObjectPutter
 	token  string
 	logger *zap.Logger
 }
 
-func NewIconPublisher(mp MultipartStore, token string, logger *zap.Logger) *IconPublisher {
-	return &IconPublisher{mp: mp, token: token, logger: logger}
+func NewIconPublisher(store ObjectPutter, token string, logger *zap.Logger) *IconPublisher {
+	return &IconPublisher{store: store, token: token, logger: logger}
 }
 
 func iconKey(channel, app string) string {
@@ -39,7 +39,7 @@ func (p *IconPublisher) Publish(c echo.Context) error {
 	if err != nil {
 		return c.String(http.StatusBadRequest, "icon_png_b64 not valid base64: "+err.Error())
 	}
-	if err := p.mp.Put(iconKey(req.Channel, req.Name), icon, "image/png"); err != nil {
+	if err := p.store.Put(iconKey(req.Channel, req.Name), icon, "image/png"); err != nil {
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
 	return c.JSON(http.StatusOK, &model.PublishIconResponse{Ok: true})

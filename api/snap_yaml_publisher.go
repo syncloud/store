@@ -9,14 +9,18 @@ import (
 	"go.uber.org/zap"
 )
 
+type ObjectPutter interface {
+	Put(key string, body []byte, contentType string) error
+}
+
 type SnapYamlPublisher struct {
-	mp     MultipartStore
+	store  ObjectPutter
 	token  string
 	logger *zap.Logger
 }
 
-func NewSnapYamlPublisher(mp MultipartStore, token string, logger *zap.Logger) *SnapYamlPublisher {
-	return &SnapYamlPublisher{mp: mp, token: token, logger: logger}
+func NewSnapYamlPublisher(store ObjectPutter, token string, logger *zap.Logger) *SnapYamlPublisher {
+	return &SnapYamlPublisher{store: store, token: token, logger: logger}
 }
 
 func snapYamlKey(channel, app string) string {
@@ -34,7 +38,7 @@ func (p *SnapYamlPublisher) Publish(c echo.Context) error {
 	if req.Name == "" || req.Channel == "" || req.SnapYaml == "" {
 		return c.String(http.StatusBadRequest, "name, channel, snap_yaml are required")
 	}
-	if err := p.mp.Put(snapYamlKey(req.Channel, req.Name), []byte(req.SnapYaml), "application/x-yaml"); err != nil {
+	if err := p.store.Put(snapYamlKey(req.Channel, req.Name), []byte(req.SnapYaml), "application/x-yaml"); err != nil {
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
 	return c.JSON(http.StatusOK, &model.PublishSnapYamlResponse{Ok: true})
