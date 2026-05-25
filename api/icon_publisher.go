@@ -7,16 +7,17 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/syncloud/store/model"
+	"github.com/syncloud/store/release"
 	"go.uber.org/zap"
 )
 
 type IconPublisher struct {
-	store  ObjectPutter
+	store  release.ObjectPutter
 	token  string
 	logger *zap.Logger
 }
 
-func NewIconPublisher(store ObjectPutter, token string, logger *zap.Logger) *IconPublisher {
+func NewIconPublisher(store release.ObjectPutter, token string, logger *zap.Logger) *IconPublisher {
 	return &IconPublisher{store: store, token: token, logger: logger}
 }
 

@@ -6,20 +6,17 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/syncloud/store/model"
+	"github.com/syncloud/store/release"
 	"go.uber.org/zap"
 )
 
-type ObjectPutter interface {
-	Put(key string, body []byte, contentType string) error
-}
-
 type SnapYamlPublisher struct {
-	store  ObjectPutter
+	store  release.ObjectPutter
 	token  string
 	logger *zap.Logger
 }
 
-func NewSnapYamlPublisher(store ObjectPutter, token string, logger *zap.Logger) *SnapYamlPublisher {
+func NewSnapYamlPublisher(store release.ObjectPutter, token string, logger *zap.Logger) *SnapYamlPublisher {
 	return &SnapYamlPublisher{store: store, token: token, logger: logger}
 }
 
