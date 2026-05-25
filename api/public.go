@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -102,7 +103,46 @@ func (s *SyncloudStore) Start() <-chan error {
 	s.echo.GET("/v2/snaps/find", s.Find)
 	s.echo.GET("/v2/snaps/info/:name", s.Info)
 	s.echo.POST("/syncloud/v1/cache/refresh", s.SyncloudCacheRefresh)
-	registerPublishRoutes(s.echo, s.snapBinary, s.snapYaml, s.icon)
+	s.echo.POST("/syncloud/v1/publish/snap/init", func(c echo.Context) error {
+		var req model.PublishInitRequest
+		if err := c.Bind(&req); err != nil {
+			return c.String(http.StatusBadRequest, err.Error())
+		}
+		resp, err := s.snapBinary.Init(req)
+		return reply(c, resp, err)
+	})
+	s.echo.POST("/syncloud/v1/publish/snap/part-url", func(c echo.Context) error {
+		var req model.PublishPartUrlRequest
+		if err := c.Bind(&req); err != nil {
+			return c.String(http.StatusBadRequest, err.Error())
+		}
+		resp, err := s.snapBinary.PartUrl(req)
+		return reply(c, resp, err)
+	})
+	s.echo.POST("/syncloud/v1/publish/snap/finalise", func(c echo.Context) error {
+		var req model.PublishFinaliseRequest
+		if err := c.Bind(&req); err != nil {
+			return c.String(http.StatusBadRequest, err.Error())
+		}
+		resp, err := s.snapBinary.Finalise(req)
+		return reply(c, resp, err)
+	})
+	s.echo.POST("/syncloud/v1/publish/snap-yaml", func(c echo.Context) error {
+		var req model.PublishSnapYamlRequest
+		if err := c.Bind(&req); err != nil {
+			return c.String(http.StatusBadRequest, err.Error())
+		}
+		resp, err := s.snapYaml.Publish(req)
+		return reply(c, resp, err)
+	})
+	s.echo.POST("/syncloud/v1/publish/icon", func(c echo.Context) error {
+		var req model.PublishIconRequest
+		if err := c.Bind(&req); err != nil {
+			return c.String(http.StatusBadRequest, err.Error())
+		}
+		resp, err := s.icon.Publish(req)
+		return reply(c, resp, err)
+	})
 	s.echo.GET("/api/ui/v1/apps", s.web.Apps)
 	s.echo.GET("/api/ui/v1/version", s.web.Version)
 	s.echo.GET("/api/ui/v1/icons/*", echo.WrapHandler(s.iconProxy))
@@ -133,6 +173,17 @@ func (s *SyncloudStore) Start() <-chan error {
 
 func (s *SyncloudStore) IsUnixSocket() bool {
 	return strings.HasPrefix(s.address, "/")
+}
+
+func reply(c echo.Context, resp interface{}, err error) error {
+	if err == nil {
+		return c.JSON(http.StatusOK, resp)
+	}
+	var ae *apiError
+	if errors.As(err, &ae) {
+		return c.String(ae.Status, ae.Msg)
+	}
+	return c.String(http.StatusInternalServerError, err.Error())
 }
 
 func (s *SyncloudStore) Sections(c echo.Context) error {
