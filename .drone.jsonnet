@@ -119,7 +119,7 @@ local build(arch) = {
                     "./ci/test-init.sh",
                     "./ci/deploy-prepare.sh test",
                     "./ci/deploy-run.sh test " + image_tag,
-                    "./ci/deploy-verify.sh test",
+                    "./build/bin/deploy-verify",
                 ],
                 when: { event: ["push", "tag"] },
             },
@@ -192,7 +192,7 @@ local build(arch) = {
                 commands: [
                     "./ci/deploy-prepare.sh uat",
                     "./ci/deploy-run.sh uat " + image_tag,
-                    "./ci/deploy-verify.sh uat",
+                    "./build/bin/deploy-verify",
                 ],
                 when: { event: ["push"] },
             },
@@ -211,7 +211,7 @@ local build(arch) = {
                 commands: [
                     "./ci/deploy-prepare.sh prod",
                     "./ci/deploy-run.sh prod " + image_tag,
-                    "./ci/deploy-verify.sh prod",
+                    "./build/bin/deploy-verify",
                 ],
                 when: { event: ["push"], branch: ["stable"] },
             },
