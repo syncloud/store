@@ -10,7 +10,7 @@ import (
 
 func main() {
 	var storeUrl string
-	root := &cobra.Command{Use: "publish"}
+	root := &cobra.Command{Use: "store-publisher"}
 	root.PersistentFlags().StringVarP(&storeUrl, "store-url", "s",
 		"https://api.store.syncloud.org", "store url")
 

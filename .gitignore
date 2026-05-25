@@ -2,6 +2,6 @@ build
 out
 .idea
 .claude
-/publish
+/store-publisher
 /store
 /cli
