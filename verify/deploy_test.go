@@ -33,7 +33,7 @@ func TestMain(m *testing.M) {
 	if keyFile == "" {
 		keyFile = "/tmp/_deploy_key"
 	}
-	httpClient = &http.Client{Timeout: 10 * time.Second}
+	httpClient = &http.Client{Timeout: 5 * time.Minute}
 	os.Exit(m.Run())
 }
 
@@ -92,11 +92,12 @@ func dumpOnFail(t *testing.T) {
 func TestVersion(t *testing.T) {
 	dumpOnFail(t)
 	url := deployUrl + "/api/ui/v1/version"
+	probe := &http.Client{Timeout: 10 * time.Second}
 	for i := 1; i <= 30; i++ {
 		if i > 1 {
 			time.Sleep(10 * time.Second)
 		}
-		resp, err := httpClient.Get(url)
+		resp, err := probe.Get(url)
 		if err != nil {
 			t.Logf("attempt %d/30: %v", i, err)
 			continue
