@@ -267,6 +267,7 @@ func TestRest_SnapsInfo(t *testing.T) {
 	assert.NoError(t, err, output)
 	assert.Equal(t, 200, resp.StatusCode())
 	assert.Contains(t, string(resp.Body()), `"snap-id":"testapp1.1"`)
+	assert.Contains(t, string(resp.Body()), `/v2/apps/stable/testapp1/icon.png`)
 }
 
 func snapArch() (string, error) {

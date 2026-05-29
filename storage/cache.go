@@ -296,7 +296,7 @@ func (i *Cache) resolveSnap(channel string, app *model.App, arch string) (*model
 	if err != nil {
 		return nil, err
 	}
-	return app.ToInfo(version, size, fmt.Sprintf("%x", sha384), downloadUrl, arch, i.iconUrl(channel, app.Name))
+	return app.ToInfo(version, size, fmt.Sprintf("%x", sha384), downloadUrl, arch, i.iconUrlAbsolute(channel, app.Name))
 }
 
 func (i *Cache) WriteIndex(channel string, snaps SnapByArch, apps AppByName) {
@@ -347,6 +347,13 @@ func (i *Cache) iconUrl(channel, appId string) string {
 		return ""
 	}
 	return fmt.Sprintf("/api/ui/v1/icons/%s/%s", channel, appId)
+}
+
+func (i *Cache) iconUrlAbsolute(channel, appId string) string {
+	if appId == "" {
+		return ""
+	}
+	return fmt.Sprintf("%s/v2/apps/%s/%s/icon.png", i.baseUrl, channel, appId)
 }
 
 func (i *Cache) Read(channel string) (SnapByArch, bool) {
