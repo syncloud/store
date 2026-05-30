@@ -179,6 +179,11 @@ func TestFind(t *testing.T) {
 	output, err = Ssh("device", "snap find")
 	assert.NoError(t, err, output)
 
+	output, err = Ssh("device", "curl -s --unix-socket /run/snapd.socket http://localhost/v2/find?name=testapp1")
+	assert.NoError(t, err, output)
+	assert.Contains(t, output, "http://apps.s3:3902/v2/apps/stable/testapp1/icon.png",
+		"snapd find must relay the store's absolute icon URL")
+
 	output, err = Ssh("device", "snap remove testapp1")
 	assert.NoError(t, err, output)
 }
@@ -267,6 +272,7 @@ func TestRest_SnapsInfo(t *testing.T) {
 	assert.NoError(t, err, output)
 	assert.Equal(t, 200, resp.StatusCode())
 	assert.Contains(t, string(resp.Body()), `"snap-id":"testapp1.1"`)
+	assert.Contains(t, string(resp.Body()), `http://apps.s3:3902/v2/apps/stable/testapp1/icon.png`)
 }
 
 func snapArch() (string, error) {

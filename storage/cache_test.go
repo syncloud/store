@@ -64,7 +64,7 @@ func TestCache_Refresh_LoadsFromV2(t *testing.T) {
 	assert.Equal(t, "My App", index["amd64"]["app"].Summary)
 	assert.Equal(t, "http://localhost/apps/app_123_amd64.snap", index["amd64"]["app"].Download.URL)
 	assert.Equal(t, "app", index["amd64"]["app"].Type)
-	assert.Equal(t, "/api/ui/v1/icons/master/app", index["amd64"]["app"].Media[0].URL)
+	assert.Equal(t, "http://localhost/v2/apps/master/app/icon.png", index["amd64"]["app"].Media[0].URL)
 }
 
 func TestCache_Refresh_TypeBaseFromSnapYaml(t *testing.T) {
@@ -182,4 +182,10 @@ func TestCache_UIApps_IconUrlIsChannelScoped(t *testing.T) {
 	assert.Equal(t, "/api/ui/v1/icons/stable/nextcloud", apps[0].IconUrl)
 	assert.False(t, strings.HasPrefix(apps[0].IconUrl, "http"),
 		"icon URL must be same-origin so it inherits HTTPS")
+}
+
+func TestCache_SnapMediaIconUrlIsAbsolute(t *testing.T) {
+	cache := &Cache{baseUrl: "http://apps.syncloud.org", logger: log.Default()}
+	url := cache.iconUrlAbsolute("stable", "nextcloud")
+	assert.Equal(t, "http://apps.syncloud.org/v2/apps/stable/nextcloud/icon.png", url)
 }
