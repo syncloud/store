@@ -350,9 +350,6 @@ func (i *Cache) iconUrl(channel, appId string) string {
 }
 
 func (i *Cache) iconUrlAbsolute(channel, appId string) string {
-	if appId == "" {
-		return ""
-	}
 	return fmt.Sprintf("%s/v2/apps/%s/%s/icon.png", i.baseUrl, channel, appId)
 }
 
