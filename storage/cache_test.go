@@ -188,6 +188,4 @@ func TestCache_SnapMediaIconUrlIsAbsolute(t *testing.T) {
 	cache := &Cache{baseUrl: "http://apps.syncloud.org", logger: log.Default()}
 	url := cache.iconUrlAbsolute("stable", "nextcloud")
 	assert.Equal(t, "http://apps.syncloud.org/v2/apps/stable/nextcloud/icon.png", url)
-	assert.True(t, strings.HasPrefix(url, "http"),
-		"snapd media icon URL must be absolute so external clients need not know the store host")
 }
