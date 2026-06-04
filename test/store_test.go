@@ -183,6 +183,8 @@ func TestFind(t *testing.T) {
 	assert.NoError(t, err, output)
 	assert.Contains(t, output, "http://apps.s3:3902/v2/apps/stable/testapp1/icon.png",
 		"snapd find must relay the store's absolute icon URL")
+	assert.Contains(t, output, "First test application for the integration suite",
+		"snapd find must relay the store's snap.yaml description")
 
 	output, err = Ssh("device", "snap remove testapp1")
 	assert.NoError(t, err, output)
@@ -273,6 +275,7 @@ func TestRest_SnapsInfo(t *testing.T) {
 	assert.Equal(t, 200, resp.StatusCode())
 	assert.Contains(t, string(resp.Body()), `"snap-id":"testapp1.1"`)
 	assert.Contains(t, string(resp.Body()), `http://apps.s3:3902/v2/apps/stable/testapp1/icon.png`)
+	assert.Contains(t, string(resp.Body()), `"description":"First test application for the integration suite"`)
 }
 
 func snapArch() (string, error) {
