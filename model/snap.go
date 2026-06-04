@@ -4,6 +4,7 @@ type Snap struct {
 	SnapID        string            `json:"snap-id"`
 	Name          string            `json:"name"`
 	Summary       string            `json:"summary"`
+	Description   string            `json:"description"`
 	Version       string            `json:"version"`
 	Type          string            `json:"type"`
 	Architectures []string          `json:"architectures"`

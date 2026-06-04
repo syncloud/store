@@ -6,7 +6,7 @@ import (
 )
 
 func TestApp_ToInfo(t *testing.T) {
-	app := &App{Name: "name", Summary: "summary"}
+	app := &App{Name: "name", Summary: "summary", Description: "description"}
 	info, err := app.ToInfo("1", 0, "sha", "url", "amd64", "icon-url")
 	assert.NoError(t, err)
 	assert.Equal(t, "name.1", info.SnapID)
@@ -14,6 +14,8 @@ func TestApp_ToInfo(t *testing.T) {
 	assert.Equal(t, "sha", info.Download.Sha3_384)
 	assert.Equal(t, "url", info.Download.URL)
 	assert.Equal(t, "app", info.Type)
+	assert.Equal(t, "summary", info.Summary)
+	assert.Equal(t, "description", info.Description)
 	assert.Equal(t, "icon-url", info.Media[0].URL)
 }
 
