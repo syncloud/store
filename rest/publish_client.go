@@ -12,10 +12,17 @@ import (
 	"github.com/syncloud/store/model"
 )
 
+const (
+	publishRetries   = 3
+	publishRetryWait = 2 * time.Second
+)
+
 type PublishClient struct {
-	storeUrl string
-	token    string
-	http     *http.Client
+	storeUrl  string
+	token     string
+	http      *http.Client
+	retries   int
+	retryWait time.Duration
 }
 
 func NewPublishClient(storeUrl string) (*PublishClient, error) {
@@ -26,7 +33,12 @@ func NewPublishClient(storeUrl string) (*PublishClient, error) {
 	return &PublishClient{
 		storeUrl: storeUrl,
 		token:    token,
-		http:     &http.Client{Timeout: 60 * time.Second},
+		http: &http.Client{
+			Timeout:   60 * time.Second,
+			Transport: &http.Transport{DisableKeepAlives: true},
+		},
+		retries:   publishRetries,
+		retryWait: publishRetryWait,
 	}, nil
 }
 
@@ -35,19 +47,27 @@ func (c *PublishClient) postJSON(path string, in, out interface{}) error {
 	if err != nil {
 		return err
 	}
-	resp, err := c.http.Post(c.storeUrl+path, "application/json", bytes.NewReader(body))
-	if err != nil {
-		return err
+	var lastErr error
+	for attempt := 0; attempt <= c.retries; attempt++ {
+		if attempt > 0 {
+			time.Sleep(c.retryWait)
+		}
+		resp, err := c.http.Post(c.storeUrl+path, "application/json", bytes.NewReader(body))
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		raw, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			return fmt.Errorf("%s -> %d: %s", path, resp.StatusCode, string(raw))
+		}
+		if out != nil {
+			return json.Unmarshal(raw, out)
+		}
+		return nil
 	}
-	defer resp.Body.Close()
-	raw, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("%s -> %d: %s", path, resp.StatusCode, string(raw))
-	}
-	if out != nil {
-		return json.Unmarshal(raw, out)
-	}
-	return nil
+	return fmt.Errorf("%s: %w", path, lastErr)
 }
 
 func (c *PublishClient) SnapInit(name, version, arch, channel string, size int64, sha384 string, partSize int64) (*model.PublishInitResponse, error) {
