@@ -196,6 +196,7 @@ local build(arch) = {
                     "./ci/deploy-prepare.sh uat",
                     "./ci/deploy-run.sh uat " + image_tag,
                     "./build/bin/deploy-verify -test.v -test.failfast",
+                    "./ci/grafana-deploy.sh",
                 ],
                 when: { event: ["push"] },
             },

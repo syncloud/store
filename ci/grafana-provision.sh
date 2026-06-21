@@ -22,7 +22,8 @@ echo
 
 python3 -c "
 import json
-d = json.load(open('$DIR/grafana/popularity.json'))
+raw = open('$DIR/grafana/popularity.json').read().replace('\${DS_PROMETHEUS}', 'victoria-metrics')
+d = json.loads(raw)
 d['id'] = None
 print(json.dumps({'dashboard': d, 'overwrite': True}))
 " | curl -fsS -X POST "$GRAFANA/api/dashboards/db" \

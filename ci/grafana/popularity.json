@@ -12,14 +12,30 @@
         "name": "env",
         "label": "Environment",
         "type": "custom",
-        "current": { "selected": true, "text": "uat", "value": "uat" },
+        "current": { "selected": true, "text": "prod", "value": "prod" },
         "options": [
-          { "selected": true, "text": "uat", "value": "uat" },
-          { "selected": false, "text": "prod", "value": "prod" }
+          { "selected": false, "text": "uat", "value": "uat" },
+          { "selected": true, "text": "prod", "value": "prod" }
         ],
         "query": "uat,prod",
         "includeAll": false,
         "multi": false
+      },
+      {
+        "name": "arch",
+        "label": "Architecture",
+        "type": "custom",
+        "current": { "selected": true, "text": "All", "value": "$__all" },
+        "options": [
+          { "selected": true, "text": "All", "value": "$__all" },
+          { "selected": false, "text": "amd64", "value": "amd64" },
+          { "selected": false, "text": "arm64", "value": "arm64" },
+          { "selected": false, "text": "armhf", "value": "armhf" }
+        ],
+        "query": "amd64,arm64,armhf",
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true
       }
     ]
   },
@@ -29,9 +45,9 @@
       "type": "table",
       "title": "Actions by app",
       "gridPos": { "x": 0, "y": 0, "w": 24, "h": 12 },
-      "datasource": { "type": "prometheus", "uid": "victoria-metrics" },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
-        { "expr": "sum by (snap, action) (increase(store_snapd_request_total{env=\"$env\",snap!=\"\"}[$__range]))", "refId": "A", "format": "table", "instant": true }
+        { "expr": "sum by (snap, action) (increase(store_snapd_request_total{env=\"$env\",arch=~\"$arch\",snap!=\"\"}[$__range]))", "refId": "A", "format": "table", "instant": true }
       ],
       "transformations": [
         { "id": "groupingToMatrix", "options": { "columnField": "action", "rowField": "snap", "valueField": "Value", "emptyValue": "zero" } }
@@ -63,9 +79,9 @@
       "type": "timeseries",
       "title": "Snapd request rate (per minute, by action)",
       "gridPos": { "x": 0, "y": 12, "w": 24, "h": 10 },
-      "datasource": { "type": "prometheus", "uid": "victoria-metrics" },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
-        { "expr": "sum by (action) (rate(store_snapd_request_total{env=\"$env\"}[1m])) * 60", "refId": "A", "legendFormat": "{{action}}" }
+        { "expr": "sum by (action) (rate(store_snapd_request_total{env=\"$env\",arch=~\"$arch\"}[1m])) * 60", "refId": "A", "legendFormat": "{{action}}" }
       ],
       "fieldConfig": {
         "defaults": {
@@ -81,9 +97,9 @@
       "type": "bargauge",
       "title": "Refresh requests per arch (last 24h)",
       "gridPos": { "x": 0, "y": 22, "w": 12, "h": 4 },
-      "datasource": { "type": "prometheus", "uid": "victoria-metrics" },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
-        { "expr": "sum by (arch) (increase(store_snapd_request_total{action=\"refresh\",env=\"$env\"}[24h]))", "refId": "A", "legendFormat": "{{arch}}", "instant": true }
+        { "expr": "sum by (arch) (increase(store_snapd_request_total{action=\"refresh\",env=\"$env\",arch=~\"$arch\"}[24h]))", "refId": "A", "legendFormat": "{{arch}}", "instant": true }
       ],
       "options": { "orientation": "horizontal", "displayMode": "gradient", "showUnfilled": true },
       "fieldConfig": {
@@ -99,9 +115,9 @@
       "type": "bargauge",
       "title": "Requests per status (last 24h)",
       "gridPos": { "x": 12, "y": 22, "w": 12, "h": 4 },
-      "datasource": { "type": "prometheus", "uid": "victoria-metrics" },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
-        { "expr": "sum by (status) (increase(store_snapd_request_total{env=\"$env\"}[24h]))", "refId": "A", "legendFormat": "{{status}}", "instant": true }
+        { "expr": "sum by (status) (increase(store_snapd_request_total{env=\"$env\",arch=~\"$arch\"}[24h]))", "refId": "A", "legendFormat": "{{status}}", "instant": true }
       ],
       "options": { "orientation": "horizontal", "displayMode": "gradient", "showUnfilled": true },
       "fieldConfig": {
