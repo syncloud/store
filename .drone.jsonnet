@@ -123,6 +123,8 @@ local build(arch) = {
                     "./ci/deploy-prepare.sh test",
                     "./ci/deploy-run.sh test " + image_tag,
                     "./build/bin/deploy-verify -test.v -test.failfast",
+                    "./ci/grafana-datasource.sh",
+                    "GRAFANA_HOST=grafana:3000 ./ci/grafana-deploy.sh",
                 ],
                 when: { event: ["push", "tag"] },
             },
@@ -154,11 +156,6 @@ local build(arch) = {
                 name: "test",
                 image: "debian:" + debian,
                 commands: ["./test/test.sh"],
-            },
-            {
-                name: "grafana provision",
-                image: "debian:" + debian,
-                commands: ["./ci/grafana-provision.sh"],
             },
             {
                 name: "docker push store latest",
