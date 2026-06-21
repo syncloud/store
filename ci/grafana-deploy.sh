@@ -2,13 +2,18 @@
 set -ex
 
 if [ "$#" -ne 1 ]; then
-    echo "usage: $0 <grafana-host>" >&2
+    echo "usage: $0 <env>" >&2
     exit 1
 fi
-GRAFANA_HOST=$1
+ENV=$1
 
 DIR=$( cd "$( dirname "$0" )" && pwd )
 ROOT=$( cd "$DIR/.." && pwd )
+
+ENVFILE="$DIR/grafana.deploy.${ENV}"
+[ -f "$ENVFILE" ] || { echo "no grafana env file: $ENVFILE" >&2; exit 1; }
+source "$ENVFILE"
+
 KEYFILE=/tmp/_deploy_key
 SSH="ssh -i $KEYFILE -o StrictHostKeyChecking=no"
 SCP="scp -p -i $KEYFILE -o StrictHostKeyChecking=no"
