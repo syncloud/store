@@ -127,6 +127,26 @@
           "decimals": 0
         }
       }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Trending apps (rolling 24h refresh/install per app)",
+      "gridPos": { "x": 0, "y": 26, "w": 24, "h": 12 },
+      "timeFrom": "7d",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        { "expr": "topk(10, sum by (snap) (increase(store_snapd_request_total{action=~\"refresh|install\",env=\"$env\",arch=~\"$arch\",snap!=\"\"}[24h])))", "refId": "A", "legendFormat": "{{snap}}" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "lineInterpolation": "linear", "lineWidth": 2, "fillOpacity": 10, "pointSize": 5, "showPoints": "auto" },
+          "color": { "mode": "palette-classic" },
+          "unit": "short",
+          "decimals": 0
+        }
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "right", "calcs": [ "lastNotNull", "max" ] }, "tooltip": { "mode": "multi", "sort": "desc" } }
     }
   ]
 }
