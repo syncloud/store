@@ -95,14 +95,14 @@ func (s *SyncloudStore) Start() <-chan error {
 	}))
 	s.echo.Use(middleware.Recover())
 
-	s.echo.GET("/api/v1/snaps/sections", s.Sections, s.recordSnapdVersion)
-	s.echo.GET("/api/v1/snaps/names", s.Names, s.recordSnapdVersion)
-	s.echo.POST("/v2/snaps/refresh", s.Refresh, s.recordSnapdVersion)
-	s.echo.GET("/v2/assertions/snap-revision/:key", s.SnapRevision, s.recordSnapdVersion)
-	s.echo.GET("/v2/assertions/snap-declaration/:series/:snap-id", s.SnapDeclaration, s.recordSnapdVersion)
-	s.echo.GET("/v2/assertions/account-key/:key", s.AccountKey, s.recordSnapdVersion)
-	s.echo.GET("/v2/snaps/find", s.Find, s.recordSnapdVersion)
-	s.echo.GET("/v2/snaps/info/:name", s.Info, s.recordSnapdVersion)
+	s.echo.GET("/api/v1/snaps/sections", s.Sections)
+	s.echo.GET("/api/v1/snaps/names", s.Names)
+	s.echo.POST("/v2/snaps/refresh", s.Refresh)
+	s.echo.GET("/v2/assertions/snap-revision/:key", s.SnapRevision)
+	s.echo.GET("/v2/assertions/snap-declaration/:series/:snap-id", s.SnapDeclaration)
+	s.echo.GET("/v2/assertions/account-key/:key", s.AccountKey)
+	s.echo.GET("/v2/snaps/find", s.Find)
+	s.echo.GET("/v2/snaps/info/:name", s.Info)
 	s.echo.POST("/syncloud/v1/cache/refresh", s.SyncloudCacheRefresh)
 	s.echo.POST("/syncloud/v1/publish/snap/init", func(c echo.Context) error {
 		var req model.PublishInitRequest
@@ -188,6 +188,7 @@ func reply(c echo.Context, resp interface{}, err error) error {
 }
 
 func (s *SyncloudStore) Sections(c echo.Context) error {
+	s.metrics.RecordVersion(snapdVersion(c.Request().UserAgent()))
 	c.Response().Header().Set(echo.HeaderContentType, "application/hal+json")
 	return c.String(http.StatusOK, `{
   "_embedded": {
@@ -202,6 +203,7 @@ func (s *SyncloudStore) Sections(c echo.Context) error {
 }
 
 func (s *SyncloudStore) Names(c echo.Context) error {
+	s.metrics.RecordVersion(snapdVersion(c.Request().UserAgent()))
 	c.Response().Header().Set(echo.HeaderContentType, "application/hal+json")
 	return c.String(http.StatusOK, `
 {
@@ -229,14 +231,8 @@ func snapdVersion(userAgent string) string {
 	return version
 }
 
-func (s *SyncloudStore) recordSnapdVersion(next echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		s.metrics.RecordVersion(snapdVersion(c.Request().UserAgent()))
-		return next(c)
-	}
-}
-
 func (s *SyncloudStore) Refresh(c echo.Context) error {
+	s.metrics.RecordVersion(snapdVersion(c.Request().UserAgent()))
 	req, err := io.ReadAll(c.Request().Body)
 	if err != nil {
 		c.Error(err)
@@ -292,6 +288,7 @@ func snapName(action *model.SnapAction) string {
 }
 
 func (s *SyncloudStore) Info(c echo.Context) error {
+	s.metrics.RecordVersion(snapdVersion(c.Request().UserAgent()))
 	name := c.Param("name")
 	arch := c.QueryParam("architecture")
 	result := s.apiCache.Info(name, arch)
@@ -305,6 +302,7 @@ func (s *SyncloudStore) Info(c echo.Context) error {
 }
 
 func (s *SyncloudStore) Find(c echo.Context) error {
+	s.metrics.RecordVersion(snapdVersion(c.Request().UserAgent()))
 	channel := c.QueryParam("channel")
 	query := c.QueryParam("q")
 	architecture := c.QueryParam("architecture")
@@ -329,6 +327,7 @@ func (s *SyncloudStore) Find(c echo.Context) error {
 }
 
 func (s *SyncloudStore) AccountKey(c echo.Context) error {
+	s.metrics.RecordVersion(snapdVersion(c.Request().UserAgent()))
 	content, err := s.signer.AccountKey(c.Param("key"))
 	if err != nil {
 		c.Error(err)
@@ -338,6 +337,7 @@ func (s *SyncloudStore) AccountKey(c echo.Context) error {
 }
 
 func (s *SyncloudStore) SnapDeclaration(c echo.Context) error {
+	s.metrics.RecordVersion(snapdVersion(c.Request().UserAgent()))
 	content, err := s.signer.SnapDeclaration(c.Param("series"), c.Param("snap-id"))
 	if err != nil {
 		c.Error(err)
@@ -347,6 +347,7 @@ func (s *SyncloudStore) SnapDeclaration(c echo.Context) error {
 }
 
 func (s *SyncloudStore) SnapRevision(c echo.Context) error {
+	s.metrics.RecordVersion(snapdVersion(c.Request().UserAgent()))
 	key := c.Param("key")
 	s.logger.Info("snap revision", zap.String("key", key))
 
