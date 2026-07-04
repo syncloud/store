@@ -13,6 +13,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 )
 
@@ -94,14 +95,14 @@ func (s *SyncloudStore) Start() <-chan error {
 	}))
 	s.echo.Use(middleware.Recover())
 
-	s.echo.GET("/api/v1/snaps/sections", s.Sections)
-	s.echo.GET("/api/v1/snaps/names", s.Names)
-	s.echo.POST("/v2/snaps/refresh", s.Refresh)
-	s.echo.GET("/v2/assertions/snap-revision/:key", s.SnapRevision)
-	s.echo.GET("/v2/assertions/snap-declaration/:series/:snap-id", s.SnapDeclaration)
-	s.echo.GET("/v2/assertions/account-key/:key", s.AccountKey)
-	s.echo.GET("/v2/snaps/find", s.Find)
-	s.echo.GET("/v2/snaps/info/:name", s.Info)
+	s.echo.GET("/api/v1/snaps/sections", s.Sections, s.recordSnapdVersion)
+	s.echo.GET("/api/v1/snaps/names", s.Names, s.recordSnapdVersion)
+	s.echo.POST("/v2/snaps/refresh", s.Refresh, s.recordSnapdVersion)
+	s.echo.GET("/v2/assertions/snap-revision/:key", s.SnapRevision, s.recordSnapdVersion)
+	s.echo.GET("/v2/assertions/snap-declaration/:series/:snap-id", s.SnapDeclaration, s.recordSnapdVersion)
+	s.echo.GET("/v2/assertions/account-key/:key", s.AccountKey, s.recordSnapdVersion)
+	s.echo.GET("/v2/snaps/find", s.Find, s.recordSnapdVersion)
+	s.echo.GET("/v2/snaps/info/:name", s.Info, s.recordSnapdVersion)
 	s.echo.POST("/syncloud/v1/cache/refresh", s.SyncloudCacheRefresh)
 	s.echo.POST("/syncloud/v1/publish/snap/init", func(c echo.Context) error {
 		var req model.PublishInitRequest
@@ -210,6 +211,29 @@ func (s *SyncloudStore) Names(c echo.Context) error {
     ]
   }
 }`)
+}
+
+var snapdVersionRe = regexp.MustCompile(`^[0-9][0-9.]{0,15}$`)
+
+func snapdVersion(userAgent string) string {
+	if !strings.HasPrefix(userAgent, "snapd/") {
+		return "unknown"
+	}
+	version := strings.TrimPrefix(userAgent, "snapd/")
+	if i := strings.IndexByte(version, ' '); i >= 0 {
+		version = version[:i]
+	}
+	if !snapdVersionRe.MatchString(version) {
+		return "other"
+	}
+	return version
+}
+
+func (s *SyncloudStore) recordSnapdVersion(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		s.metrics.RecordVersion(snapdVersion(c.Request().UserAgent()))
+		return next(c)
+	}
 }
 
 func (s *SyncloudStore) Refresh(c echo.Context) error {

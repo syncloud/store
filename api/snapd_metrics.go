@@ -8,6 +8,7 @@ import (
 
 type SnapdMetrics struct {
 	requests *prometheus.CounterVec
+	versions *prometheus.CounterVec
 }
 
 func NewSnapdMetrics() *SnapdMetrics {
@@ -19,6 +20,13 @@ func NewSnapdMetrics() *SnapdMetrics {
 			},
 			[]string{"snap", "action", "arch", "status"},
 		),
+		versions: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Name: "store_snapd_client_version_total",
+				Help: "Number of snapd API requests, by the snapd client version reported in the User-Agent.",
+			},
+			[]string{"version"},
+		),
 	}
 }
 
@@ -26,10 +34,16 @@ func (m *SnapdMetrics) Record(snap, action, arch string, status int) {
 	m.requests.WithLabelValues(snap, action, arch, strconv.Itoa(status)).Inc()
 }
 
+func (m *SnapdMetrics) RecordVersion(version string) {
+	m.versions.WithLabelValues(version).Inc()
+}
+
 func (m *SnapdMetrics) Describe(ch chan<- *prometheus.Desc) {
 	m.requests.Describe(ch)
+	m.versions.Describe(ch)
 }
 
 func (m *SnapdMetrics) Collect(ch chan<- prometheus.Metric) {
 	m.requests.Collect(ch)
+	m.versions.Collect(ch)
 }

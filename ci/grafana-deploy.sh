@@ -20,5 +20,7 @@ SCP="scp -p -i $KEYFILE -o StrictHostKeyChecking=no"
 REMOTE="${DEPLOY_USER}@${DEPLOY_HOST}"
 
 $SCP "$ROOT/build/bin/grafana-deploy" "${REMOTE}:/tmp/store-grafana-deploy"
-$SCP "$DIR/grafana/popularity.json" "${REMOTE}:/tmp/store-popularity-dashboard.json"
-$SSH $REMOTE "sudo -n /tmp/store-grafana-deploy --host $GRAFANA_HOST --dashboard /tmp/store-popularity-dashboard.json"
+for dashboard in popularity snapd_versions; do
+    $SCP "$DIR/grafana/${dashboard}.json" "${REMOTE}:/tmp/store-${dashboard}-dashboard.json"
+    $SSH $REMOTE "sudo -n /tmp/store-grafana-deploy --host $GRAFANA_HOST --dashboard /tmp/store-${dashboard}-dashboard.json"
+done
