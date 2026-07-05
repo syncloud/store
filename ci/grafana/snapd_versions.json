@@ -1,0 +1,87 @@
+{
+  "uid": "snapd-versions",
+  "title": "snapd client versions",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-7d", "to": "now" },
+  "timepicker": {},
+  "templating": {
+    "list": [
+      {
+        "name": "env",
+        "label": "Environment",
+        "type": "custom",
+        "current": { "selected": true, "text": "prod", "value": "prod" },
+        "options": [
+          { "selected": false, "text": "uat", "value": "uat" },
+          { "selected": true, "text": "prod", "value": "prod" }
+        ],
+        "query": "uat,prod",
+        "includeAll": false,
+        "multi": false
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "snapd client requests per minute, by version",
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 12 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        { "expr": "sum by (version) (rate(store_snapd_client_version_total{env=\"$env\"}[$__rate_interval])) * 60", "refId": "A", "legendFormat": "{{version}}" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "lineInterpolation": "linear", "lineWidth": 2, "fillOpacity": 20, "stacking": { "mode": "normal", "group": "A" }, "pointSize": 5, "showPoints": "auto" },
+          "color": { "mode": "palette-classic" },
+          "unit": "short",
+          "decimals": 0
+        }
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "right", "calcs": [ "lastNotNull", "max" ] }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
+      "id": 3,
+      "type": "bargauge",
+      "title": "Requests by snapd version (last 24h)",
+      "gridPos": { "x": 0, "y": 12, "w": 12, "h": 10 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        { "expr": "sum by (version) (increase(store_snapd_client_version_total{env=\"$env\"}[24h]))", "refId": "A", "legendFormat": "{{version}}", "instant": true }
+      ],
+      "options": { "orientation": "horizontal", "displayMode": "gradient", "showUnfilled": true },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "continuous-BlPu" },
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "blue", "value": null } ] },
+          "decimals": 0
+        }
+      }
+    },
+    {
+      "id": 4,
+      "type": "table",
+      "title": "snapd version share (selected range)",
+      "gridPos": { "x": 12, "y": 12, "w": 12, "h": 10 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        { "expr": "sum by (version) (increase(store_snapd_client_version_total{env=\"$env\"}[$__range]))", "refId": "A", "format": "table", "instant": true }
+      ],
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": { "show": false },
+        "sortBy": [ { "displayName": "Value", "desc": true } ]
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "align": "auto", "cellOptions": { "type": "auto" } },
+          "decimals": 0
+        }
+      }
+    }
+  ]
+}

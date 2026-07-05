@@ -13,6 +13,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 )
 
@@ -187,6 +188,7 @@ func reply(c echo.Context, resp interface{}, err error) error {
 }
 
 func (s *SyncloudStore) Sections(c echo.Context) error {
+	s.metrics.RecordVersion(snapdVersion(c.Request().UserAgent()))
 	c.Response().Header().Set(echo.HeaderContentType, "application/hal+json")
 	return c.String(http.StatusOK, `{
   "_embedded": {
@@ -201,6 +203,7 @@ func (s *SyncloudStore) Sections(c echo.Context) error {
 }
 
 func (s *SyncloudStore) Names(c echo.Context) error {
+	s.metrics.RecordVersion(snapdVersion(c.Request().UserAgent()))
 	c.Response().Header().Set(echo.HeaderContentType, "application/hal+json")
 	return c.String(http.StatusOK, `
 {
@@ -212,7 +215,24 @@ func (s *SyncloudStore) Names(c echo.Context) error {
 }`)
 }
 
+var snapdVersionRe = regexp.MustCompile(`^[0-9][0-9.]{0,15}$`)
+
+func snapdVersion(userAgent string) string {
+	if !strings.HasPrefix(userAgent, "snapd/") {
+		return "unknown"
+	}
+	version := strings.TrimPrefix(userAgent, "snapd/")
+	if i := strings.IndexByte(version, ' '); i >= 0 {
+		version = version[:i]
+	}
+	if !snapdVersionRe.MatchString(version) {
+		return "other"
+	}
+	return version
+}
+
 func (s *SyncloudStore) Refresh(c echo.Context) error {
+	s.metrics.RecordVersion(snapdVersion(c.Request().UserAgent()))
 	req, err := io.ReadAll(c.Request().Body)
 	if err != nil {
 		c.Error(err)
@@ -268,6 +288,7 @@ func snapName(action *model.SnapAction) string {
 }
 
 func (s *SyncloudStore) Info(c echo.Context) error {
+	s.metrics.RecordVersion(snapdVersion(c.Request().UserAgent()))
 	name := c.Param("name")
 	arch := c.QueryParam("architecture")
 	result := s.apiCache.Info(name, arch)
@@ -281,6 +302,7 @@ func (s *SyncloudStore) Info(c echo.Context) error {
 }
 
 func (s *SyncloudStore) Find(c echo.Context) error {
+	s.metrics.RecordVersion(snapdVersion(c.Request().UserAgent()))
 	channel := c.QueryParam("channel")
 	query := c.QueryParam("q")
 	architecture := c.QueryParam("architecture")
@@ -305,6 +327,7 @@ func (s *SyncloudStore) Find(c echo.Context) error {
 }
 
 func (s *SyncloudStore) AccountKey(c echo.Context) error {
+	s.metrics.RecordVersion(snapdVersion(c.Request().UserAgent()))
 	content, err := s.signer.AccountKey(c.Param("key"))
 	if err != nil {
 		c.Error(err)
@@ -314,6 +337,7 @@ func (s *SyncloudStore) AccountKey(c echo.Context) error {
 }
 
 func (s *SyncloudStore) SnapDeclaration(c echo.Context) error {
+	s.metrics.RecordVersion(snapdVersion(c.Request().UserAgent()))
 	content, err := s.signer.SnapDeclaration(c.Param("series"), c.Param("snap-id"))
 	if err != nil {
 		c.Error(err)
@@ -323,6 +347,7 @@ func (s *SyncloudStore) SnapDeclaration(c echo.Context) error {
 }
 
 func (s *SyncloudStore) SnapRevision(c echo.Context) error {
+	s.metrics.RecordVersion(snapdVersion(c.Request().UserAgent()))
 	key := c.Param("key")
 	s.logger.Info("snap revision", zap.String("key", key))
 
