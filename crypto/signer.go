@@ -74,8 +74,17 @@ type PrivateKeySigner struct {
 	logger     *zap.Logger
 }
 
-func NewSigner(logger *zap.Logger) *PrivateKeySigner {
-	privateKey, _ := ReadPrivateKey(syncloudPrivKey)
+func NewSigner(logger *zap.Logger, activeKey string, newKeyArmored string) *PrivateKeySigner {
+	keyText := syncloudPrivKey
+	if activeKey == "new" {
+		if newKeyArmored == "" {
+			logger.Warn("signing_key_active is 'new' but no new key was provided, falling back to the old key")
+		} else {
+			logger.Info("signing assertions with the new signing key")
+			keyText = newKeyArmored
+		}
+	}
+	privateKey, _ := ReadPrivateKey(keyText)
 	return &PrivateKeySigner{
 		privateKey: privateKey,
 		logger:     logger,
