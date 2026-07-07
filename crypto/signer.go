@@ -140,11 +140,6 @@ func (s *PrivateKeySigner) AccountKey(key string) (string, error) {
 		}, string(publicKeyEnc))
 }
 
-// assemble builds an assertion in snapd's canonical serialization and
-// self-signs it, so snapd verifies it with real signature checking. The header
-// order must match asserts.assembleAndSign exactly: type, authority-id, primary
-// keys, remaining headers in lexicographic order, body-length, then
-// sign-key-sha3-384, followed by the body.
 func (s *PrivateKeySigner) assemble(assertType string, primary []assertionHeader, other map[string]string, body string) (string, error) {
 	keyID := s.privateKey.PublicKey().ID()
 	var buf bytes.Buffer

@@ -27,9 +27,6 @@ func armorKey(t *testing.T, rsaKey *rsa.PrivateKey) string {
 	return buf.String()
 }
 
-// honestVerify checks the assertion's signature the way real snapd does
-// (raw openpgp), independent of the fork's disabled SignatureCheck. The signed
-// content is everything before the final "\n\n"; the signature follows it.
 func honestVerify(t *testing.T, assertionText string, pub *rsa.PublicKey) {
 	idx := strings.LastIndex(assertionText, "\n\n")
 	require.GreaterOrEqual(t, idx, 0)
