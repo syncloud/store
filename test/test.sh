@@ -15,7 +15,7 @@ mkdir -p $LOG_DIR
 cd $DIR
 ./wait-for-device.sh device
 
-wget --progress=dot:giga https://github.com/syncloud/snapd/releases/download/syncloud-5/snapd-640-${SNAP_ARCH}.tar.gz -O snapd2.tar.gz
+wget --progress=dot:giga http://ci.syncloud.org:8081/files/snapd/655-${SNAP_ARCH}/snapd-655-${SNAP_ARCH}.tar.gz -O snapd2.tar.gz
 $SCP snapd2.tar.gz root@device:/
 $SCP ${DIR}/install-snapd-v2.sh root@device:/
 $SCP ${DIR}/testapp2/testapp2_1_$SNAP_ARCH.snap root@device:/testapp2_1.snap
