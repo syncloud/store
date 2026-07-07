@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io/fs"
 	"net/url"
@@ -70,7 +71,15 @@ func start(listenAddress, configPath, metricsAddr string) error {
 		return err
 	}
 	cache := storage.New(client, mp, config.BaseUrl, logger)
-	signer := crypto.NewSigner(logger)
+	newSigningKey := ""
+	if config.SigningKeyActive == "new" {
+		decoded, err := base64.StdEncoding.DecodeString(config.SigningKeyNewBase64)
+		if err != nil {
+			return fmt.Errorf("cannot decode signing_key_new_base64: %v", err)
+		}
+		newSigningKey = string(decoded)
+	}
+	signer := crypto.NewSigner(logger, config.SigningKeyActive, newSigningKey)
 	popularity := storage.NewPopularity()
 	snapdMetrics := api.NewSnapdMetrics()
 	ui := api.NewWeb(webFS, cache, popularity)

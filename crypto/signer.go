@@ -1,12 +1,13 @@
 package crypto
 
 import (
+	"bytes"
 	"encoding/json"
-	"fmt"
+	"sort"
+	"strconv"
+
 	"github.com/syncloud/store/model"
 	"go.uber.org/zap"
-	"strconv"
-	"time"
 )
 
 const (
@@ -74,12 +75,28 @@ type PrivateKeySigner struct {
 	logger     *zap.Logger
 }
 
-func NewSigner(logger *zap.Logger) *PrivateKeySigner {
-	privateKey, _ := ReadPrivateKey(syncloudPrivKey)
+func NewSigner(logger *zap.Logger, activeKey string, newKeyArmored string) *PrivateKeySigner {
+	keyText := syncloudPrivKey
+	if activeKey == "new" {
+		if newKeyArmored == "" {
+			logger.Warn("signing_key_active is 'new' but no new key was provided, falling back to the old key")
+		} else {
+			logger.Info("signing assertions with the new signing key")
+			keyText = newKeyArmored
+		}
+	}
+	privateKey, _ := ReadPrivateKey(keyText)
 	return &PrivateKeySigner{
 		privateKey: privateKey,
 		logger:     logger,
 	}
+}
+
+const assertionTimestamp = "2016-04-01T00:00:00Z"
+
+type assertionHeader struct {
+	key   string
+	value string
 }
 
 func (s *PrivateKeySigner) SnapRevision(key, revision string) (string, error) {
@@ -88,24 +105,25 @@ func (s *PrivateKeySigner) SnapRevision(key, revision string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	headers := "" +
-		"snap-revision: " + snapRevision.Revision + "\n" +
-		"snap-id: " + snapRevision.Id + "\n" +
-		"snap-size: " + snapRevision.Size + "\n" +
-		"snap-sha3-384: " + snapRevision.Sha384 + "\n"
-
-	return s.sign("snap-revision", key, headers, "")
+	return s.assemble("snap-revision",
+		[]assertionHeader{{"snap-sha3-384", key}},
+		map[string]string{
+			"snap-id":       snapRevision.Id,
+			"snap-revision": snapRevision.Revision,
+			"snap-size":     snapRevision.Size,
+			"developer-id":  "syncloud",
+			"timestamp":     assertionTimestamp,
+		}, "")
 }
 
 func (s *PrivateKeySigner) SnapDeclaration(series, snapId string) (string, error) {
-	name := model.SnapId(snapId).Name()
-	headers := "" +
-		"series: " + series + "\n" +
-		"snap-id: " + snapId + "\n" +
-		"snap-name: " + name + "\n"
-
-	return s.sign("snap-declaration", fmt.Sprintf("%s/%s", series, snapId), headers, "")
-
+	return s.assemble("snap-declaration",
+		[]assertionHeader{{"series", series}, {"snap-id", snapId}},
+		map[string]string{
+			"snap-name":    model.SnapId(snapId).Name(),
+			"publisher-id": "syncloud",
+			"timestamp":    assertionTimestamp,
+		}, "")
 }
 
 func (s *PrivateKeySigner) AccountKey(key string) (string, error) {
@@ -113,42 +131,42 @@ func (s *PrivateKeySigner) AccountKey(key string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
-	return s.sign("account-key", key, "", string(publicKeyEnc))
+	return s.assemble("account-key",
+		[]assertionHeader{{"public-key-sha3-384", s.privateKey.PublicKey().ID()}},
+		map[string]string{
+			"account-id": "syncloud",
+			"name":       "root",
+			"since":      assertionTimestamp,
+		}, string(publicKeyEnc))
 }
 
-func (s *PrivateKeySigner) sign(assertType string, primaryKey string, headers string, body string) (string, error) {
-	publicKeyId := s.privateKey.PublicKey().ID()
-
-	s.logger.Info("public key", zap.String("id", publicKeyId))
-
-	content := "type: " + assertType + "\n" +
-		"authority-id: syncloud\n" +
-		"primary-key: " + primaryKey + "\n" +
-		"publisher-id: syncloud\n" +
-		"developer-id: syncloud\n" +
-		"account-id: syncloud\n" +
-		// "display-name: syncloud\n" +
-		"revision: 1\n" +
-		"sign-key-sha3-384: " + publicKeyId + "\n" +
-		"sha3-384: " + publicKeyId + "\n" +
-		"public-key-sha3-384: " + publicKeyId + "\n" +
-		"timestamp: " + time.Now().Format(time.RFC3339) + "\n" +
-		"since: " + time.Now().Format(time.RFC3339) + "\n" +
-		headers +
-		"validation: certified\n" +
-		"body-length: " + strconv.Itoa(len(body)) + "\n\n" +
-		body +
-		"\n\n"
-
-	fmt.Println("content:")
-	fmt.Println(content)
-	signature, err := s.privateKey.SignContent([]byte(content))
+func (s *PrivateKeySigner) assemble(assertType string, primary []assertionHeader, other map[string]string, body string) (string, error) {
+	keyID := s.privateKey.PublicKey().ID()
+	var buf bytes.Buffer
+	buf.WriteString("type: " + assertType)
+	buf.WriteString("\nauthority-id: syncloud")
+	for _, h := range primary {
+		buf.WriteString("\n" + h.key + ": " + h.value)
+	}
+	keys := make([]string, 0, len(other))
+	for k := range other {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		buf.WriteString("\n" + k + ": " + other[k])
+	}
+	if body != "" {
+		buf.WriteString("\nbody-length: " + strconv.Itoa(len(body)))
+	}
+	buf.WriteString("\nsign-key-sha3-384: " + keyID)
+	if body != "" {
+		buf.WriteString("\n\n" + body)
+	}
+	content := buf.Bytes()
+	signature, err := s.privateKey.SignContent(content)
 	if err != nil {
 		return "", err
 	}
-	fmt.Println("signature:")
-	fmt.Println(string(signature))
-	assertionText := content + string(signature) + "\n"
-	return assertionText, nil
+	return string(content) + "\n\n" + string(signature) + "\n", nil
 }

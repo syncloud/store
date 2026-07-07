@@ -188,6 +188,7 @@ local build(arch) = {
                     SYNCLOUD_TOKEN: { from_secret: "uat_token" },
                     AWS_ACCESS_KEY_ID: { from_secret: "AWS_ACCESS_KEY_ID" },
                     AWS_SECRET_ACCESS_KEY: { from_secret: "AWS_SECRET_ACCESS_KEY" },
+                    SIGNING_KEY_NEW_BASE64: { from_secret: "signing_key_new_base64" },
                 },
                 commands: [
                     "./ci/deploy-prepare.sh uat",
@@ -208,6 +209,7 @@ local build(arch) = {
                     SYNCLOUD_TOKEN: { from_secret: "prod_token" },
                     AWS_ACCESS_KEY_ID: { from_secret: "AWS_ACCESS_KEY_ID" },
                     AWS_SECRET_ACCESS_KEY: { from_secret: "AWS_SECRET_ACCESS_KEY" },
+                    SIGNING_KEY_NEW_BASE64: { from_secret: "signing_key_new_base64" },
                 },
                 commands: [
                     "./ci/deploy-prepare.sh prod",

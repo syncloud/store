@@ -41,6 +41,11 @@ set +x
 sed -i "s|@aws_secret_access_key@|${AWS_SECRET_ACCESS_KEY}|g" "$STAGE/secret.yaml"
 set -x
 
+# optional: only consumed once signing_key_active is switched to "new"; empty otherwise
+set +x
+sed -i "s|@signing_key_new_base64@|${SIGNING_KEY_NEW_BASE64}|g" "$STAGE/secret.yaml"
+set -x
+
 $SSH $REMOTE "sudo -n rm -rf /tmp/syncloud-store && mkdir -p /tmp/syncloud-store/config/${ENV}"
 $SCP deploy "${REMOTE}:/tmp/syncloud-store/"
 $SCP "$STAGE/." "${REMOTE}:/tmp/syncloud-store/config/${ENV}/"
