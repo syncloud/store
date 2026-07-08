@@ -27,11 +27,11 @@
     {
       "id": 2,
       "type": "timeseries",
-      "title": "snapd refresh requests by version, 1h window ($env)",
+      "title": "snapd scheduled refreshes by version, 1h window ($env)",
       "gridPos": { "x": 0, "y": 0, "w": 24, "h": 12 },
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
-        { "expr": "sum by (version) (increase(store_snapd_client_version_total{env=\"$env\",endpoint=\"refresh\"}[1h]))", "refId": "A", "legendFormat": "{{version}}" }
+        { "expr": "sum by (version) (increase(store_snapd_scheduled_refresh_total{env=\"$env\"}[1h]))", "refId": "A", "legendFormat": "{{version}}" }
       ],
       "fieldConfig": {
         "defaults": {
@@ -47,11 +47,11 @@
     {
       "id": 3,
       "type": "bargauge",
-      "title": "Refresh requests by snapd version (last 24h)",
+      "title": "Devices by snapd version (last 24h, one scheduled refresh per device)",
       "gridPos": { "x": 0, "y": 12, "w": 24, "h": 8 },
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
-        { "expr": "sum by (version) (increase(store_snapd_client_version_total{env=\"$env\",endpoint=\"refresh\"}[24h]))", "refId": "A", "legendFormat": "{{version}}", "instant": true }
+        { "expr": "sum by (version) (increase(store_snapd_scheduled_refresh_total{env=\"$env\"}[24h]))", "refId": "A", "legendFormat": "{{version}}", "instant": true }
       ],
       "options": { "orientation": "horizontal", "displayMode": "gradient", "showUnfilled": true },
       "fieldConfig": {
