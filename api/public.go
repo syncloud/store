@@ -232,7 +232,12 @@ func snapdVersion(userAgent string) string {
 }
 
 func (s *SyncloudStore) Refresh(c echo.Context) error {
-	s.metrics.RecordVersion(snapdVersion(c.Request().UserAgent()), "refresh")
+	version := snapdVersion(c.Request().UserAgent())
+	s.metrics.RecordVersion(version, "refresh")
+	reason := c.Request().Header.Get("Snap-Refresh-Reason")
+	if reason == "scheduled" {
+		s.metrics.RecordScheduledRefresh(version)
+	}
 	req, err := io.ReadAll(c.Request().Body)
 	if err != nil {
 		c.Error(err)
@@ -241,6 +246,7 @@ func (s *SyncloudStore) Refresh(c echo.Context) error {
 	arch := c.Request().Header.Get("Syncloud-Architecture")
 	s.logger.Info("refresh",
 		zap.String("arch", arch),
+		zap.String("reason", reason),
 		zap.String("remote_addr", c.RealIP()),
 		zap.String("body", string(req)),
 	)
