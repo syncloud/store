@@ -45,10 +45,30 @@
       "options": { "legend": { "displayMode": "table", "placement": "right", "calcs": [ "lastNotNull", "max" ] }, "tooltip": { "mode": "multi", "sort": "desc" } }
     },
     {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Active devices by snapd version, 24h window ($env)",
+      "gridPos": { "x": 0, "y": 12, "w": 24, "h": 12 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        { "expr": "store_snapd_active_devices{env=\"$env\"}", "refId": "A", "legendFormat": "{{version}}" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "decimals": 0,
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "stacking": { "mode": "normal", "group": "A" }, "fillOpacity": 20, "lineWidth": 1, "showPoints": "never" }
+        }
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "right", "calcs": [ "lastNotNull", "max" ] }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
       "id": 3,
       "type": "bargauge",
       "title": "Devices by snapd version (last 24h, one scheduled refresh per device)",
-      "gridPos": { "x": 0, "y": 12, "w": 24, "h": 8 },
+      "gridPos": { "x": 0, "y": 24, "w": 24, "h": 8 },
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
         { "expr": "sum by (version) (increase(store_snapd_scheduled_refresh_total{env=\"$env\"}[24h]))", "refId": "A", "legendFormat": "{{version}}", "instant": true }
