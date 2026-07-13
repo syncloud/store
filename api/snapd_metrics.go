@@ -8,7 +8,12 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-const activeDevicesWindow = 24 * time.Hour
+const activeDevicesWindow = 48 * time.Hour
+
+type deviceSeen struct {
+	version  string
+	lastSeen time.Time
+}
 
 type SnapdMetrics struct {
 	requests           *prometheus.CounterVec
@@ -17,7 +22,7 @@ type SnapdMetrics struct {
 	window             time.Duration
 	now                func() time.Time
 	mu                 sync.Mutex
-	calls              map[string][]time.Time
+	devices            map[string]deviceSeen
 }
 
 func NewSnapdMetrics() *SnapdMetrics {
@@ -38,12 +43,12 @@ func NewSnapdMetrics() *SnapdMetrics {
 		),
 		activeDevices: prometheus.NewDesc(
 			"store_snapd_active_devices",
-			"Scheduled refreshes in the last 24h by snapd version. One request per device per day, so this approximates active devices; a version with no refresh in the window drops out.",
+			"Distinct devices (by client IP) whose last scheduled refresh is within the last 48h, by snapd version. Devices refresh once a day, so the 48h window keeps a device counted between its daily refreshes.",
 			[]string{"version"}, nil,
 		),
-		window: activeDevicesWindow,
-		now:    time.Now,
-		calls:  map[string][]time.Time{},
+		window:  activeDevicesWindow,
+		now:     time.Now,
+		devices: map[string]deviceSeen{},
 	}
 }
 
@@ -51,11 +56,11 @@ func (m *SnapdMetrics) Record(snap, action, arch string, status int) {
 	m.requests.WithLabelValues(snap, action, arch, strconv.Itoa(status)).Inc()
 }
 
-func (m *SnapdMetrics) RecordScheduledRefresh(version string) {
+func (m *SnapdMetrics) RecordScheduledRefresh(deviceId, version string) {
 	m.scheduledRefreshes.WithLabelValues(version).Inc()
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.calls[version] = append(m.calls[version], m.now())
+	m.devices[deviceId] = deviceSeen{version: version, lastSeen: m.now()}
 }
 
 func (m *SnapdMetrics) Describe(ch chan<- *prometheus.Desc) {
@@ -71,20 +76,12 @@ func (m *SnapdMetrics) Collect(ch chan<- prometheus.Metric) {
 	m.mu.Lock()
 	cutoff := m.now().Add(-m.window)
 	counts := map[string]int{}
-	for version, times := range m.calls {
-		kept := times[:0]
-		for _, t := range times {
-			if t.Before(cutoff) {
-				continue
-			}
-			kept = append(kept, t)
-		}
-		if len(kept) == 0 {
-			delete(m.calls, version)
+	for id, seen := range m.devices {
+		if seen.lastSeen.Before(cutoff) {
+			delete(m.devices, id)
 			continue
 		}
-		m.calls[version] = kept
-		counts[version] = len(kept)
+		counts[seen.version]++
 	}
 	m.mu.Unlock()
 

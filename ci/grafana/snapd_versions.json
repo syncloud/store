@@ -47,7 +47,7 @@
     {
       "id": 4,
       "type": "timeseries",
-      "title": "Active devices by snapd version, 24h window ($env)",
+      "title": "Active devices by snapd version, distinct IPs 48h window ($env)",
       "gridPos": { "x": 0, "y": 12, "w": 24, "h": 12 },
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
