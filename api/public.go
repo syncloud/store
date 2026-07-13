@@ -233,7 +233,7 @@ func (s *SyncloudStore) Refresh(c echo.Context) error {
 	version := snapdVersion(c.Request().UserAgent())
 	reason := c.Request().Header.Get("Snap-Refresh-Reason")
 	if reason == "scheduled" {
-		s.metrics.RecordScheduledRefresh(version)
+		s.metrics.RecordScheduledRefresh(c.RealIP(), version)
 	}
 	req, err := io.ReadAll(c.Request().Body)
 	if err != nil {
