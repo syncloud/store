@@ -9,18 +9,12 @@ fi
 TAG=$1
 ENV=$2
 DIR=$( cd "$( dirname "$0" )" && pwd )
-APACHE_SRC="$DIR/../config/$ENV/apache.conf"
-if [ ! -f "$APACHE_SRC" ]; then
-    echo "missing $APACHE_SRC" >&2
-    exit 1
-fi
 CONTAINER=syncloud-store
 STORE_DIR=/var/www/store
-APACHE_SITE=/etc/apache2/sites-available/store.conf
 
-if ! command -v docker >/dev/null 2>&1 || ! command -v apache2 >/dev/null 2>&1; then
+if ! command -v docker >/dev/null 2>&1; then
     apt-get update
-    apt-get install -y docker.io apache2
+    apt-get install -y docker.io
 fi
 
 if ! id -u store >/dev/null 2>&1; then
@@ -62,15 +56,5 @@ if ! docker ps -q --filter name="$CONTAINER" --filter status=running | grep -q .
     docker logs "$CONTAINER" 2>&1 | tail -40
     exit 1
 fi
-
-cp "$APACHE_SRC" "$APACHE_SITE"
-
-if a2query -s 000-default >/dev/null 2>&1; then
-    a2dissite 000-default
-fi
-a2ensite store
-a2enmod proxy proxy_http rewrite ssl
-apache2ctl configtest
-systemctl reload apache2 || systemctl restart apache2
 
 docker image prune -f
