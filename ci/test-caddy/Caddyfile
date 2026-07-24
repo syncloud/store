@@ -1,0 +1,6 @@
+{
+	auto_https off
+}
+(syncloud_tls) {
+}
+import /etc/caddy/conf.d/*.caddy
