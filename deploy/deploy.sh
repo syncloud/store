@@ -57,4 +57,8 @@ if ! docker ps -q --filter name="$CONTAINER" --filter status=running | grep -q .
     exit 1
 fi
 
-docker image prune -f
+install -d /etc/caddy/conf.d
+install -m 0644 "$DIR/../config/caddy/store.caddy" /etc/caddy/conf.d/store.caddy
+docker exec caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile 2>/dev/null || true
+
+docker image prune -af

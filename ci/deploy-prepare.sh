@@ -49,3 +49,4 @@ set -x
 $SSH $REMOTE "sudo -n rm -rf /tmp/syncloud-store && mkdir -p /tmp/syncloud-store/config/${ENV}"
 $SCP deploy "${REMOTE}:/tmp/syncloud-store/"
 $SCP "$STAGE/." "${REMOTE}:/tmp/syncloud-store/config/${ENV}/"
+$SCP config/caddy "${REMOTE}:/tmp/syncloud-store/config/caddy"

@@ -120,6 +120,7 @@ local build(arch) = {
                 commands: [
                     "./ci/test-init.sh",
                     "export DEPLOY_KEY=\"$(cat /tmp/_deploy_key)\"",
+                    "./ci/test-setup.sh",
                     "./ci/deploy-prepare.sh test",
                     "./ci/deploy-run.sh test " + image_tag,
                     "./build/bin/deploy-verify -test.v -test.failfast",
