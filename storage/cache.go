@@ -58,7 +58,7 @@ func New(client rest.Client, lister AppLister, baseUrl string, logger *zap.Logge
 	}
 }
 
-func (i *Cache) InfoById(channelFull, snapId, action, actionName, arch string) (*model.StoreResult, error) {
+func (i *Cache) InfoById(channelFull, snapId, action, actionName, arch string, revision int) (*model.StoreResult, error) {
 	channel := parseChannel(channelFull)
 	snapName := actionName
 	if snapId != "" {
@@ -69,7 +69,7 @@ func (i *Cache) InfoById(channelFull, snapId, action, actionName, arch string) (
 	if !ok {
 		return nil, fmt.Errorf("no channel: %s in the index", channel)
 	}
-	i.logger.Info("lookup", zap.String("app", snapName))
+	i.logger.Info("lookup", zap.String("app", snapName), zap.Int("revision", revision))
 	app, ok := architectures[arch][snapName]
 	if !ok {
 		return &model.StoreResult{
@@ -82,12 +82,49 @@ func (i *Cache) InfoById(channelFull, snapId, action, actionName, arch string) (
 			SnapID: snapId,
 		}, nil
 	}
+	if revision != 0 && revision != app.Revision {
+		pinned, err := i.pinnedRevision(channel, snapName, arch, revision)
+		if err != nil {
+			return nil, err
+		}
+		if pinned == nil {
+			return &model.StoreResult{
+				Result: "error",
+				Name:   snapName,
+				Error: &model.StoreError{
+					Code:    "revision-not-found",
+					Message: "revision-not-found",
+				},
+				SnapID: snapId,
+			}, nil
+		}
+		app = pinned
+	}
 	return &model.StoreResult{
 		Result:           action,
 		Snap:             app,
 		SnapID:           snapId,
 		EffectiveChannel: channel,
 	}, nil
+}
+
+func (i *Cache) pinnedRevision(channel, snapName, arch string, revision int) (*model.Snap, error) {
+	app, ok := i.ReadApp(channel, snapName)
+	if !ok {
+		return nil, nil
+	}
+	return i.resolveSnapVersion(channel, app, arch, strconv.Itoa(revision))
+}
+
+func (i *Cache) ReadApp(channel, name string) (*model.App, bool) {
+	i.lock.RLock()
+	defer i.lock.RUnlock()
+	apps, ok := i.appCache[channel]
+	if !ok {
+		return nil, false
+	}
+	app, ok := apps[name]
+	return app, ok
 }
 
 func parseChannel(channel string) string {
@@ -273,10 +310,13 @@ func (i *Cache) resolveSnap(channel string, app *model.App, arch string) (*model
 	if code != 200 {
 		return nil, fmt.Errorf("%s -> %d", versionUrl, code)
 	}
-	version := resp
+	return i.resolveSnapVersion(channel, app, arch, resp)
+}
+
+func (i *Cache) resolveSnapVersion(channel string, app *model.App, arch string, version string) (*model.Snap, error) {
 	downloadUrl := fmt.Sprintf("%s/apps/%s_%s_%s.snap", i.baseUrl, app.Name, version, arch)
 
-	resp, _, err = i.client.Get(fmt.Sprintf("%s/apps/%s_%s_%s.snap.size", i.baseUrl, app.Name, version, arch))
+	resp, _, err := i.client.Get(fmt.Sprintf("%s/apps/%s_%s_%s.snap.size", i.baseUrl, app.Name, version, arch))
 	if err != nil {
 		return nil, err
 	}

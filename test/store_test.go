@@ -162,6 +162,81 @@ func TestRefreshList(t *testing.T) {
 	assert.NoError(t, err, output)
 }
 
+func TestInstallPinnedRevision(t *testing.T) {
+	arch, err := snapArch()
+	assert.NoError(t, err)
+
+	output, err := InstallSnapd("/install-snapd-v2.sh /snapd2.tar.gz")
+	assert.NoError(t, err, output)
+
+	assert.NoError(t, SetVersion("testapp1", arch, "1", "stable"))
+	assert.NoError(t, RefreshCache())
+
+	assert.NoError(t, SetVersion("testapp1", arch, "2", "stable"))
+	assert.NoError(t, RefreshCache())
+
+	output, err = Ssh("device", "snap install testapp1 --revision=1")
+	assert.NoError(t, err, output)
+
+	output, err = Ssh("device", "snap list testapp1")
+	assert.NoError(t, err, output)
+	assert.Contains(t, output, "testapp1  1        1")
+
+	output, err = Ssh("device", "snap remove testapp1")
+	assert.NoError(t, err, output)
+}
+
+func TestRefreshToPinnedRevision(t *testing.T) {
+	arch, err := snapArch()
+	assert.NoError(t, err)
+
+	output, err := InstallSnapd("/install-snapd-v2.sh /snapd2.tar.gz")
+	assert.NoError(t, err, output)
+
+	assert.NoError(t, SetVersion("testapp1", arch, "1", "stable"))
+	assert.NoError(t, RefreshCache())
+
+	output, err = Ssh("device", "snap install testapp1")
+	assert.NoError(t, err, output)
+
+	assert.NoError(t, SetVersion("testapp1", arch, "2", "stable"))
+	assert.NoError(t, RefreshCache())
+
+	output, err = Ssh("device", "snap refresh testapp1")
+	assert.NoError(t, err, output)
+	output, err = Ssh("device", "snap list testapp1")
+	assert.NoError(t, err, output)
+	assert.Contains(t, output, "testapp1  2        2")
+
+	output, err = Ssh("device", "snap refresh testapp1 --revision=1")
+	assert.NoError(t, err, output)
+
+	output, err = Ssh("device", "snap list testapp1")
+	assert.NoError(t, err, output)
+	assert.Contains(t, output, "testapp1  1        1")
+
+	output, err = Ssh("device", "snap remove testapp1")
+	assert.NoError(t, err, output)
+}
+
+func TestPinnedRevisionNotFound(t *testing.T) {
+	arch, err := snapArch()
+	assert.NoError(t, err)
+
+	output, err := InstallSnapd("/install-snapd-v2.sh /snapd2.tar.gz")
+	assert.NoError(t, err, output)
+
+	assert.NoError(t, SetVersion("testapp1", arch, "1", "stable"))
+	assert.NoError(t, RefreshCache())
+
+	output, err = Ssh("device", "snap install testapp1 --revision=987654")
+	assert.Error(t, err, output)
+	assert.NotContains(t, output, "testapp1 1 installed")
+
+	output, err = Ssh("device", "snap list testapp1")
+	assert.Error(t, err, output)
+}
+
 func TestFind(t *testing.T) {
 	arch, err := snapArch()
 	assert.NoError(t, err)
