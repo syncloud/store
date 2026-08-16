@@ -137,9 +137,42 @@ func TestCache_Info_PreferStable(t *testing.T) {
 
 func TestCache_InfoById_NotFound(t *testing.T) {
 	cache := &Cache{snapCache: SnapCache{"stable": {}}, logger: log.Default()}
-	result, err := cache.InfoById("stable", "app.1", "action", "actionName", "amd64")
+	result, err := cache.InfoById("stable", "app.1", "action", "actionName", "amd64", 0)
 	assert.NoError(t, err)
 	assert.Equal(t, "error", result.Result)
+}
+
+func TestCache_InfoById_CurrentRevisionServedFromIndex(t *testing.T) {
+	cache := &Cache{
+		snapCache: SnapCache{"stable": {"amd64": {"app": &model.Snap{Name: "app", Revision: 5}}}},
+		logger:    log.Default(),
+	}
+	result, err := cache.InfoById("stable", "app.5", "refresh", "app", "amd64", 5)
+	assert.NoError(t, err)
+	assert.Equal(t, "refresh", result.Result)
+	assert.Equal(t, 5, result.Snap.Revision)
+}
+
+func TestCache_InfoById_NoRevisionRequestedServesCurrent(t *testing.T) {
+	cache := &Cache{
+		snapCache: SnapCache{"stable": {"amd64": {"app": &model.Snap{Name: "app", Revision: 5}}}},
+		logger:    log.Default(),
+	}
+	result, err := cache.InfoById("stable", "app.5", "refresh", "app", "amd64", 0)
+	assert.NoError(t, err)
+	assert.Equal(t, 5, result.Snap.Revision)
+}
+
+func TestCache_InfoById_UnknownRevisionIsAnError(t *testing.T) {
+	cache := &Cache{
+		snapCache: SnapCache{"stable": {"amd64": {"app": &model.Snap{Name: "app", Revision: 5}}}},
+		appCache:  AppCache{"stable": {}},
+		logger:    log.Default(),
+	}
+	result, err := cache.InfoById("stable", "app.5", "refresh", "app", "amd64", 3)
+	assert.NoError(t, err)
+	assert.Equal(t, "error", result.Result)
+	assert.Equal(t, "revision-not-found", result.Error.Code)
 }
 
 func TestCache_UIApps_EmptyChannel(t *testing.T) {

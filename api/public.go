@@ -27,7 +27,7 @@ type ApiCache interface {
 	Refresh() error
 	Find(channel string, query string, architecture string) *model.SearchResults
 	Info(name, arch string) *model.StoreInfo
-	InfoById(channel, snapId, action, actionName, arch string) (*model.StoreResult, error)
+	InfoById(channel, snapId, action, actionName, arch string, revision int) (*model.StoreResult, error)
 }
 
 type Popularity interface {
@@ -265,7 +265,7 @@ func (s *SyncloudStore) Refresh(c echo.Context) error {
 			s.metrics.Record("", action.Action, arch, http.StatusOK)
 			continue
 		}
-		info, err := s.apiCache.InfoById(action.Channel, action.SnapID, action.Action, action.Name, arch)
+		info, err := s.apiCache.InfoById(action.Channel, action.SnapID, action.Action, action.Name, arch, action.Revision)
 		if err != nil {
 			return err
 		}
