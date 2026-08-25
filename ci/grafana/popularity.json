@@ -62,17 +62,10 @@
       },
       "fieldConfig": {
         "defaults": {
-          "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "width": 60 },
+          "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "minWidth": 120 },
           "decimals": 0
         },
-        "overrides": [
-          {
-            "matcher": { "id": "byName", "options": "app" },
-            "properties": [
-              { "id": "custom.width", "value": 180 }
-            ]
-          }
-        ]
+        "overrides": []
       }
     },
     {
@@ -133,12 +126,12 @@
       "id": 6,
       "type": "timeseries",
       "title": "Trending apps (rolling 24h refresh per app)",
-      "description": "Refresh only. Installs are excluded because CI installs from the production store and would read as popularity.",
+      "description": "Refresh only, and platform is excluded. Every app repo's upgrade test runs 'snap install platform' against the production store and then sideloads only the app under test, so platform keeps its snap-id on CI devices and is the one snap whose refresh count carries CI traffic. It is also on every device, so it compresses the axis for the apps this panel is about.",
       "gridPos": { "x": 0, "y": 26, "w": 24, "h": 12 },
       "timeFrom": "7d",
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
-        { "expr": "topk(10, sum by (snap) (increase(store_snapd_request_total{action=\"refresh\",env=\"$env\",arch=~\"$arch\",snap!=\"\"}[24h])))", "refId": "A", "legendFormat": "{{snap}}" }
+        { "expr": "topk(10, sum by (snap) (increase(store_snapd_request_total{action=\"refresh\",env=\"$env\",arch=~\"$arch\",snap!=\"\",snap!=\"platform\"}[24h])))", "refId": "A", "legendFormat": "{{snap}}" }
       ],
       "fieldConfig": {
         "defaults": {
