@@ -43,35 +43,29 @@
     {
       "id": 2,
       "type": "table",
-      "title": "Actions by app",
+      "title": "Apps in use (by refresh)",
+      "description": "Devices refresh every installed snap about once a day, so refresh count per app over 24h is a census of what is installed across the fleet. Pinned to 24h so the dashboard time picker cannot shrink it below one refresh cycle. Installs are excluded on purpose: CI installs from the production store, so install counts are not usage.",
       "gridPos": { "x": 0, "y": 0, "w": 24, "h": 12 },
+      "timeFrom": "24h",
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
-        { "expr": "sum by (snap, action) (increase(store_snapd_request_total{env=\"$env\",arch=~\"$arch\",snap!=\"\"}[$__range]))", "refId": "A", "format": "table", "instant": true }
+        { "expr": "sum by (snap) (increase(store_snapd_request_total{env=\"$env\",arch=~\"$arch\",snap!=\"\",action=\"refresh\"}[$__range]))", "refId": "A", "format": "table", "instant": true }
       ],
       "transformations": [
-        { "id": "groupingToMatrix", "options": { "columnField": "action", "rowField": "snap", "valueField": "Value", "emptyValue": "zero" } }
+        { "id": "organize", "options": { "excludeByName": { "Time": true }, "renameByName": { "snap": "app", "Value": "refreshes" } } }
       ],
       "options": {
         "showHeader": true,
         "cellHeight": "sm",
         "footer": { "show": false },
-        "sortBy": [ { "displayName": "refresh", "desc": true } ]
+        "sortBy": [ { "displayName": "refreshes", "desc": true } ]
       },
       "fieldConfig": {
         "defaults": {
-          "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "width": 60 },
+          "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "minWidth": 120 },
           "decimals": 0
         },
-        "overrides": [
-          {
-            "matcher": { "id": "byName", "options": "snap\\action" },
-            "properties": [
-              { "id": "displayName", "value": "snap" },
-              { "id": "custom.width", "value": 110 }
-            ]
-          }
-        ]
+        "overrides": []
       }
     },
     {
@@ -131,12 +125,13 @@
     {
       "id": 6,
       "type": "timeseries",
-      "title": "Trending apps (rolling 24h refresh/install per app)",
+      "title": "Trending apps (rolling 24h refresh per app)",
+      "description": "Refresh only, and platform is excluded. Every app repo's upgrade test runs 'snap install platform' against the production store and then sideloads only the app under test, so platform keeps its snap-id on CI devices and is the one snap whose refresh count carries CI traffic. It is also on every device, so it compresses the axis for the apps this panel is about.",
       "gridPos": { "x": 0, "y": 26, "w": 24, "h": 12 },
       "timeFrom": "7d",
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
-        { "expr": "topk(10, sum by (snap) (increase(store_snapd_request_total{action=~\"refresh|install\",env=\"$env\",arch=~\"$arch\",snap!=\"\"}[24h])))", "refId": "A", "legendFormat": "{{snap}}" }
+        { "expr": "topk(10, sum by (snap) (increase(store_snapd_request_total{action=\"refresh\",env=\"$env\",arch=~\"$arch\",snap!=\"\",snap!=\"platform\"}[24h])))", "refId": "A", "legendFormat": "{{snap}}" }
       ],
       "fieldConfig": {
         "defaults": {
