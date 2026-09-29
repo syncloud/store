@@ -1,6 +1,7 @@
 package model
 
 type UIApp struct {
+	Id         string `json:"id"`
 	Name       string `json:"name"`
 	Summary    string `json:"summary"`
 	IconUrl    string `json:"iconUrl,omitempty"`

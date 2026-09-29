@@ -369,6 +369,7 @@ func (i *Cache) UIApps(channel string) []*model.UIApp {
 			continue
 		}
 		results = append(results, &model.UIApp{
+			Id:      name,
 			Name:    app.Summary,
 			Summary: app.Description,
 			IconUrl: i.iconUrl(channel, name),

@@ -38,7 +38,7 @@ async function load () {
     apps.value = (data || []).map(a => {
       const popularity = a.popularity || 0
       return {
-        id: a.snapId,
+        id: a.id,
         name: a.name,
         summary: a.summary || '',
         description: a.description || '',

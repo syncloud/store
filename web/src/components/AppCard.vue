@@ -1,11 +1,13 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { landingUrl } from '../landing'
 
 const props = defineProps({
   app: { type: Object, required: true }
 })
 
 const broken = ref(false)
+const landing = computed(() => landingUrl(props.app.id))
 
 function initial (name) {
   return (name || '?').slice(0, 1).toUpperCase()
@@ -13,7 +15,14 @@ function initial (name) {
 </script>
 
 <template>
-  <article class="card" data-testid="app-card" :data-name="app.name">
+  <component
+    :is="landing ? 'a' : 'article'"
+    class="card"
+    :class="{ 'card-link': landing }"
+    :href="landing || undefined"
+    data-testid="app-card"
+    :data-name="app.name"
+  >
     <span
       v-if="app.rank"
       class="rank"
@@ -33,9 +42,12 @@ function initial (name) {
     <div class="body">
       <h3 class="name" data-testid="app-name">{{ app.name }}</h3>
       <p v-if="app.summary" class="summary" data-testid="app-summary">{{ app.summary }}</p>
-      <span v-if="app.version" class="version" data-testid="app-version">v{{ app.version }}</span>
+      <div class="foot">
+        <span v-if="app.version" class="version" data-testid="app-version">v{{ app.version }}</span>
+        <span v-if="landing" class="more" data-testid="app-more">More…</span>
+      </div>
     </div>
-  </article>
+  </component>
 </template>
 
 <style scoped>
@@ -64,7 +76,11 @@ function initial (name) {
   color: #fff;
   background: var(--accent);
 }
-.card:hover {
+.card-link {
+  text-decoration: none;
+  color: inherit;
+}
+.card-link:hover {
   transform: translateY(-2px);
   border-color: var(--accent);
 }
@@ -106,13 +122,27 @@ function initial (name) {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+.foot {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
 .version {
-  align-self: flex-start;
   font-size: 11px;
   color: var(--text-muted);
   background: var(--accent-soft);
   padding: 2px 8px;
   border-radius: 999px;
-  margin-top: auto;
+}
+.more {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.card-link:hover .more {
+  text-decoration: underline;
 }
 </style>
