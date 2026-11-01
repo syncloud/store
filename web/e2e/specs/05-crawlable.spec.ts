@@ -54,3 +54,24 @@ test.describe('links back to the product pages', () => {
     }
   })
 })
+
+test.describe('what a visitor needs', () => {
+  test('states the hardware once at the top and never on a card', async ({ page }) => {
+    await page.goto('/')
+    await expect(page.getByTestId('app-list')).toBeVisible()
+
+    const subtitle = page.getByTestId('store-subtitle')
+    await expect(subtitle).toContainText('Raspberry Pi')
+    await expect(subtitle).toContainText('VPS you rent')
+
+    const cards = page.getByTestId('app-card')
+    const total = await cards.count()
+    expect(total).toBeGreaterThan(0)
+
+    for (let i = 0; i < total; i++) {
+      const text = await cards.nth(i).innerText()
+      expect(text, 'a card repeats what every app needs').not.toContain('Raspberry Pi')
+      expect(text, 'a card repeats what every app needs').not.toContain('VPS')
+    }
+  })
+})
