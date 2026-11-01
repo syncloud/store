@@ -106,7 +106,10 @@ onMounted(() => {
     <main class="main">
       <section class="hero">
         <h1 class="title">Apps for your device</h1>
-        <p class="subtitle">Self-hosted, private, one click away.</p>
+        <p
+          class="subtitle"
+          data-testid="store-subtitle"
+        >Self-hosted and one click away, on a Raspberry Pi, an old PC or a VPS you rent.</p>
         <div class="search-wrap">
           <input
             v-model="query"
